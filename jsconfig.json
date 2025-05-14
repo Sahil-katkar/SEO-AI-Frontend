@@ -1,0 +1,10 @@
+{
+  "compilerOptions": {
+    "paths": {
+      "@/components/*": ["./app/components/*"],
+      "@/context/*": ["./app/context/*"],
+      "@/styles/*": ["./app/styles/*"],
+      "@/app/*": ["./app/*"]
+    }
+  }
+}
