@@ -13,11 +13,34 @@ export default function Step4_OutlineCreation() {
     // Simulate API call for outline generation
     // This would use projectData.primaryKeyword, selected LSI/custom keywords, etc.
     await new Promise((resolve) => setTimeout(resolve, 2000));
+    setIsLoading(false);
 
-    const mockOutline = `H1: The Ultimate Guide to ${
-      projectData.primaryKeyword || "Your Topic"
-    }`;
+    
+    // const body = {
+    //   Persona: "abc",
+    //   Keywords: "xyz",
+    //   Intent: "lmn",
+    // };
+    // const pythonResponse = await fetch(
+    //   "http://127.0.0.1:8000/generate-outline/",
+    //   {
+    //     method: "POST",
+    //     headers: {
+    //       "Content-Type": "application/json",
+    //     },
+    //     cache: "no-store",
+    //     body: body,
+    //   }
+    // );
+
+    // const data = await pythonResponse.json();
+    // console.log("data", data);
+
+    // const mockOutline = `H1: The Ultimate Guide to ${
+    //   projectData.primaryKeyword || "Your Topic"
+    // }`;
   };
+
   const handleNext = () => {
     // Add validation if needed
     // if (!projectData.outline.trim()) {

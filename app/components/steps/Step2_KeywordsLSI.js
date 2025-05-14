@@ -99,7 +99,7 @@ export default function Step2_KeywordsLSI() {
           style={{ flexGrow: 1, marginRight: '10px', marginBottom: '0' }}
           onKeyPress={(e) => e.key === 'Enter' && handleAddCustomKeyword()}
         />
-        <button onClick={handleAddCustomKeyword} className="secondary">Add</button>
+        <button onClick={handleAddCustomKeyword} className="ssecondary">Add</button>
       </div>
       {projectData.customKeywords.length > 0 && (
         <ul className="keyword-list">

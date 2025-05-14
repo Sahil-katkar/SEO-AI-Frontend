@@ -81,8 +81,9 @@ export default function Step1_ConnectGDrive() {
       }
 
       const data = await response.json();
+      const onlySpreadsheet = data.filter((item)=> item.mimeType === "application/vnd.google-apps.spreadsheet")
 
-      setFiles(data);
+      setFiles(onlySpreadsheet);
       console.log("Successfully listed files:", data);
     } catch (e) {
       console.error("Failed to list files (caught error):", e);
@@ -126,9 +127,9 @@ export default function Step1_ConnectGDrive() {
                     key={file.id || `${file.name}-${index}`}
                     className="break-words text-lg"
                   >
-                    <strong>{file.name || "Unnamed File"}</strong> (
-                    {file.mimeType || "Unknown Type"})
-                    <button className="">Select</button>
+                    <strong>{file.name || "Unnamed File"}</strong>
+                    {/* ({file.mimeType || "Unknown Type"}) */}
+                    <button className="" onClick={handleNext}>Select</button>
                     {/* {file.webViewLink && file.webViewLink !== "N/A" && (
                       <>
                         {" - "}
