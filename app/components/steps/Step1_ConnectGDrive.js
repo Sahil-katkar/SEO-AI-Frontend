@@ -12,6 +12,36 @@ export default function Step1_ConnectGDrive() {
   const [files, setFiles] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [fileContent, setFileContent] = useState(null);
+
+  // Handler to fetch file content by file_id
+  const handleFetchFileContent = async (fileId) => {
+    setLoading(true);
+    setError(null);
+    setFileContent(null);
+    try {
+      const response = await fetch(
+        `/api/file-content?file_id=${encodeURIComponent(fileId)}`
+      );
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || `HTTP error: ${response.status}`);
+      }
+      const data = await response.json();
+
+      if (data.content) {
+        setFileContent(data.content);
+      } else if (data.error) {
+        setError(data.error);
+      } else {
+        setError("Unknown response from server.");
+      }
+    } catch (e) {
+      setError(e.message || "An unexpected error occurred");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Simulate fetching files from GDrive via your MCP
   const fetchGDriveFiles = async () => {
@@ -81,7 +111,9 @@ export default function Step1_ConnectGDrive() {
       }
 
       const data = await response.json();
-      const onlySpreadsheet = data.filter((item)=> item.mimeType === "application/vnd.google-apps.spreadsheet")
+      const onlySpreadsheet = data.filter(
+        (item) => item.mimeType === "application/vnd.google-apps.spreadsheet"
+      );
 
       setFiles(onlySpreadsheet);
       console.log("Successfully listed files:", data);
@@ -129,7 +161,13 @@ export default function Step1_ConnectGDrive() {
                   >
                     <strong>{file.name || "Unnamed File"}</strong>
                     {/* ({file.mimeType || "Unknown Type"}) */}
-                    <button className="" onClick={handleNext}>Select</button>
+                    <button
+                      className=""
+                      onClick={() => handleFetchFileContent(file.id)}
+                    >
+                      Select
+                    </button>
+
                     {/* {file.webViewLink && file.webViewLink !== "N/A" && (
                       <>
                         {" - "}
@@ -147,6 +185,13 @@ export default function Step1_ConnectGDrive() {
                 ))}
             </ul>
           )}
+        </div>
+      )}
+
+      {fileContent && (
+        <div className="mt-4 p-3 border border-gray-300 rounded">
+          <h2 className="font-semibold">File Content:</h2>
+          <pre>{fileContent}</pre>
         </div>
       )}
     </div>
