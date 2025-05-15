@@ -2,21 +2,24 @@
 import { useState, useEffect } from "react";
 import { useAppContext } from "@/context/AppContext";
 import Loader from "@/components/common/Loader";
+import { toast, ToastContainer } from "react-toastify"; // Import react-toastify
+import "react-toastify/dist/ReactToastify.css"; // Import toastify styles
 
 export default function Step1_ConnectGDrive() {
   const { projectData, updateProjectData, setActiveStep, STEPS } =
     useAppContext();
   const [isLoading, setIsLoading] = useState(false);
-  const [isConnected, setIsConnected] = useState(false); // Simulate connection
-
+  const [isConnected, setIsConnected] = useState(false);
   const [files, setFiles] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [loadingfirst, setLoadingFirst] = useState(false);
+  const [loadingSave, setLoadingSave] = useState(false);
   const [error, setError] = useState(null);
   const [fileContent, setFileContent] = useState(null);
+  const [processingStatus, setProcessingStatus] = useState({});
 
   // Handler to fetch file content by file_id
   const handleFetchFileContent = async (fileId) => {
-    setLoading(true);
+    setLoadingFile(true);
     setError(null);
     setFileContent(null);
     try {
@@ -43,24 +46,80 @@ export default function Step1_ConnectGDrive() {
     }
   };
 
-  // Simulate fetching files from GDrive via your MCP
+  const handleSaveFileToRepo = async (fileId, fileName) => {
+    setProcessingStatus((prev) => ({
+      ...prev,
+      [fileId]: "processing",
+    }));
+    setLoadingSave(true);
+    setError(null);
+    try {
+      const response = await fetch(
+        `/api/file-content?file_id=${encodeURIComponent(fileId)}`
+      );
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || `HTTP error: ${response.status}`);
+      }
+      const data = await response.json();
+      console.log("Fetched file content:", data.content);
+      if (!data.content) {
+        throw new Error(data.error || "No content found in file.");
+      }
+
+      const saveResponse = await fetch("/api/save-to-repo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fileName: fileName || `${fileId}.txt`,
+          content: data.content,
+        }),
+      });
+
+      if (!saveResponse.ok) {
+        const errorData = await saveResponse.json();
+        throw new Error(
+          errorData.detail || `Save error: ${saveResponse.status}`
+        );
+      }
+
+      setProcessingStatus((prev) => ({
+        ...prev,
+        [fileId]: "processed",
+      }));
+
+      // Show toast notification
+      toast.success("File processed successfully!", {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
+    } catch (e) {
+      console.error("Error saving file:", e);
+      setError(e.message || "An unexpected error occurred");
+      setProcessingStatus((prev) => ({
+        ...prev,
+        [fileId]: "idle",
+      }));
+    } finally {
+      setLoadingSave(false);
+    }
+  };
+
   const fetchGDriveFiles = async () => {
     setIsLoading(true);
     try {
-      // In a real app, this would be:
-      // const response = await fetch('/api/gdrive/files');
-      // const data = await response.json();
-      // setFiles(data.files);
-
-      // Mocking API call
-      await new Promise((resolve) => setTimeout(resolve, 1500)); // Simulate network delay
+      await new Promise((resolve) => setTimeout(resolve, 1500));
       const mockFiles = [
         { id: "file1", name: "Competitor Analysis Q1.xlsx" },
         { id: "file2", name: "Keyword Research Data.xlsx" },
         { id: "file3", name: "Content Ideas.gsheet" },
       ];
       setFiles(mockFiles);
-      updateProjectData({ gDriveFiles: mockFiles }); // Store in global context if needed
+      updateProjectData({ gDriveFiles: mockFiles });
       setIsConnected(true);
     } catch (error) {
       console.error("Failed to fetch GDrive files:", error);
@@ -71,28 +130,20 @@ export default function Step1_ConnectGDrive() {
   };
 
   const handleConnect = () => {
-    // Simulate OAuth flow or connection trigger
     fetchGDriveFiles();
   };
 
   const handleFileSelect = (file) => {
     updateProjectData({ selectedGDriveFile: file });
-    // You might automatically move to the next step or have a separate "Next" button
-    // For now, let's assume selection is enough for this step
     alert(`Selected file: ${file.name}`);
   };
 
   const handleNext = () => {
-    // Add validation if a file selection is mandatory
-    // if (!projectData.selectedGDriveFile) {
-    //   alert("Please select a file.");
-    //   return;
-    // }
     setActiveStep(STEPS[1].id);
   };
 
   const handleListFiles = async () => {
-    setLoading(true);
+    setIsLoading(true);
     setError(null);
     setFiles(null);
     try {
@@ -121,7 +172,7 @@ export default function Step1_ConnectGDrive() {
       console.error("Failed to list files (caught error):", e);
       setError(e.message || "An unexpected error occurred.");
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
@@ -130,14 +181,14 @@ export default function Step1_ConnectGDrive() {
       <h3>1. Connect Google Drive & Select Source Data</h3>
       <button
         onClick={handleListFiles}
-        disabled={loading}
+        disabled={loadingfirst}
         className={`px-4 py-2 rounded text-white transition-colors ${
-          loading
+          loadingfirst
             ? "bg-gray-400 cursor-not-allowed"
             : "bg-blue-500 hover:bg-blue-600"
         }`}
       >
-        {loading ? "Loading..." : "Connect to Google Drive and List Files"}
+        {loadingfirst ? "Loading..." : "Connect to Google Drive and List Files"}
       </button>
       {error && (
         <div className="mt-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded break-words text-sm">
@@ -152,37 +203,38 @@ export default function Step1_ConnectGDrive() {
           {files.length === 0 ? (
             <p>No files found in your Google Drive.</p>
           ) : (
-            <ul className="space-y-1 keyword-list ">
+            <ul className="space-y-1 keyword-list">
               {files &&
-                files.map((file, index) => (
-                  <li
-                    key={file.id || `${file.name}-${index}`}
-                    className="break-words text-lg"
-                  >
-                    <strong>{file.name || "Unnamed File"}</strong>
-                    {/* ({file.mimeType || "Unknown Type"}) */}
-                    <button
-                      className=""
-                      onClick={() => handleFetchFileContent(file.id)}
+                files.map((file, index) => {
+                  const status = processingStatus[file.id] || "idle";
+                  return (
+                    <li
+                      key={file.id || `${file.name}-${index}`}
+                      className="break-words text-lg flex items-center justify-between"
                     >
-                      Select
-                    </button>
-
-                    {/* {file.webViewLink && file.webViewLink !== "N/A" && (
-                      <>
-                        {" - "}
-                        <a
-                          href={file.webViewLink}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-600 hover:underline"
-                        >
-                          View Online
-                        </a>
-                      </>
-                    )} */}
-                  </li>
-                ))}
+                      <strong>{file.name || "Unnamed File"}</strong>
+                      <button
+                        onClick={() => handleSaveFileToRepo(file.id, file.name)}
+                        disabled={
+                          status === "processing" || status === "processed"
+                        }
+                        className={`ml-4 px-3 py-1 rounded text-white transition-colors ${
+                          status === "processing"
+                            ? "bg-gray-400 cursor-not-allowed"
+                            : status === "processed"
+                            ? "bg-green-500 cursor-default"
+                            : "bg-blue-500 hover:bg-blue-600"
+                        }`}
+                      >
+                        {status === "processing"
+                          ? "Processing..."
+                          : status === "processed"
+                          ? "File processed!"
+                          : "Select"}
+                      </button>
+                    </li>
+                  );
+                })}
             </ul>
           )}
         </div>
@@ -194,62 +246,9 @@ export default function Step1_ConnectGDrive() {
           <pre>{fileContent}</pre>
         </div>
       )}
-    </div>
-    // <div className="step-component">
-    //   <h3>1. Connect Google Drive & Select Source Data</h3>
-    //   {!isConnected && !isLoading && (
-    //     <>
-    //       <p>
-    //         Connect to your Google Drive to list spreadsheet files for data
-    //         sourcing.
-    //       </p>
-    //       {/* <button onClick={handleConnect}>Connect to Google Drive</button> */}
-    //       <button
-    //         onClick={handleListFiles}
-    //         disabled={loading}
-    //         className={`px-4 py-2 rounded text-white transition-colors ${
-    //           loading
-    //             ? "bg-gray-400 cursor-not-allowed"
-    //             : "bg-blue-500 hover:bg-blue-600"
-    //         }`}
-    //       >
-    //         {loading ? "Loading..." : "Connect to Google Drive and List Files"}
-    //       </button>
-    //     </>
-    //   )}
-    //   {isLoading && <Loader />}
 
-    //   {isConnected && !isLoading && (
-    //     <>
-    //       <h4>Available Spreadsheet Files:</h4>
-    //       {files.length > 0 ? (
-    //         <ul className="keyword-list">
-    //           {files.map((file) => (
-    //             <li key={file.id}>
-    //               <span>{file.name}</span>
-    //               <button
-    //                 onClick={() => handleFileSelect(file)}
-    //                 className="secondary"
-    //                 style={{ marginLeft: "auto", padding: "5px 10px" }}
-    //               >
-    //                 Select
-    //               </button>
-    //             </li>
-    //           ))}
-    //         </ul>
-    //       ) : (
-    //         <p>No spreadsheet files found or accessible.</p>
-    //       )}
-    //       {projectData.selectedGDriveFile && (
-    //         <p>
-    //           <strong>Selected:</strong> {projectData.selectedGDriveFile.name}
-    //         </p>
-    //       )}
-    //     </>
-    //   )}
-    //   <button onClick={handleNext} disabled={isLoading}>
-    //     Next: Keywords & LSI
-    //   </button>
-    // </div>
+      {/* Add ToastContainer to render toasts */}
+      <ToastContainer />
+    </div>
   );
 }
