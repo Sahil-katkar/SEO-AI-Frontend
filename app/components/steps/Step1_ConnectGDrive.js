@@ -9,13 +9,13 @@ export default function Step1_ConnectGDrive() {
   const { projectData, updateProjectData, setActiveStep, STEPS } =
     useAppContext();
   const [isLoading, setIsLoading] = useState(false);
-  const [isConnected, setIsConnected] = useState(false);
-  const [files, setFiles] = useState(null);
   const [loadingfirst, setLoadingFirst] = useState(false);
   const [loadingSave, setLoadingSave] = useState(false);
   const [error, setError] = useState(null);
   const [fileContent, setFileContent] = useState(null);
   const [processingStatus, setProcessingStatus] = useState({});
+
+  console.log("projectData?.isGDriveConnected", projectData?.isGDriveConnected);
 
   // Handler to fetch file content by file_id
   const handleFetchFileContent = async (fileId) => {
@@ -98,7 +98,10 @@ export default function Step1_ConnectGDrive() {
         draggable: true,
       });
       handleNext();
-      updateProjectData({ primaryKeyword: "football", primaryIntent: "This is intent." });
+      updateProjectData({
+        primaryKeyword: "football",
+        primaryIntent: "This is intent.",
+      });
     } catch (e) {
       console.error("Error saving file:", e);
       setError(e.message || "An unexpected error occurred");
@@ -148,7 +151,6 @@ export default function Step1_ConnectGDrive() {
     setLoadingFirst(true);
     setIsLoading(true);
     setError(null);
-    setFiles(null);
     try {
       const response = await fetch("/api/list-files");
 
@@ -163,14 +165,16 @@ export default function Step1_ConnectGDrive() {
           errorData.detail || `HTTP error! status: ${response.status}`
         );
       }
-
       const data = await response.json();
-      const onlySpreadsheet = data.filter(
-        (item) => item.mimeType === "application/vnd.google-apps.spreadsheet"
-      );
-      setFiles(onlySpreadsheet);
-      setLoadingFirst(false);
-      console.log("Successfully listed files:", data);
+      if (data) {
+        updateProjectData({ isGDriveConnected: true });
+        const onlySpreadsheet = data.filter(
+          (item) => item.mimeType === "application/vnd.google-apps.spreadsheet"
+        );
+        updateProjectData({ gDriveFiles: onlySpreadsheet });
+        setLoadingFirst(false);
+        console.log("Successfully listed files:", data);
+      }
     } catch (e) {
       console.error("Failed to list files (caught error):", e);
       setError(e.message || "An unexpected error occurred.");
@@ -199,49 +203,122 @@ export default function Step1_ConnectGDrive() {
           <p>{error}</p>
         </div>
       )}
+
       {isLoading && <Loader />}
-      {files !== null && error === null && (
+
+      {projectData.isGDriveConnected ? (
+        <>
+          <div className="mt-4">
+            {projectData.gDriveFiles.length === 0 ? (
+              <>
+                <h4 className="text-xll text-[30px] font-semibold mb-2">
+                  Files:
+                </h4>
+                <p>No files found in your Google Drive.</p>
+              </>
+            ) : (
+              <>
+                <h4 className="text-xll text-[30px] font-semibold mb-2">
+                  Files:
+                </h4>
+                <ul className="space-y-1 keyword-list">
+                  {projectData?.gDriveFiles &&
+                    projectData?.gDriveFiles.map((file, index) => {
+                      const status = processingStatus[file.id] || "idle";
+                      return (
+                        <li
+                          key={file.id || `${file.name}-${index}`}
+                          className="break-words text-lg flex items-center justify-between"
+                        >
+                          <strong>{file.name || "Unnamed File"}</strong>
+                          <button
+                            onClick={() =>
+                              handleSaveFileToRepo(file.id, file.name)
+                            }
+                            disabled={
+                              status === "processing" || status === "processed"
+                            }
+                            className={`ml-4 px-3 py-1 rounded text-white transition-colors ${
+                              status === "processing"
+                                ? "bg-gray-400 cursor-not-allowed"
+                                : status === "processed"
+                                ? "bg-green-500 cursor-default"
+                                : "bg-blue-500 hover:bg-blue-600"
+                            }`}
+                          >
+                            {status === "processing"
+                              ? "Processing..."
+                              : status === "processed"
+                              ? "File processed!"
+                              : "Select"}
+                          </button>
+                        </li>
+                      );
+                    })}
+                </ul>
+              </>
+            )}
+          </div>
+        </>
+      ) : (
+        <></>
+      )}
+
+      {/* {projectData.gDriveFiles !== null && error === null ? (
         <div className="mt-4">
-          <h4 className="text-xll text-[30px] font-semibold mb-2">Files:</h4>
-          {files.length === 0 ? (
-            <p>No files found in your Google Drive.</p>
+          {projectData.gDriveFiles.length === 0 ? (
+            <>
+              <h4 className="text-xll text-[30px] font-semibold mb-2">
+                Files:
+              </h4>
+              <p>No files found in your Google Drive.</p>
+            </>
           ) : (
-            <ul className="space-y-1 keyword-list">
-              {files &&
-                files.map((file, index) => {
-                  const status = processingStatus[file.id] || "idle";
-                  return (
-                    <li
-                      key={file.id || `${file.name}-${index}`}
-                      className="break-words text-lg flex items-center justify-between"
-                    >
-                      <strong>{file.name || "Unnamed File"}</strong>
-                      <button
-                        onClick={() => handleSaveFileToRepo(file.id, file.name)}
-                        disabled={
-                          status === "processing" || status === "processed"
-                        }
-                        className={`ml-4 px-3 py-1 rounded text-white transition-colors ${
-                          status === "processing"
-                            ? "bg-gray-400 cursor-not-allowed"
-                            : status === "processed"
-                            ? "bg-green-500 cursor-default"
-                            : "bg-blue-500 hover:bg-blue-600"
-                        }`}
+            <>
+              <h4 className="text-xll text-[30px] font-semibold mb-2">
+                Files:
+              </h4>
+              <ul className="space-y-1 keyword-list">
+                {projectData?.gDriveFiles &&
+                  projectData?.gDriveFiles.map((file, index) => {
+                    const status = processingStatus[file.id] || "idle";
+                    return (
+                      <li
+                        key={file.id || `${file.name}-${index}`}
+                        className="break-words text-lg flex items-center justify-between"
                       >
-                        {status === "processing"
-                          ? "Processing..."
-                          : status === "processed"
-                          ? "File processed!"
-                          : "Select"}
-                      </button>
-                    </li>
-                  );
-                })}
-            </ul>
+                        <strong>{file.name || "Unnamed File"}</strong>
+                        <button
+                          onClick={() =>
+                            handleSaveFileToRepo(file.id, file.name)
+                          }
+                          disabled={
+                            status === "processing" || status === "processed"
+                          }
+                          className={`ml-4 px-3 py-1 rounded text-white transition-colors ${
+                            status === "processing"
+                              ? "bg-gray-400 cursor-not-allowed"
+                              : status === "processed"
+                              ? "bg-green-500 cursor-default"
+                              : "bg-blue-500 hover:bg-blue-600"
+                          }`}
+                        >
+                          {status === "processing"
+                            ? "Processing..."
+                            : status === "processed"
+                            ? "File processed!"
+                            : "Select"}
+                        </button>
+                      </li>
+                    );
+                  })}
+              </ul>
+            </>
           )}
         </div>
-      )}
+      ) : (
+        <></>
+      )} */}
 
       {fileContent && (
         <div className="mt-4 p-3 border border-gray-300 rounded">

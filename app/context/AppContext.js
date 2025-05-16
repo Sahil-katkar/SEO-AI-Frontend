@@ -1,34 +1,35 @@
-'use client'; // This is a client component
+"use client"; // This is a client component
 
-import React, { createContext, useState, useContext } from 'react';
+import React, { createContext, useState, useContext } from "react";
 
 const AppContext = createContext();
 
 export const STEPS = [
-  { id: 'step1', name: 'Connect Google Drive' },
-  { id: 'step2', name: 'Intent' },
-  { id: 'step3', name: 'Outline Creation' },
-  { id: 'step4', name: 'Persona' },
-  { id: 'step5', name: 'Content Parameters' },
+  { id: "step1", name: "Connect Google Drive" },
+  { id: "step2", name: "Intent" },
+  { id: "step3", name: "Outline Creation" },
+  { id: "step4", name: "Persona" },
+  { id: "step5", name: "Content Parameters" },
 ];
 
 export function AppProvider({ children }) {
   const [activeStep, setActiveStep] = useState(STEPS[0].id);
   const [projectData, setProjectData] = useState({
-    projectName: '',
+    projectName: "",
     gDriveFiles: [],
     selectedGDriveFile: null,
-    primaryKeyword: '',
+    primaryKeyword: "",
     lsiKeywords: [], // { text: string, checked: boolean }
     customKeywords: [], // { text: string, checked: boolean }
-    targetAudience: '',
-    primaryIntent: '',
-    outline: '',
-    toneOfVoice: '',
+    targetAudience: "",
+    primaryIntent: "",
+    outline: "",
+    toneOfVoice: "",
     wordCount: 1000,
     includeCTA: false,
-    ctaText: '',
-    generatedArticle: '',
+    ctaText: "",
+    generatedArticle: "",
+    isGDriveConnected: false,
   });
 
   const updateProjectData = (newData) => {
@@ -49,7 +50,7 @@ export function AppProvider({ children }) {
 export function useAppContext() {
   const context = useContext(AppContext);
   if (context === undefined) {
-    throw new Error('useAppContext must be used within an AppProvider');
+    throw new Error("useAppContext must be used within an AppProvider");
   }
   return context;
 }
