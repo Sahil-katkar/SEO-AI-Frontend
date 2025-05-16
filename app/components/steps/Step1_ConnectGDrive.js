@@ -15,8 +15,6 @@ export default function Step1_ConnectGDrive() {
   const [fileContent, setFileContent] = useState(null);
   const [processingStatus, setProcessingStatus] = useState({});
 
-  console.log("projectData?.isGDriveConnected", projectData?.isGDriveConnected);
-
   // Handler to fetch file content by file_id
   const handleFetchFileContent = async (fileId) => {
     setLoadingFile(true);

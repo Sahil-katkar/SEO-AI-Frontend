@@ -51,6 +51,7 @@ export default function Step2_Intent() {
   };
 
   const handleNext = () => {
+    // updateProjectData({ customKeywords: updatedCustom });
     setActiveStep(STEPS[2].id);
   };
 
@@ -153,7 +154,7 @@ export default function Step2_Intent() {
           ))}
         </ul>
       )} */}
-      <button onClick={handleNext}>Next: Audience & Intent</button>
+      <button onClick={handleNext}>Next: Outline Creation</button>
     </div>
   );
 }

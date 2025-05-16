@@ -18,7 +18,7 @@ export default function Step4_Persona() {
   return (
     <div className="step-component">
       <h3>3. Persona</h3>
-      <label htmlFor="targetAudience">Select Persona:</label>
+      <h4 htmlFor="targetAudience">Select Persona:</h4>
       <select
         id="targetAudience"
         value={projectData.targetAudience}
@@ -30,7 +30,7 @@ export default function Step4_Persona() {
         ))}
       </select>
 
-      <label htmlFor="primaryIntent">Primary Intent:</label>
+      {/* <label htmlFor="primaryIntent">Primary Intent:</label>
       <select
         id="primaryIntent"
         value={projectData.primaryIntent}
@@ -40,7 +40,7 @@ export default function Step4_Persona() {
         {intents.map(intent => (
           <option key={intent} value={intent}>{intent}</option>
         ))}
-      </select>
+      </select> */}
       <button onClick={handleNext}>Next: Outline Creation</button>
     </div>
   );

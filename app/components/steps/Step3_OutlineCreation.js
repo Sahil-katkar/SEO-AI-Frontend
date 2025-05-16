@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAppContext } from "@/context/AppContext";
 import Loader from "@/components/common/Loader";
 
@@ -24,10 +24,12 @@ export default function Step3_OutlineCreation() {
       // cache: "no-store",
       body: JSON.stringify(bodyData),
     });
-    const generatedOutline = await response.json()
+    const generatedOutline = await response.json();
+    console.log("generatedOutline", generatedOutline);
+
     setIsLoading(false);
-    updateProjectData({ outline: generatedOutline })
-    handleNext();
+    updateProjectData({ outline: generatedOutline });
+    // handleNext();
   };
 
   const handleNext = () => {
@@ -36,8 +38,18 @@ export default function Step3_OutlineCreation() {
     //   alert("Please generate or provide an outline.");
     //   return;
     // }
-    setActiveStep(STEPS[4].id);
+    setActiveStep(STEPS[3].id);
   };
+
+  useEffect(() => {
+    if (
+      projectData.primaryKeyword !== "" &&
+      projectData.primaryIntent !== "" &&
+      projectData.outline === ""
+    ) {
+      handleGenerateOutline();
+    }
+  }, [projectData]);
 
   return (
     <div className="step-component">
@@ -46,17 +58,11 @@ export default function Step3_OutlineCreation() {
         Generate an article outline based on competitor data and your keywords,
         then edit as needed.
       </p>
-      <button onClick={handleGenerateOutline} disabled={isLoading}>
-        {isLoading
-          ? "Generating Outline..."
-          : "Generate Outline from Competitors"}
-      </button>
-
-      {isLoading && <Loader />}
-
-      {!isLoading && (
-        <>
-          <label htmlFor="articleOutline">Article Outline (Editable):</label>
+      <>
+        <h4 htmlFor="articleOutline">Article Outline (Editable):</h4>
+        {projectData.outline === "" ? (
+          <Loader />
+        ) : (
           <textarea
             id="articleOutline"
             value={projectData.outline}
@@ -64,10 +70,18 @@ export default function Step3_OutlineCreation() {
             placeholder="Enter or generate your article outline here. Use H1, H2, H3 for structure."
             rows="15"
           ></textarea>
-        </>
-      )}
+        )}
+      </>
+      {/* <button onClick={handleGenerateOutline} disabled={isLoading}>
+        {isLoading
+          ? "Generating Outline..."
+          : "Generate Outline from Competitors"}
+      </button> */}
+
+      {/* {isLoading && <Loader />} */}
+
       <button onClick={handleNext} disabled={isLoading}>
-        Next: Content Parameters
+        Next: Persona
       </button>
     </div>
   );

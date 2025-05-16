@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-const PYTHON_API_EDIT_OUTLINE_URL = `http://127.0.0.1:8000/edit-outline/`;
+const PYTHON_API_EDIT_OUTLINE_URL = `http://127.0.0.1:8002/edit-outline/`;
 
 export async function POST(request) {
   console.log(`Next.js API: Received GET request at /edit-outline`);
