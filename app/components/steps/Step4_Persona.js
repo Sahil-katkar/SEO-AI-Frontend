@@ -1,7 +1,7 @@
 'use client';
 import { useAppContext } from '@/context/AppContext';
 
-export default function Step3_AudienceIntent() {
+export default function Step4_Persona() {
   const { projectData, updateProjectData, setActiveStep, STEPS } = useAppContext();
   const audiencePersonas = ['Beginner', 'Intermediate', 'Expert', 'Technical Manager', 'Casual Reader'];
   const intents = ['Informational', 'Navigational', 'Commercial Investigation', 'Transactional'];
@@ -17,8 +17,8 @@ export default function Step3_AudienceIntent() {
 
   return (
     <div className="step-component">
-      <h3>3. Audience & Intent Definition</h3>
-      <label htmlFor="targetAudience">Target Audience Persona:</label>
+      <h3>3. Persona</h3>
+      <label htmlFor="targetAudience">Select Persona:</label>
       <select
         id="targetAudience"
         value={projectData.targetAudience}

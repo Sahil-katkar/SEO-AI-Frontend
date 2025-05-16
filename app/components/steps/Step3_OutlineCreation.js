@@ -3,15 +3,13 @@ import { useState } from "react";
 import { useAppContext } from "@/context/AppContext";
 import Loader from "@/components/common/Loader";
 
-export default function Step4_OutlineCreation() {
+export default function Step3_OutlineCreation() {
   const { projectData, updateProjectData, setActiveStep, STEPS } =
     useAppContext();
   const [isLoading, setIsLoading] = useState(false);
 
   const handleGenerateOutline = async () => {
     setIsLoading(true);
-    // Simulate API call for outline generation
-    // This would use projectData.primaryKeyword, selected LSI/custom keywords, etc.
     // await new Promise((resolve) => setTimeout(resolve, 2000));
     const bodyData = {
       Persona: "abc",
@@ -26,14 +24,10 @@ export default function Step4_OutlineCreation() {
       // cache: "no-store",
       body: JSON.stringify(bodyData),
     });
-    // console.log("response.body", await response.json());
     const generatedOutline = await response.json()
     setIsLoading(false);
     updateProjectData({ outline: generatedOutline })
-
-    // const mockOutline = `H1: The Ultimate Guide to ${
-    //   projectData.primaryKeyword || "Your Topic"
-    // }`;
+    handleNext();
   };
 
   const handleNext = () => {
@@ -47,7 +41,7 @@ export default function Step4_OutlineCreation() {
 
   return (
     <div className="step-component">
-      <h3>4. Competitor Analysis & Outline Generation</h3>
+      <h3>4. Outline Creation</h3>
       <p>
         Generate an article outline based on competitor data and your keywords,
         then edit as needed.

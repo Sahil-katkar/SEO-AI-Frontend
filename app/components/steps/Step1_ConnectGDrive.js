@@ -1,7 +1,7 @@
 "use client";
-import { useState, useEffect } from "react";
-import { useAppContext } from "@/context/AppContext";
 import Loader from "@/components/common/Loader";
+import { useAppContext } from "@/context/AppContext";
+import { useState } from "react";
 import { toast, ToastContainer } from "react-toastify"; // Import react-toastify
 import "react-toastify/dist/ReactToastify.css"; // Import toastify styles
 
@@ -97,6 +97,8 @@ export default function Step1_ConnectGDrive() {
         pauseOnHover: true,
         draggable: true,
       });
+      handleNext();
+      updateProjectData({ primaryKeyword: "football", primaryIntent: "This is intent." });
     } catch (e) {
       console.error("Error saving file:", e);
       setError(e.message || "An unexpected error occurred");
@@ -109,40 +111,41 @@ export default function Step1_ConnectGDrive() {
     }
   };
 
-  const fetchGDriveFiles = async () => {
-    setIsLoading(true);
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      const mockFiles = [
-        { id: "file1", name: "Competitor Analysis Q1.xlsx" },
-        { id: "file2", name: "Keyword Research Data.xlsx" },
-        { id: "file3", name: "Content Ideas.gsheet" },
-      ];
-      setFiles(mockFiles);
-      updateProjectData({ gDriveFiles: mockFiles });
-      setIsConnected(true);
-    } catch (error) {
-      console.error("Failed to fetch GDrive files:", error);
-      alert("Error fetching Google Drive files. See console for details.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  // const fetchGDriveFiles = async () => {
+  //   setIsLoading(true);
+  //   try {
+  //     await new Promise((resolve) => setTimeout(resolve, 1500));
+  //     const mockFiles = [
+  //       { id: "file1", name: "Competitor Analysis Q1.xlsx" },
+  //       { id: "file2", name: "Keyword Research Data.xlsx" },
+  //       { id: "file3", name: "Content Ideas.gsheet" },
+  //     ];
+  //     setFiles(mockFiles);
+  //     updateProjectData({ gDriveFiles: mockFiles });
+  //     setIsConnected(true);
+  //   } catch (error) {
+  //     console.error("Failed to fetch GDrive files:", error);
+  //     alert("Error fetching Google Drive files. See console for details.");
+  //   } finally {
+  //     setIsLoading(false);
+  //   }
+  // };
 
-  const handleConnect = () => {
-    fetchGDriveFiles();
-  };
+  // const handleConnect = () => {
+  //   fetchGDriveFiles();
+  // };
 
-  const handleFileSelect = (file) => {
-    updateProjectData({ selectedGDriveFile: file });
-    alert(`Selected file: ${file.name}`);
-  };
+  // const handleFileSelect = (file) => {
+  //   updateProjectData({ selectedGDriveFile: file });
+  //   alert(`Selected file: ${file.name}`);
+  // };
 
   const handleNext = () => {
     setActiveStep(STEPS[1].id);
   };
 
   const handleListFiles = async () => {
+    setLoadingFirst(true);
     setIsLoading(true);
     setError(null);
     setFiles(null);
@@ -165,8 +168,8 @@ export default function Step1_ConnectGDrive() {
       const onlySpreadsheet = data.filter(
         (item) => item.mimeType === "application/vnd.google-apps.spreadsheet"
       );
-
       setFiles(onlySpreadsheet);
+      setLoadingFirst(false);
       console.log("Successfully listed files:", data);
     } catch (e) {
       console.error("Failed to list files (caught error):", e);
