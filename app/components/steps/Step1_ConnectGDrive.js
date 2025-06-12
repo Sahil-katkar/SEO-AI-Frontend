@@ -3,6 +3,7 @@ import Loader from "@/components/common/Loader";
 import { useAppContext } from "@/context/AppContext";
 import { useState, useEffect, useRef } from "react";
 import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 export default function Step1_ConnectGDrive() {
   const { projectData, updateProjectData, setActiveStep, STEPS } =
@@ -10,36 +11,41 @@ export default function Step1_ConnectGDrive() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [processingStatus, setProcessingStatus] = useState({});
-  const [userId, setUserId] = useState("123"); // Assuming a default or fetched user ID
+  const [userId, setUserId] = useState("123");
   const [agentStatusOutput, setAgentStatusOutput] = useState(null);
-  const pollingRef = useRef(null); // To store the polling interval ID
+  const pollingRef = useRef(null);
+
+  const getCurrentStep = () => {
+    const status = agentStatusOutput?.status;
+    switch (status) {
+      case "in_progress":
+        return 1;
+      case "processing_file":
+        return 2;
+      case "completed":
+        return 3;
+      case "not_started":
+      default:
+        return 0;
+    }
+  };
+
+  const currentStep = getCurrentStep();
 
   const startPollingAgentStatus = () => {
-    // Clear any existing polling
-    if (pollingRef.current) {
-      clearInterval(pollingRef.current);
-    }
+    if (pollingRef.current) clearInterval(pollingRef.current);
 
-    // Start polling every 4 seconds
     pollingRef.current = setInterval(async () => {
       try {
         const statusResponse = await fetch(
           `/api/agent_status?PRIMARY_KEYWORD=${encodeURIComponent(
             "Strapi CMS"
-          )}`,
-          {
-            method: "GET",
-            headers: {
-              "Content-Type": "application/json",
-            },
-          }
+          )}`
         );
-
         if (!statusResponse.ok) {
           const errorData = await statusResponse.json();
           throw new Error(
-            errorData.detail ||
-              `Agent status HTTP error! status: ${statusResponse.status}`
+            errorData.detail || `Agent status error: ${statusResponse.status}`
           );
         }
 
@@ -47,25 +53,15 @@ export default function Step1_ConnectGDrive() {
         console.log("Polling /api/agent_status:", statusData);
         setAgentStatusOutput(statusData);
       } catch (e) {
-        console.error("Error during polling /api/agent_status:", e);
+        console.error("Polling error:", e);
         setError(e.message || "Failed to fetch agent status.");
         setAgentStatusOutput(null);
-        clearInterval(pollingRef.current); // Stop polling on error
+        clearInterval(pollingRef.current);
         pollingRef.current = null;
         setIsLoading(false);
-        toast.error(
-          `Polling Error: ${e.message || "Failed to fetch agent status."}`,
-          {
-            position: "top-right",
-            autoClose: 3000,
-            hideProgressBar: false,
-            closeOnClick: true,
-            pauseOnHover: true,
-            draggable: true,
-          }
-        );
+        toast.error(`Polling Error: ${e.message}`);
       }
-    }, 4000); // Poll every 4 seconds
+    }, 4000);
   };
 
   const handleCallMainAgent = async () => {
@@ -74,23 +70,14 @@ export default function Step1_ConnectGDrive() {
     setAgentStatusOutput(null);
 
     try {
-      console.log("Initiating /api/call-main-agent and starting polling");
-
-      // Start polling immediately
       startPollingAgentStatus();
 
-      // Initiate /api/call-main-agent
       const gdriveResponse = await fetch("/api/call-main-agent", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          user_id: userId,
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: userId }),
       });
 
-      // Stop polling when /api/call-main-agent responds
       if (pollingRef.current) {
         clearInterval(pollingRef.current);
         pollingRef.current = null;
@@ -99,50 +86,32 @@ export default function Step1_ConnectGDrive() {
       if (!gdriveResponse.ok) {
         const errorData = await gdriveResponse.json();
         throw new Error(
-          errorData.detail ||
-            `GDrive connection HTTP error! status: ${gdriveResponse.status}`
+          errorData.detail || `GDrive error: ${gdriveResponse.status}`
         );
       }
 
       const gdriveData = await gdriveResponse.json();
-      console.log("Response from /call_main_agent:", gdriveData);
-
       updateProjectData({
         isGDriveConnected: true,
-        gDriveFiles: gdriveData.files || projectData.gDriveFiles || [],
+        gDriveFiles: gdriveData.files || [],
         agentEvent: gdriveData,
       });
 
-      setIsLoading(false); // Stop loading after main agent success
-      toast.success("Google Drive connection completed!", {
-        position: "top-right",
-        autoClose: 3000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-      });
+      setIsLoading(false);
+      toast.success("Google Drive connected!");
     } catch (e) {
-      console.error("Error during /api/call-main-agent:", e);
-      setError(e.message || "An unexpected error occurred during the process.");
+      console.error("Error:", e);
+      setError(e.message || "Unexpected error.");
       setAgentStatusOutput(null);
       if (pollingRef.current) {
-        clearInterval(pollingRef.current); // Stop polling on main agent error
+        clearInterval(pollingRef.current);
         pollingRef.current = null;
       }
       setIsLoading(false);
-      toast.error(`Error: ${e.message || "Failed to initiate process."}`, {
-        position: "top-right",
-        autoClose: 3000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-      });
+      toast.error(`Error: ${e.message}`);
     }
   };
 
-  // Cleanup polling on component unmount
   useEffect(() => {
     return () => {
       if (pollingRef.current) {
@@ -153,10 +122,7 @@ export default function Step1_ConnectGDrive() {
   }, []);
 
   const handleSaveFileToRepo = async (fileId, fileName) => {
-    setProcessingStatus((prev) => ({
-      ...prev,
-      [fileId]: "processing",
-    }));
+    setProcessingStatus((prev) => ({ ...prev, [fileId]: "processing" }));
     setIsLoading(true);
     setError(null);
     try {
@@ -166,15 +132,11 @@ export default function Step1_ConnectGDrive() {
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(
-          errorData.detail ||
-            `HTTP error fetching file content: ${response.status}`
+          errorData.detail || `Fetch file error: ${response.status}`
         );
       }
       const data = await response.json();
-      console.log("Fetched file content:", data.content);
-      if (!data.content) {
-        throw new Error(data.error || "No content found in file.");
-      }
+      if (!data.content) throw new Error(data.error || "No content in file.");
 
       const saveResponse = await fetch("/api/save-to-repo", {
         method: "POST",
@@ -188,23 +150,12 @@ export default function Step1_ConnectGDrive() {
       if (!saveResponse.ok) {
         const errorData = await saveResponse.json();
         throw new Error(
-          errorData.detail || `Save to repo error: ${saveResponse.status}`
+          errorData.detail || `Save error: ${saveResponse.status}`
         );
       }
 
-      setProcessingStatus((prev) => ({
-        ...prev,
-        [fileId]: "processed",
-      }));
-
-      toast.success("File processed successfully!", {
-        position: "top-right",
-        autoClose: 3000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-      });
+      setProcessingStatus((prev) => ({ ...prev, [fileId]: "processed" }));
+      toast.success("File processed!");
 
       updateProjectData({
         primaryKeyword: "football",
@@ -212,28 +163,35 @@ export default function Step1_ConnectGDrive() {
       });
       setActiveStep(STEPS[1].id);
     } catch (e) {
-      console.error("Error processing file:", e);
-      setError(e.message || "An unexpected error occurred");
-      setProcessingStatus((prev) => ({
-        ...prev,
-        [fileId]: "idle",
-      }));
-      toast.error(`Error: ${e.message || "Failed to process file."}`, {
-        position: "top-right",
-        autoClose: 3000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-      });
+      console.error("File process error:", e);
+      setError(e.message || "Unexpected error.");
+      setProcessingStatus((prev) => ({ ...prev, [fileId]: "idle" }));
+      toast.error(`Error: ${e.message}`);
     } finally {
       setIsLoading(false);
     }
   };
 
+  const getStatusBadge = (status) => {
+    let colorClass = "bg-gray-200 text-gray-700";
+    if (status === "completed") colorClass = "bg-green-100 text-green-700";
+    else if (status === "in_progress")
+      colorClass = "bg-yellow-100 text-yellow-700";
+    else if (status === "error") colorClass = "bg-red-100 text-red-700";
+    return (
+      <span
+        className={`px-3 py-1 rounded-full text-sm font-medium ${colorClass}`}
+      >
+        {status}
+      </span>
+    );
+  };
+
   return (
     <div className="step-component">
-      <h3>1. Connect Google Drive & Select Source Data</h3>
+      <h3 className="text-xl font-semibold mb-4 text-blue-500 pb-8">
+        1. Connect Google Drive & Select Source Data
+      </h3>
 
       <button
         onClick={handleCallMainAgent}
@@ -247,8 +205,52 @@ export default function Step1_ConnectGDrive() {
         {isLoading ? "Processing..." : "Connect to Google Drive & Poll Status"}
       </button>
 
+      <div className="stepper">
+        {[
+          {
+            label: "Connecting to drive and extracting keyword",
+            status: "scrape_content_tool_completed",
+          },
+          {
+            label: "Scraping data and intent generation",
+            status: "intent_agent_completed",
+          },
+          { label: "Outline Generation", status: "outline_agent_completed" },
+          { label: "Article Generation", status: "article_agent_completed" },
+        ].map((step, stepIndex, steps) => {
+          const currentStatusIndex = steps.findIndex(
+            (s) => s.status === agentStatusOutput?.status
+          );
+          const isCompleted = stepIndex <= currentStatusIndex;
+
+          return (
+            <div
+              key={stepIndex}
+              className="step flex flex-col items-center flex-1"
+            >
+              <div
+                className={`circle mb-2 ${isCompleted ? "completed" : ""}`}
+                style={{ width: 36, height: 36 }}
+              >
+                {isCompleted ? "✓" : stepIndex + 1}
+              </div>
+              <div className="text-xs text-center font-medium test">
+                {step.label}
+              </div>
+              {stepIndex < steps.length - 1 && (
+                <div
+                  className={`line ${
+                    stepIndex < currentStatusIndex ? "line-completed" : ""
+                  }`}
+                />
+              )}
+            </div>
+          );
+        })}
+      </div>
+
       {error && (
-        <div className="mt-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded break-words text-sm">
+        <div className="mt-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded text-sm">
           <h4 className="font-semibold">Error:</h4>
           <p>{error}</p>
         </div>
@@ -258,20 +260,18 @@ export default function Step1_ConnectGDrive() {
 
       {projectData.isGDriveConnected && (
         <div className="mt-4">
-          {projectData.gDriveFiles && projectData.gDriveFiles.length > 0 ? (
+          {projectData.gDriveFiles?.length > 0 ? (
             <>
-              <h4 className="text-3xl font-semibold mb-2">Found Files:</h4>
-              <ul className="space-y-1 keyword-list">
+              <h4 className="text-2xl font-semibold mb-2">Found Files:</h4>
+              <ul className="space-y-2">
                 {projectData.gDriveFiles.map((file, index) => {
                   const status = processingStatus[file.id] || "idle";
                   return (
                     <li
                       key={file.id || `${file.name}-${index}`}
-                      className="break-words text-lg flex items-center justify-between border-b border-gray-200 py-2"
+                      className="flex justify-between items-center border-b py-2"
                     >
-                      <span className="flex-grow pr-2">
-                        {file.name || "Unnamed File"}
-                      </span>
+                      <span>{file.name || "Unnamed File"}</span>
                       <button
                         onClick={() => handleSaveFileToRepo(file.id, file.name)}
                         disabled={
@@ -279,18 +279,18 @@ export default function Step1_ConnectGDrive() {
                           status === "processing" ||
                           status === "processed"
                         }
-                        className={`ml-4 px-3 py-1 rounded text-white transition-colors text-sm ${
-                          isLoading || status === "processing"
-                            ? "bg-gray-400 cursor-not-allowed"
-                            : status === "processed"
+                        className={`px-3 py-1 rounded text-white text-sm ${
+                          status === "processed"
                             ? "bg-green-500 cursor-default"
+                            : isLoading || status === "processing"
+                            ? "bg-gray-400 cursor-not-allowed"
                             : "bg-blue-500 hover:bg-blue-600"
                         }`}
                       >
-                        {status === "processing"
-                          ? "Processing..."
-                          : status === "processed"
+                        {status === "processed"
                           ? "Processed"
+                          : status === "processing"
+                          ? "Processing..."
                           : "Select & Process"}
                       </button>
                     </li>
@@ -300,19 +300,38 @@ export default function Step1_ConnectGDrive() {
             </>
           ) : (
             <div className="mt-4 p-3 bg-blue-100 border border-blue-400 text-blue-700 rounded">
-              <p>
-                Connected to Google Drive. No files were found or listed from
-                the initial connection process.
-              </p>
+              Connected to Google Drive, but no files were found.
             </div>
           )}
         </div>
       )}
 
       {agentStatusOutput && (
-        <div className="mt-4 p-3 border border-gray-300 rounded max-w-full overflow-auto">
-          <h4 className="text-xl font-semibold mb-2">Agent Status Output:</h4>
-          <pre className="text-sm bg-gray-50 p-2 rounded">
+        <div className="mt-6 p-4 border border-gray-300 bg-white rounded shadow">
+          <h4 className="text-xl font-semibold mb-2">Agent Status</h4>
+          <div className="flex items-center space-x-4">
+            <span className="text-gray-700">Status:</span>
+            {getStatusBadge(agentStatusOutput.status || "unknown")}
+          </div>
+
+          {agentStatusOutput.status === "in_progress" && (
+            <div className="mt-4">
+              <h4 className="text-lg font-semibold text-blue-800 mb-2">
+                Progress
+              </h4>
+              <div className="w-full bg-gray-300 rounded-full h-4 overflow-hidden">
+                <div
+                  className="bg-blue-500 h-4"
+                  style={{ width: `${agentStatusOutput.progress || 0}%` }}
+                ></div>
+              </div>
+              <p className="text-sm text-gray-700 mt-2">
+                {agentStatusOutput.progress || 0}% completed
+              </p>
+            </div>
+          )}
+
+          <pre className="mt-4 text-sm bg-gray-50 p-3 rounded overflow-auto max-h-64">
             {JSON.stringify(agentStatusOutput, null, 2)}
           </pre>
         </div>

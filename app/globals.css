@@ -198,3 +198,58 @@ textarea {
     transform: rotate(360deg);
   }
 }
+
+
+
+.stepper {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin: 2rem 0;
+  max-width: 700px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  flex: 1;
+}
+
+.circle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background-color: #ccc;
+  color: white;
+  font-weight: bold;
+  transition: background-color 0.3s ease;
+}
+
+.circle.completed {
+  background-color: #2ecc71; /* green */
+}
+
+.line {
+  position: absolute;
+  top: 18px; /* half of circle height */
+  right: -50%;
+  width: 100%;
+  height: 4px;
+  background-color: #ccc;
+  z-index: -1;
+}
+
+.line-completed {
+  background-color: #2ecc71;
+}
+
+.test{
+  padding-top: 20px;
+  max-width: 100px;
+  text-align: center;
+}
