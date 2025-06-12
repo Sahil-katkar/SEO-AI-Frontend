@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { useAppContext } from '@/context/AppContext';
+import { useAppContext } from "@/context/AppContext";
 
 export default function Sidebar() {
   const { STEPS, activeStep, setActiveStep } = useAppContext();
@@ -12,7 +12,7 @@ export default function Sidebar() {
         {STEPS.map((step) => (
           <li
             key={step.id}
-            className={activeStep === step.id ? 'active' : ''}
+            className={activeStep === step.id ? "active" : ""}
             onClick={() => setActiveStep(step.id)}
           >
             {step.name}

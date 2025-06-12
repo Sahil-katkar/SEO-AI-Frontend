@@ -8,8 +8,9 @@ export const STEPS = [
   { id: "step1", name: "Connect Google Drive" },
   { id: "step2", name: "Intent" },
   { id: "step3", name: "Outline Creation" },
-  { id: "step4", name: "Persona" },
-  { id: "step5", name: "Content Parameters" },
+  // { id: "step4", name: "Persona" },
+  // { id: "step5", name: "Content Parameters" },
+  { id: "step6", name: " Article " },
 ];
 
 export function AppProvider({ children }) {
