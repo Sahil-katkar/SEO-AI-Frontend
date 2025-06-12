@@ -384,7 +384,7 @@ export default function Step3_OutlineCreation() {
         </h4>
         <textarea
           id="articleOutline"
-          value={projectData.outline} // Always bind value to projectData.outline
+          value={localStorage.getItem("outline")} // Always bind value to projectData.outline
           onChange={(e) => updateProjectData({ outline: e.target.value })}
           placeholder={
             isLoading

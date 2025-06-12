@@ -68,7 +68,7 @@ export default function Step2_Intent() {
     <div className="step-component">
       <h3>2. Primary Keyword & Intent</h3>
 
-      <h4 htmlFor="primaryKeyword">Primary Keyword:</h4>
+      {/* <h4 htmlFor="primaryKeyword">Primary Keyword:</h4>
       {projectData.primaryKeyword === "" ? (
         <Loader />
       ) : (
@@ -82,20 +82,27 @@ export default function Step2_Intent() {
           }
           placeholder="Enter primary keyword"
         />
-      )}
+      )} */}
 
       <h4 htmlFor="primaryKeyword">Intent:</h4>
-      {projectData.primaryIntent === "" ? (
+      {/* {projectData.primaryIntent === "" ? (
         <Loader />
       ) : (
         <textarea
           id="primaryIntent"
-          value={projectData.primaryIntent}
+          value={localStorage.getItem("intent")}
           onChange={(e) => updateProjectData({ primaryIntent: e.target.value })}
           placeholder="Enter intent"
           rows="5"
         ></textarea>
-      )}
+      )} */}
+      <textarea
+        id="primaryIntent"
+        value={localStorage.getItem("intent")}
+        onChange={(e) => updateProjectData({ primaryIntent: e.target.value })}
+        placeholder="Enter intent"
+        rows="5"
+      ></textarea>
 
       {/* <button
         onClick={handleGenerateLSI}

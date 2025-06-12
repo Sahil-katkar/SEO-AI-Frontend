@@ -13,7 +13,96 @@ export default function Step1_ConnectGDrive() {
   const [processingStatus, setProcessingStatus] = useState({});
   const [userId, setUserId] = useState("123");
   const [agentStatusOutput, setAgentStatusOutput] = useState(null);
+  const [articleLoading, setArticleLoading] = useState(false);
+  const [articleError, setArticleError] = useState(null);
+  const [intentContent, setIntentContent] = useState(null); // State for Intent content
+  const [outlineContent, setOutlineContent] = useState(null); // State for Outline content
+
   const pollingRef = useRef(null);
+
+  const handleViewArticle = async () => {
+    setArticleLoading(true);
+    setArticleError(null);
+    setIntentContent(null);
+    setOutlineContent(null);
+    // Clear previous localStorage entries
+    localStorage.removeItem("intent");
+    localStorage.removeItem("outline");
+
+    try {
+      const response = await fetch("/api/view_article", {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      const rawText = await response.text();
+      console.log("Raw response in handleViewArticle:", rawText);
+
+      if (!response.ok) {
+        let errorData;
+        try {
+          errorData = JSON.parse(rawText);
+        } catch {
+          throw new Error(
+            `Error fetching article: ${response.status} ${response.statusText}`
+          );
+        }
+        throw new Error(
+          errorData.detail || `Error fetching article: ${response.status}`
+        );
+      }
+
+      let data;
+      try {
+        data = JSON.parse(rawText);
+      } catch (e) {
+        throw new Error(`Invalid JSON response: ${e.message}`);
+      }
+
+      // Process each item's content
+      data.forEach((item) => {
+        let parsedContent = item.content || "";
+
+        // Remove BOM
+        parsedContent = parsedContent.replace(/^\ufeff/, "");
+
+        if (item.name === "Intent") {
+          try {
+            parsedContent = JSON.parse(parsedContent);
+            setIntentContent(parsedContent);
+            // Store in localStorage
+            localStorage.setItem("intent", JSON.stringify(parsedContent));
+          } catch (e) {
+            console.error(`Failed to parse JSON for ${item.name}:`, e);
+            parsedContent = {
+              error: `Invalid JSON: ${e.message}`,
+              raw: parsedContent,
+            };
+            setIntentContent(parsedContent);
+            localStorage.setItem("intent", JSON.stringify(parsedContent));
+          }
+        } else if (item.name === "Outline") {
+          // Clean Markdown by removing code block markers
+          parsedContent = parsedContent.replace(/^```markdown\n|\n```$/g, "");
+          setOutlineContent(parsedContent);
+          // Store in localStorage
+          localStorage.setItem("outline", parsedContent);
+        }
+      });
+
+      toast.success("Article data fetched and stored successfully!");
+    } catch (e) {
+      console.error("Error fetching article:", e);
+      setArticleError(
+        `${e.message}${
+          e.rawResponse ? ` (Raw: ${e.rawResponse.slice(0, 100)}...)` : ""
+        }`
+      );
+      toast.error(`Article Fetch Error: ${e.message}`);
+    } finally {
+      setArticleLoading(false);
+    }
+  };
 
   const getCurrentStep = () => {
     const status = agentStatusOutput?.status;
@@ -336,6 +425,20 @@ export default function Step1_ConnectGDrive() {
           </pre>
         </div>
       )}
+
+      <div className="mt-4">
+        <button
+          onClick={handleViewArticle}
+          disabled={articleLoading}
+          className={`px-3 py-1 rounded text-white text-sm transition-colors ${
+            articleLoading
+              ? "bg-gray-400 cursor-not-allowed"
+              : "bg-blue-500 hover:bg-blue-600"
+          }`}
+        >
+          {articleLoading ? "Fetching Article..." : "View Article"}
+        </button>
+      </div>
 
       <ToastContainer />
     </div>
