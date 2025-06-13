@@ -1,4 +1,3 @@
-// File: /app/api/view-article/route.js
 import { NextResponse } from "next/server";
 
 export async function GET(request) {
@@ -9,7 +8,7 @@ export async function GET(request) {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
-        Accept: "application/json", // Explicitly request JSON
+        Accept: "application/json",
       },
     });
 
@@ -75,14 +74,21 @@ export async function GET(request) {
       );
     }
 
-    // Clean up content fields and validate structure
+    // Clean up content fields by removing trailing Document ID
     const cleanedData = data.map((item, index) => {
       if (!item.id || !item.name || !item.mimeType || !item.status) {
         console.warn(`Invalid item at index ${index}:`, item);
       }
+      let cleanedContent = item.content
+        ? item.content.replace(/^\ufeff/, "")
+        : "";
+      // Remove trailing Document ID text
+      cleanedContent = cleanedContent
+        .replace(/\r?\n\r?\n\r?\nDocument ID:.*$/s, "")
+        .trim();
       return {
         ...item,
-        content: item.content ? item.content.replace(/^\ufeff/, "") : "",
+        content: cleanedContent,
       };
     });
 

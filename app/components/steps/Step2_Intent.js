@@ -162,6 +162,7 @@ export default function Step2_Intent() {
         </ul>
       )} */}
       <button onClick={handleNext}>Next: Outline Creation</button>
+      <button onClick={handleNext}>Edit</button>
     </div>
   );
 }

@@ -15,9 +15,10 @@ export default function Step1_ConnectGDrive() {
   const [agentStatusOutput, setAgentStatusOutput] = useState(null);
   const [articleLoading, setArticleLoading] = useState(false);
   const [articleError, setArticleError] = useState(null);
-  const [intentContent, setIntentContent] = useState(null); // State for Intent content
-  const [outlineContent, setOutlineContent] = useState(null); // State for Outline content
-
+  const [intentContent, setIntentContent] = useState(null);
+  const [outlineContent, setOutlineContent] = useState(null);
+  const [articleContent, setArticleContent] = useState(null);
+  const [documentIds, setDocumentIds] = useState({});
   const pollingRef = useRef(null);
 
   const handleViewArticle = async () => {
@@ -25,9 +26,11 @@ export default function Step1_ConnectGDrive() {
     setArticleError(null);
     setIntentContent(null);
     setOutlineContent(null);
-    // Clear previous localStorage entries
+    setArticleContent(null);
+    setDocumentIds({});
     localStorage.removeItem("intent");
     localStorage.removeItem("outline");
+    localStorage.removeItem("article");
 
     try {
       const response = await fetch("/api/view_article", {
@@ -59,19 +62,17 @@ export default function Step1_ConnectGDrive() {
         throw new Error(`Invalid JSON response: ${e.message}`);
       }
 
-      // Process each item's content
+      const newDocumentIds = {};
       data.forEach((item) => {
         let parsedContent = item.content || "";
-
-        // Remove BOM
         parsedContent = parsedContent.replace(/^\ufeff/, "");
 
         if (item.name === "Intent") {
           try {
             parsedContent = JSON.parse(parsedContent);
             setIntentContent(parsedContent);
-            // Store in localStorage
             localStorage.setItem("intent", JSON.stringify(parsedContent));
+            newDocumentIds["Intent"] = item.id;
           } catch (e) {
             console.error(`Failed to parse JSON for ${item.name}:`, e);
             parsedContent = {
@@ -80,16 +81,22 @@ export default function Step1_ConnectGDrive() {
             };
             setIntentContent(parsedContent);
             localStorage.setItem("intent", JSON.stringify(parsedContent));
+            newDocumentIds["Intent"] = item.id;
           }
         } else if (item.name === "Outline") {
-          // Clean Markdown by removing code block markers
           parsedContent = parsedContent.replace(/^```markdown\n|\n```$/g, "");
           setOutlineContent(parsedContent);
-          // Store in localStorage
           localStorage.setItem("outline", parsedContent);
+          newDocumentIds["Outline"] = item.id;
+        } else if (item.name === "Article") {
+          parsedContent = parsedContent.replace(/^```markdown\n|\n```$/g, "");
+          setArticleContent(parsedContent);
+          localStorage.setItem("article", parsedContent);
+          newDocumentIds["Article"] = item.id;
         }
       });
 
+      setDocumentIds(newDocumentIds);
       toast.success("Article data fetched and stored successfully!");
     } catch (e) {
       console.error("Error fetching article:", e);
@@ -202,6 +209,14 @@ export default function Step1_ConnectGDrive() {
   };
 
   useEffect(() => {
+    localStorage.removeItem("intent");
+    localStorage.removeItem("outline");
+    localStorage.removeItem("article");
+    setIntentContent(null);
+    setOutlineContent(null);
+    setArticleContent(null);
+    setDocumentIds({});
+
     return () => {
       if (pollingRef.current) {
         clearInterval(pollingRef.current);
@@ -245,7 +260,6 @@ export default function Step1_ConnectGDrive() {
 
       setProcessingStatus((prev) => ({ ...prev, [fileId]: "processed" }));
       toast.success("File processed!");
-
       updateProjectData({
         primaryKeyword: "football",
         primaryIntent: "This is intent.",
@@ -323,7 +337,7 @@ export default function Step1_ConnectGDrive() {
               >
                 {isCompleted ? "✓" : stepIndex + 1}
               </div>
-              <div className="text-xs text-center font-medium test">
+              <div className="text-xs text-center font-medium">
                 {step.label}
               </div>
               {stepIndex < steps.length - 1 && (
@@ -346,6 +360,37 @@ export default function Step1_ConnectGDrive() {
       )}
 
       {isLoading && <Loader />}
+
+      {agentStatusOutput && (
+        <div className="mt-6 p-4 border border-gray-300 bg-white rounded shadow">
+          <h4 className="text-xl font-semibold mb-2">Agent Status</h4>
+          <div className="flex items-center space-x-4">
+            <span className="text-gray-700">Status: </span>
+            {getStatusBadge(agentStatusOutput.status || "unknown")}
+          </div>
+
+          {agentStatusOutput.status === "in_progress" && (
+            <div className="mt-4">
+              <h4 className="text-lg font-semibold text-blue-800 mb-2">
+                Progress
+              </h4>
+              <div className="w-full bg-gray-300 rounded-full h-4 overflow-hidden">
+                <div
+                  className="bg-blue-500 h-4"
+                  style={{ width: `${agentStatusOutput.progress || 0}%` }}
+                ></div>
+              </div>
+              <p className="text-sm text-gray-700 mt-2">
+                {agentStatusOutput.progress || 0}% completed
+              </p>
+            </div>
+          )}
+
+          {/* <pre className="mt-4 text-sm bg-gray-50 p-3 rounded overflow-auto max-h-64">
+            {JSON.stringify(agentStatusOutput, null, 2)}
+          </pre> */}
+        </div>
+      )}
 
       {projectData.isGDriveConnected && (
         <div className="mt-4">
@@ -389,40 +434,9 @@ export default function Step1_ConnectGDrive() {
             </>
           ) : (
             <div className="mt-4 p-3 bg-blue-100 border border-blue-400 text-blue-700 rounded">
-              Connected to Google Drive, but no files were found.
+              Your Article has generated. Click "Show Details" to get the link.
             </div>
           )}
-        </div>
-      )}
-
-      {agentStatusOutput && (
-        <div className="mt-6 p-4 border border-gray-300 bg-white rounded shadow">
-          <h4 className="text-xl font-semibold mb-2">Agent Status</h4>
-          <div className="flex items-center space-x-4">
-            <span className="text-gray-700">Status:</span>
-            {getStatusBadge(agentStatusOutput.status || "unknown")}
-          </div>
-
-          {agentStatusOutput.status === "in_progress" && (
-            <div className="mt-4">
-              <h4 className="text-lg font-semibold text-blue-800 mb-2">
-                Progress
-              </h4>
-              <div className="w-full bg-gray-300 rounded-full h-4 overflow-hidden">
-                <div
-                  className="bg-blue-500 h-4"
-                  style={{ width: `${agentStatusOutput.progress || 0}%` }}
-                ></div>
-              </div>
-              <p className="text-sm text-gray-700 mt-2">
-                {agentStatusOutput.progress || 0}% completed
-              </p>
-            </div>
-          )}
-
-          <pre className="mt-4 text-sm bg-gray-50 p-3 rounded overflow-auto max-h-64">
-            {JSON.stringify(agentStatusOutput, null, 2)}
-          </pre>
         </div>
       )}
 
@@ -433,12 +447,39 @@ export default function Step1_ConnectGDrive() {
           className={`px-3 py-1 rounded text-white text-sm transition-colors ${
             articleLoading
               ? "bg-gray-400 cursor-not-allowed"
-              : "bg-blue-500 hover:bg-blue-600"
+              : "bg-blue-600 hover:bg-blue-700"
           }`}
         >
-          {articleLoading ? "Fetching Article..." : "View Article"}
+          {articleLoading ? "Fetching..." : " Show Details"}
         </button>
       </div>
+
+      {Object.keys(documentIds).length > 0 && (
+        <div className="mt-4 p-4 border border-gray-300 bg-white rounded shadow">
+          <h4 className="text-lg font-semibold mb-2">
+            Your data has been saved to :
+          </h4>
+          <ul className="space-y-1">
+            {Object.entries(documentIds).map(([name, id]) => (
+              <li key={name} className="text-sm">
+                <span className="font-medium">{name}:</span>{" "}
+                {id ? (
+                  <a
+                    href={`https://docs.google.com/document/d/${id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:underline"
+                  >
+                    https://docs.google.com/document/d/{id}
+                  </a>
+                ) : (
+                  "No ID available"
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <ToastContainer />
     </div>

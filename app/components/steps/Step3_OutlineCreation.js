@@ -303,16 +303,16 @@ export default function Step3_OutlineCreation() {
 
   const handleNext = () => {
     // Add validation if needed (e.g., ensure outline is not empty)
-    if (!projectData.outline || !projectData.outline.trim()) {
-      setError(
-        "Outline is empty. Please generate or enter an outline before proceeding."
-      );
-      toast.warning("Outline is empty. Please generate or enter an outline.", {
-        position: "top-right",
-      });
-      return;
-    }
-    setError(null); // Clear error before moving to the next step
+    // if (!projectData.outline || !projectData.outline.trim()) {
+    //   setError(
+    //     "Outline is empty. Please generate or enter an outline before proceeding."
+    //   );
+    //   toast.warning("Outline is empty. Please generate or enter an outline.", {
+    //     position: "top-right",
+    //   });
+    //   return;
+    // }
+    // setError(null); // Clear error before moving to the next step
     setActiveStep(STEPS[3].id); // Move to the next step (Step 4 based on STEPS[3].id)
   };
 
@@ -352,7 +352,7 @@ export default function Step3_OutlineCreation() {
 
       {/* Generate Outline Button */}
       {/* Use isLoading state to disable */}
-      <button
+      {/* <button
         onClick={handleGenerateOutline}
         disabled={isLoading || isSavingOutlineDoc} // Disable if generating or saving
         className={`px-4 py-2 rounded text-white transition-colors ${
@@ -364,7 +364,7 @@ export default function Step3_OutlineCreation() {
         {isLoading
           ? "Generating Outline..."
           : "Generate Outline from Competitors"}
-      </button>
+      </button> */}
 
       {/* Display error if any */}
       {error && (
@@ -422,12 +422,12 @@ export default function Step3_OutlineCreation() {
       {/* Next Button */}
       <button
         onClick={handleNext}
-        disabled={
-          isLoading ||
-          isSavingOutlineDoc ||
-          !projectData.outline ||
-          !projectData.outline.trim()
-        } // Disable if busy or outline is empty
+        // disabled={
+        //   isLoading ||
+        //   isSavingOutlineDoc ||
+        //   !projectData.outline ||
+        //   !projectData.outline.trim()
+        // }
         className={`mt-4 px-4 py-2 rounded text-white transition-colors ${
           isLoading ||
           isSavingOutlineDoc ||
@@ -437,7 +437,7 @@ export default function Step3_OutlineCreation() {
             : "bg-indigo-600 hover:bg-indigo-700" // Different color for Next
         }`}
       >
-        Next: Persona {/* Step 4 is Persona based on STEPS[3].id */}
+        Next: Article {/* Step 4 is Persona based on STEPS[3].id */}
       </button>
 
       {/* Add ToastContainer to render toasts */}
