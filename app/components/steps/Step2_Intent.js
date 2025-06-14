@@ -8,6 +8,103 @@ export default function Step2_Intent() {
     useAppContext();
   const [isLoading, setIsLoading] = useState(false);
   const [customKeywordInput, setCustomKeywordInput] = useState("");
+  const [articleLoading, setArticleLoading] = useState(false);
+  const [articleError, setArticleError] = useState(null);
+  const [intentContent, setIntentContent] = useState(null);
+  const [outlineContent, setOutlineContent] = useState(null);
+  const [articleContent, setArticleContent] = useState(null);
+  const [documentIds, setDocumentIds] = useState({});
+  const intent = localStorage.getItem("intent");
+
+  const handleViewArticle = async () => {
+    setArticleLoading(true);
+    setArticleError(null);
+    setIntentContent(null);
+    setOutlineContent(null);
+    setArticleContent(null);
+    setDocumentIds({});
+    localStorage.removeItem("intent");
+    localStorage.removeItem("outline");
+    localStorage.removeItem("article");
+
+    try {
+      const response = await fetch("/api/view_article", {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      const rawText = await response.text();
+      console.log("Raw response in handleViewArticle:", rawText);
+
+      if (!response.ok) {
+        let errorData;
+        try {
+          errorData = JSON.parse(rawText);
+        } catch {
+          throw new Error(
+            `Error fetching article: ${response.status} ${response.statusText}`
+          );
+        }
+        throw new Error(
+          errorData.detail || `Error fetching article: ${response.status}`
+        );
+      }
+
+      let data;
+      try {
+        data = JSON.parse(rawText);
+      } catch (e) {
+        throw new Error(`Invalid JSON response: ${e.message}`);
+      }
+
+      const newDocumentIds = {};
+      data.forEach((item) => {
+        let parsedContent = item.content || "";
+        parsedContent = parsedContent.replace(/^\ufeff/, "");
+
+        if (item.name === "Intent") {
+          try {
+            parsedContent = JSON.parse(parsedContent);
+            setIntentContent(parsedContent);
+            localStorage.setItem("intent", JSON.stringify(parsedContent));
+            newDocumentIds["Intent"] = item.id;
+          } catch (e) {
+            console.error(`Failed to parse JSON for ${item.name}:`, e);
+            parsedContent = {
+              error: `Invalid JSON: ${e.message}`,
+              raw: parsedContent,
+            };
+            setIntentContent(parsedContent);
+            localStorage.setItem("intent", JSON.stringify(parsedContent));
+            newDocumentIds["Intent"] = item.id;
+          }
+        } else if (item.name === "Outline") {
+          parsedContent = parsedContent.replace(/^```markdown\n|\n```$/g, "");
+          setOutlineContent(parsedContent);
+          localStorage.setItem("outline", parsedContent);
+          newDocumentIds["Outline"] = item.id;
+        } else if (item.name === "Article") {
+          parsedContent = parsedContent.replace(/^```markdown\n|\n```$/g, "");
+          setArticleContent(parsedContent);
+          localStorage.setItem("article", parsedContent);
+          newDocumentIds["Article"] = item.id;
+        }
+      });
+
+      setDocumentIds(newDocumentIds);
+      toast.success("Article data fetched and stored successfully!");
+    } catch (e) {
+      console.error("Error fetching article:", e);
+      setArticleError(
+        `${e.message}${
+          e.rawResponse ? ` (Raw: ${e.rawResponse.slice(0, 100)}...)` : ""
+        }`
+      );
+      toast.error(`Article Fetch Error: ${e.message}`);
+    } finally {
+      setArticleLoading(false);
+    }
+  };
 
   const handleGenerateLSI = async () => {
     if (!projectData.primaryKeyword) {
@@ -15,6 +112,7 @@ export default function Step2_Intent() {
       return;
     }
     setIsLoading(true);
+
     // Simulate API call for LSI keywords
     await new Promise((resolve) => setTimeout(resolve, 1500));
     const mockLSI = [
@@ -24,145 +122,100 @@ export default function Step2_Intent() {
       { text: `how to use ${projectData.primaryKeyword}`, checked: true },
     ];
     updateProjectData({ lsiKeywords: mockLSI });
+
     setIsLoading(false);
+  };
+
+  const handleEdit = async () => {
+    const payload = {
+      users_id: "1122",
+      Mainkeyword: "contentful",
+      edit_content: {
+        intent: JSON.stringify({
+          intent: intent,
+        }),
+      },
+    };
+
+    try {
+      const res = await fetch("/api/contentEdit", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(`HTTP ${res.status}: ${errorText}`);
+      } else {
+        const data = await res.json();
+        console.log("Response from /api/contentEdit:", data);
+      }
+    } catch (error) {
+      console.error("API Proxy Error:", error);
+    }
   };
 
   const handleAddCustomKeyword = () => {
     if (customKeywordInput.trim() === "") return;
-    const newKeyword = { text: customKeywordInput.trim(), checked: true };
     updateProjectData({
-      customKeywords: [...projectData.customKeywords, newKeyword],
+      customKeywords: [
+        ...projectData.customKeywords,
+        { text: customKeywordInput.trim(), checked: true },
+      ],
     });
     setCustomKeywordInput("");
   };
 
   const toggleLSIKeyword = (index) => {
-    const updatedLSI = projectData.lsiKeywords.map((kw, i) =>
-      i === index ? { ...kw, checked: !kw.checked } : kw
-    );
-    updateProjectData({ lsiKeywords: updatedLSI });
+    updateProjectData({
+      lsiKeywords: projectData.lsiKeywords.map((kw, i) =>
+        i === index ? { ...kw, checked: !kw.checked } : kw
+      ),
+    });
   };
 
   const toggleCustomKeyword = (index) => {
-    const updatedCustom = projectData.customKeywords.map((kw, i) =>
-      i === index ? { ...kw, checked: !kw.checked } : kw
-    );
-    updateProjectData({ customKeywords: updatedCustom });
+    updateProjectData({
+      customKeywords: projectData.customKeywords.map((kw, i) =>
+        i === index ? { ...kw, checked: !kw.checked } : kw
+      ),
+    });
   };
 
-  const handleNext = () => {
-    // updateProjectData({ customKeywords: updatedCustom });
-    setActiveStep(STEPS[2].id);
-  };
-
-  useEffect(() => {
-    if (
-      projectData.primaryKeyword !== "" &&
-      projectData.lsiKeywords.length <= 0
-    ) {
-      handleGenerateLSI();
-    }
-  }, [projectData]);
+  // useEffect(() => {
+  //   if (
+  //     projectData.primaryKeyword !== "" &&
+  //     projectData.lsiKeywords.length === 0
+  //   ) {
+  //     handleGenerateLSI();
+  //   }
+  // }, [projectData]);
 
   return (
     <div className="step-component">
-      <h3>2. Primary Keyword & Intent</h3>
-
-      {/* <h4 htmlFor="primaryKeyword">Primary Keyword:</h4>
-      {projectData.primaryKeyword === "" ? (
-        <Loader />
-      ) : (
-        <input
-          disabled
-          type="text"
-          id="primaryKeyword"
-          value={projectData.primaryKeyword}
-          onChange={(e) =>
-            updateProjectData({ primaryKeyword: e.target.value })
-          }
-          placeholder="Enter primary keyword"
-        />
-      )} */}
+      <h3>2. Primary Keyword &amp; Intent</h3>
 
       <h4 htmlFor="primaryKeyword">Intent:</h4>
-      {/* {projectData.primaryIntent === "" ? (
-        <Loader />
-      ) : (
-        <textarea
-          id="primaryIntent"
-          value={localStorage.getItem("intent")}
-          onChange={(e) => updateProjectData({ primaryIntent: e.target.value })}
-          placeholder="Enter intent"
-          rows="5"
-        ></textarea>
-      )} */}
       <textarea
         id="primaryIntent"
-        value={localStorage.getItem("intent")}
-        onChange={(e) => updateProjectData({ primaryIntent: e.target.value })}
+        value={intent}
+        onChange={(e) => {
+          updateProjectData({ primaryIntent: e.target.value });
+          localStorage.setItem("intentEdited", e.target.value); // if you want to persist it
+        }}
         placeholder="Enter intent"
         rows="5"
-      ></textarea>
+      />
 
-      {/* <button
-        onClick={handleGenerateLSI}
-        disabled={isLoading || !projectData.primaryKeyword}
-      >
-        {isLoading ? "Generating..." : "Generate LSI Keywords"}
-      </button> */}
+      {isLoading && <Loader />}
 
-      {/* {isLoading && <Loader />} */}
-
-      {/* {projectData.lsiKeywords.length > 0 && !isLoading && (
-        <>
-          <h4>LSI Keywords (Select to use):</h4>
-          <ul className="keyword-list">
-            {projectData.lsiKeywords.map((kw, index) => (
-              <li key={`lsi-${index}`}>
-                <input
-                  type="checkbox"
-                  id={`lsi-${index}`}
-                  checked={kw.checked}
-                  onChange={() => toggleLSIKeyword(index)}
-                />
-                <label htmlFor={`lsi-${index}`}>{kw.text}</label>
-              </li>
-            ))}
-          </ul>
-        </>
-      )} */}
-
-      {/* <h4>Custom Keywords:</h4>
-      <div style={{ display: "flex", marginBottom: "15px" }}>
-        <input
-          type="text"
-          value={customKeywordInput}
-          onChange={(e) => setCustomKeywordInput(e.target.value)}
-          placeholder="Add a custom keyword"
-          style={{ flexGrow: 1, marginRight: "10px", marginBottom: "0" }}
-          onKeyPress={(e) => e.key === "Enter" && handleAddCustomKeyword()}
-        />
-        <button onClick={handleAddCustomKeyword} className="ssecondary">
-          Add
-        </button>
-      </div>
-      {projectData.customKeywords.length > 0 && (
-        <ul className="keyword-list">
-          {projectData.customKeywords.map((kw, index) => (
-            <li key={`custom-${index}`}>
-              <input
-                type="checkbox"
-                id={`custom-${index}`}
-                checked={kw.checked}
-                onChange={() => toggleCustomKeyword(index)}
-              />
-              <label htmlFor={`custom-${index}`}>{kw.text}</label>
-            </li>
-          ))}
-        </ul>
-      )} */}
-      <button onClick={handleNext}>Next: Outline Creation</button>
-      <button onClick={handleNext}>Edit</button>
+      <button onClick={() => setActiveStep(STEPS[2].id)}>
+        Next: Outline Creation
+      </button>
+      <button onClick={handleEdit}>Edit</button>
     </div>
   );
 }
