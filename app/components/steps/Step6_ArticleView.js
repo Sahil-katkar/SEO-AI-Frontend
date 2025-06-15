@@ -96,6 +96,22 @@ export default function Step6_ArticleView() {
         rows="5"
       ></textarea>
 
+      <div>
+        <h3>Updated Article: </h3>
+        <button onClick={handleGenerateArticle} disabled={isLoading}>
+          {isLoading ? "Generating Article..." : "Generate Article Draft"}
+        </button>
+
+        {isLoading && <Loader />}
+        <textarea
+          id="primaryIntent"
+          value={localStorage.getItem("editedarticle")}
+          onChange={(e) => updateProjectData({ primaryIntent: e.target.value })}
+          placeholder="Enter intent"
+          rows="5"
+        ></textarea>
+      </div>
+
       {/* {projectData.generatedArticle && !isLoading && (
         <div style={{ marginTop: "20px" }}>
           <h4>Generated Article:</h4>

@@ -397,6 +397,25 @@ export default function Step3_OutlineCreation() {
         ></textarea>
       </div>
 
+      <div className="mt-4">
+        <h4 htmlFor="articleOutline" className="text-lg font-semibold mb-2">
+          Updated Outline :
+        </h4>
+        <textarea
+          id="articleOutline"
+          value={localStorage.getItem("editedoutline")} // Always bind value to projectData.outline
+          onChange={(e) => updateProjectData({ outline: e.target.value })}
+          placeholder={
+            isLoading
+              ? "Generating outline..."
+              : "Enter or generate your article outline here. Use H1, H2, H3 for structure."
+          } // Placeholder reflects loading state
+          rows="15"
+          className="block w-full p-2 border border-gray-300 rounded-md resize-y"
+          disabled={isLoading || isSavingOutlineDoc} // Disable textarea while busy
+        ></textarea>
+      </div>
+
       {/* --- NEW BUTTON TO SAVE OUTLINE AS DOC --- */}
       <button
         onClick={handleSaveOutlineAsDoc} // Call the modified handler

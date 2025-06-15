@@ -157,7 +157,7 @@ export default function Step1_ConnectGDrive() {
         setIsLoading(false);
         toast.error(`Polling Error: ${e.message}`);
       }
-    }, 4000);
+    }, 8000);
   };
 
   const handleCallMainAgent = async () => {
