@@ -169,7 +169,7 @@ export default function Step2_Intent() {
     <div className="step-component">
       <h3>2. Primary Keyword & Intent</h3>
 
-      <div className="input-section">
+      {/* <div className="input-section">
         <h4>Intent:</h4>
         <textarea
           id="primaryIntent"
@@ -186,6 +186,31 @@ export default function Step2_Intent() {
         >
           Save & Generate
         </button>
+      </div> */}
+
+      <div className="input-section">
+        <h4>Intent:</h4>
+        {intentContent.trim() ? (
+          <>
+            <textarea
+              id="primaryIntent"
+              value={intentContent}
+              onChange={(e) => setIntentContent(e.target.value)}
+              placeholder="Enter intent"
+              rows={5}
+              className="w-full p-2 border rounded"
+            />
+            <button
+              onClick={handleEdit}
+              className="mt-2 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+              disabled={isLoading}
+            >
+              Save & Generate
+            </button>
+          </>
+        ) : (
+          <p className="text-gray-500">No intent fetched.</p>
+        )}
       </div>
 
       {apiError && <div className="mt-2 text-red-500">Error: {apiError}</div>}
@@ -193,6 +218,10 @@ export default function Step2_Intent() {
       {isLoading && <Loader />}
 
       {(intentContent || articleContent || outlineContent) && (
+        <div>Updated Article generated !</div>
+      )}
+
+      {/* {(intentContent || articleContent || outlineContent) && (
         <div className="generated-content mt-6">
           <h4>Generated Content:</h4>
 
@@ -217,7 +246,7 @@ export default function Step2_Intent() {
             </div>
           )}
         </div>
-      )}
+      )} */}
 
       <div className="navigation mt-6">
         <button

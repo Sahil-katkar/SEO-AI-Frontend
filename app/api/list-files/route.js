@@ -1,45 +1,52 @@
 import { NextResponse } from "next/server";
 
-const PYTHON_API_BASE_URL =
-  process.env.PYTHON_API_BASE_URL || "http://localhost:8001";
-const PYTHON_API_LIST_FILES_URL = `${PYTHON_API_BASE_URL}/api/list-files`;
-
 export async function GET(request) {
-  console.log(`Next.js API: Received GET request at /api/list-files`);
-  console.log(
-    `Next.js API: Forwarding request to Python backend at ${PYTHON_API_LIST_FILES_URL}`
-  );
-
-  let pythonResponse;
   try {
-    pythonResponse = await fetch(PYTHON_API_LIST_FILES_URL, {
+    const backendUrl = new URL("http://127.0.0.1:8000/gdrive/spreadsheets");
+
+    const response = await fetch(backendUrl, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
+        Accept: "application/json",
       },
-      cache: "no-store",
     });
 
-    const data = await pythonResponse.json();
+    console.log("list-files status:", response.status);
+    console.log(
+      "Backend response headers list files:",
+      Object.fromEntries(response.headers)
+    );
 
-    if (!pythonResponse.ok) {
-      console.error(
-        `Next.js API: Python backend returned non-OK status ${pythonResponse.status}. Error data:`,
-        data
+    const rawText = await response.text();
+
+    if (!rawText || rawText.trim() === "") {
+      console.error("Empty response from backend");
+      return NextResponse.json(
+        { detail: "Empty response from backend" },
+        { status: 500 }
       );
-      return NextResponse.json(data, { status: pythonResponse.status });
     }
-    console.log(`Next.js API: Received OK response from Python backend.`);
-    return NextResponse.json(data, { status: 200 });
+
+    const contentType = response.headers.get("Content-Type") || "";
+
+    if (!contentType.includes("application/json")) {
+      console.error("Unexpected Content-Type:", contentType);
+      return NextResponse.json(
+        {
+          detail: `Unexpected Content-Type: ${contentType}`,
+          rawResponse: rawText,
+        },
+        { status: 500 }
+      );
+    }
+
+    const json = JSON.parse(rawText);
+    return NextResponse.json(json);
   } catch (error) {
-    console.error("Next.js API: Error during fetch to Python backend:", error);
-    const errorMessage = `Error communicating with the backend API at ${PYTHON_API_LIST_FILES_URL}. Please ensure the api_server.py process is running and accessible.`;
+    console.error("Proxy error in /api/view-article:", error.message);
     return NextResponse.json(
-      {
-        detail:
-          errorMessage +
-          (error.message ? ` Underlying error: ${error.message}` : ""),
-      },
+      { detail: `Failed to connect to backend: ${error.message}` },
       { status: 500 }
     );
   }

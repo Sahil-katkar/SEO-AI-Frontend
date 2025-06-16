@@ -2,34 +2,26 @@
 import { useEffect, useState } from "react";
 import { useAppContext } from "@/context/AppContext";
 import Loader from "@/components/common/Loader";
-import { toast, ToastContainer } from "react-toastify"; // Add react-toastify imports
-import "react-toastify/dist/ReactToastify.css"; // Add toastify styles
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 export default function Step3_OutlineCreation() {
   const { projectData, updateProjectData, setActiveStep, STEPS } =
     useAppContext();
-  const [isLoading, setIsLoading] = useState(false); // General loading state for outline generation
+  const [isLoading, setIsLoading] = useState(false);
+  const [outlineContent, setOutlineContent] = useState(
+    localStorage.getItem("article") || ""
+  );
+  const [editedOutline, setEditedOutline] = useState(
+    localStorage.getItem("editedarticle") || ""
+  );
+  const [apiError, setApiError] = useState(null);
+  const [isSavingOutlineDoc, setIsSavingOutlineDoc] = useState(false);
+  const [error, setError] = useState(null);
 
-  // Removed these states as they seem leftover from Step1 and not used in Step3
-  // const [loadingFirst, setLoadingFirst] = useState(false);
-  // const [loadingSave, setLoadingSave] = useState(false);
-  // const [isUpdatingDoc, setIsUpdatingDoc] = useState(false);
-  // const [fileContent, setFileContent] = useState(null);
-  // const [processingStatus, setProcessingStatus] = useState({});
-  // const [docIdToUpdate, setDocIdToUpdate] = useState("");
-  // const [findText, setFindText] = useState("");
-  // const [replaceText, setReplaceText] = useState("");
-
-  const [isSavingOutlineDoc, setIsSavingOutlineDoc] = useState(false); // <-- New state for saving outline doc
-  const [error, setError] = useState(null); // Use a single error state
-
-  // Removed newDocTitle, setNewDocTitle, newDocInitialContent, setNewDocInitialContent
-  // as outline content comes from projectData.outline
-
-  // The handleGenerateOutline function remains the same
   const handleGenerateOutline = async () => {
     setIsLoading(true);
-    setError(null); // Clear any previous errors
+    setError(null);
 
     const persona = projectData.Persona || "Default Persona";
     const keywords = projectData.primaryKeyword || "";
@@ -56,7 +48,6 @@ export default function Step3_OutlineCreation() {
     try {
       console.log("Frontend: Attempting to generate outline");
       const response = await fetch("/api/generate-outline", {
-        // Call Next.js API route
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -123,6 +114,8 @@ export default function Step3_OutlineCreation() {
       if (typeof outlineText === "string" && outlineText.trim()) {
         console.log("Generated Outline:", outlineText);
         updateProjectData({ outline: outlineText });
+        setOutlineContent(outlineText);
+        localStorage.setItem("article", outlineText);
         toast.success("Outline generated successfully!", {
           position: "top-right",
         });
@@ -136,6 +129,7 @@ export default function Step3_OutlineCreation() {
           position: "top-right",
         });
         updateProjectData({ outline: "" });
+        setOutlineContent("");
       } else {
         console.error(
           "Unknown successful response structure on outline generation:",
@@ -146,6 +140,7 @@ export default function Step3_OutlineCreation() {
         setError(unknownError);
         toast.error(`Error: ${unknownError}`, { position: "top-right" });
         updateProjectData({ outline: "" });
+        setOutlineContent("");
       }
     } catch (e) {
       console.error("Failed to generate outline (caught error):", e);
@@ -153,32 +148,87 @@ export default function Step3_OutlineCreation() {
       setError(errorMessage);
       toast.error(`Error: ${errorMessage}`, { position: "top-right" });
       updateProjectData({ outline: "" });
+      setOutlineContent("");
     } finally {
       setIsLoading(false);
     }
   };
 
-  // --- MODIFIED HANDLER FOR CREATING DOC (to save outline) ---
-  // Renamed from handleCreateDoc to be more specific
+  const handleEdit = async () => {
+    if (!outlineContent.trim()) {
+      toast.error("Please enter an outline to edit.", {
+        position: "top-right",
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    const payload = {
+      users_id: "1122",
+      Mainkeyword: "contentful",
+      edit_content: {
+        outline: outlineContent,
+      },
+    };
+
+    try {
+      console.log(
+        "Frontend: Sending edited outline to /api/contentEdit",
+        payload
+      );
+      const res = await fetch("/api/contentEdit", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(`HTTP ${res.status}: ${errorText}`);
+      }
+
+      const result = await res.json();
+      console.log("Frontend: Received response from /api/contentEdit", result);
+
+      if (result.edited_outline) {
+        setEditedOutline(result.edited_outline);
+        localStorage.setItem("editedarticle", result.edited_outline);
+        toast.success("Outline edited and saved successfully!", {
+          position: "top-right",
+        });
+      } else {
+        throw new Error("No edited outline returned from API");
+      }
+    } catch (error) {
+      setApiError(error.message);
+      console.error("handleEdit error:", error);
+      toast.error(`Error editing outline: ${error.message}`, {
+        position: "top-right",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleSaveOutlineAsDoc = async () => {
-    setIsSavingOutlineDoc(true); // Start loading for this specific action
-    setError(null); // Clear previous errors
+    setIsSavingOutlineDoc(true);
+    setError(null);
 
-    const outlineContent = projectData.outline.trim(); // Get content from the textarea state
+    const outlineContentTrimmed = outlineContent.trim();
 
-    // Basic validation: Outline should not be empty
-    if (!outlineContent) {
+    if (!outlineContentTrimmed) {
       const validationError =
         "The article outline is empty. Please generate or enter some content first.";
       console.error("Frontend Validation Error:", validationError);
       setError(validationError);
       setIsSavingOutlineDoc(false);
       toast.warning(validationError, { position: "top-right" });
-      return; // Stop the function execution
+      return;
     }
 
-    // Define the title for the new doc
-    const docTitle = "Outline Created"; // Fixed title as requested
+    const docTitle = "Outline Created";
 
     let responseText;
 
@@ -186,14 +236,13 @@ export default function Step3_OutlineCreation() {
       console.log(
         `Frontend: Attempting to create doc with title '${docTitle}' and outline content.`
       );
-      // *** Call the NEW Next.js API route for Docs creation ***
       const response = await fetch("/api/docs/create", {
-        // This matches app/api/docs/create/route.js
+        // Fixed endpoint to match original code
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          title: docTitle, // Use the fixed title
-          initial_content: outlineContent, // Pass the content from projectData.outline
+          title: docTitle,
+          initial_content: outlineContentTrimmed,
         }),
       });
 
@@ -236,7 +285,6 @@ export default function Step3_OutlineCreation() {
         return;
       }
 
-      // Check the response status code from the Next.js API route (Expecting 201 Created on success)
       if (!response.ok) {
         console.error(
           "Frontend Debug (save outline doc): Next.js API returned error status but JSON parsed:",
@@ -252,8 +300,6 @@ export default function Step3_OutlineCreation() {
         return;
       }
 
-      // Success case (response.ok is true, specifically looking for 201 from our API route)
-      // Expecting {"success": true, "file_id": "...", "name": "...", "webViewLink": "...", ...} from the API route
       if (result && result.success && result.file_id) {
         console.log("Outline Doc creation successful:", result);
         toast.success(`Outline saved as Google Doc: "${result.name}"`, {
@@ -264,9 +310,6 @@ export default function Step3_OutlineCreation() {
           pauseOnHover: true,
           draggable: true,
         });
-        // Optional: Maybe update the file list after creation? Depends if user needs to see it here.
-        // You'd need the handleListFiles function here, which is currently in Step1.
-        // For now, let's skip listing files from Step3.
       } else if (result && result.error) {
         console.error(
           "Backend tool returned error on doc creation (via API):",
@@ -296,43 +339,28 @@ export default function Step3_OutlineCreation() {
       setError(errorMessage);
       toast.error(`Error: ${errorMessage}`, { position: "top-right" });
     } finally {
-      setIsSavingOutlineDoc(false); // Stop loading
+      setIsSavingOutlineDoc(false);
     }
   };
-  // --- END MODIFIED HANDLER ---
 
   const handleNext = () => {
-    // Add validation if needed (e.g., ensure outline is not empty)
-    // if (!projectData.outline || !projectData.outline.trim()) {
-    //   setError(
-    //     "Outline is empty. Please generate or enter an outline before proceeding."
-    //   );
-    //   toast.warning("Outline is empty. Please generate or enter an outline.", {
-    //     position: "top-right",
-    //   });
-    //   return;
-    // }
-    // setError(null); // Clear error before moving to the next step
-    setActiveStep(STEPS[3].id); // Move to the next step (Step 4 based on STEPS[3].id)
+    setActiveStep(STEPS[3].id);
   };
 
-  // The useEffect hook to trigger initial generation
   useEffect(() => {
     console.log(
       "useEffect triggered in Step3. Checking generation conditions."
     );
-    // Trigger generation only if keywords/intent are set AND outline is currently empty
-    // Also ensure we are not already loading
     if (
       projectData.primaryKeyword &&
       projectData.primaryIntent &&
-      !projectData.outline && // Check if outline is falsy (null, undefined, empty string)
-      !isLoading // Prevent triggering if generation is already in progress
+      !projectData.outline &&
+      !isLoading
     ) {
       console.log(
         "Conditions met: primaryKeyword, primaryIntent set, outline empty, not already loading. Triggering handleGenerateOutline."
       );
-      handleGenerateOutline(); // Automatically trigger outline generation
+      handleGenerateOutline();
     } else {
       console.log("Generation conditions not met.");
     }
@@ -340,7 +368,8 @@ export default function Step3_OutlineCreation() {
     projectData.primaryKeyword,
     projectData.primaryIntent,
     projectData.outline,
-  ]); // Depend on keywords, intent, and outline status
+    isLoading,
+  ]);
 
   return (
     <div className="step-component">
@@ -350,23 +379,6 @@ export default function Step3_OutlineCreation() {
         then edit as needed.
       </p>
 
-      {/* Generate Outline Button */}
-      {/* Use isLoading state to disable */}
-      {/* <button
-        onClick={handleGenerateOutline}
-        disabled={isLoading || isSavingOutlineDoc} // Disable if generating or saving
-        className={`px-4 py-2 rounded text-white transition-colors ${
-          isLoading || isSavingOutlineDoc
-            ? "bg-gray-400 cursor-not-allowed"
-            : "bg-blue-500 hover:bg-blue-600"
-        }`}
-      >
-        {isLoading
-          ? "Generating Outline..."
-          : "Generate Outline from Competitors"}
-      </button> */}
-
-      {/* Display error if any */}
       {error && (
         <div className="mt-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded break-words text-sm">
           <h4 className="font-semibold">Error:</h4>
@@ -374,92 +386,73 @@ export default function Step3_OutlineCreation() {
         </div>
       )}
 
-      {/* Loader displayed if isLoading or isSavingOutlineDoc is true */}
       {(isLoading || isSavingOutlineDoc) && <Loader />}
 
-      {/* Textarea for the outline */}
       <div className="mt-4">
         <h4 htmlFor="articleOutline" className="text-lg font-semibold mb-2">
           Article Outline (Editable):
         </h4>
         <textarea
           id="articleOutline"
-          value={localStorage.getItem("outline")} // Always bind value to projectData.outline
-          onChange={(e) => updateProjectData({ outline: e.target.value })}
+          value={outlineContent}
+          onChange={(e) => setOutlineContent(e.target.value)}
           placeholder={
             isLoading
               ? "Generating outline..."
               : "Enter or generate your article outline here. Use H1, H2, H3 for structure."
-          } // Placeholder reflects loading state
+          }
           rows="15"
           className="block w-full p-2 border border-gray-300 rounded-md resize-y"
-          disabled={isLoading || isSavingOutlineDoc} // Disable textarea while busy
+          disabled={isLoading || isSavingOutlineDoc}
         ></textarea>
+
+        <button
+          onClick={handleEdit}
+          className="mt-2 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+          disabled={isLoading || isSavingOutlineDoc}
+        >
+          Save & Generate
+        </button>
       </div>
 
       <div className="mt-4">
-        <h4 htmlFor="articleOutline" className="text-lg font-semibold mb-2">
-          Updated Outline :
+        <h4 htmlFor="editedOutline" className="text-lg font-semibold mb-2">
+          Updated Outline:
         </h4>
         <textarea
-          id="articleOutline"
-          value={localStorage.getItem("editedoutline")} // Always bind value to projectData.outline
-          onChange={(e) => updateProjectData({ outline: e.target.value })}
-          placeholder={
-            isLoading
-              ? "Generating outline..."
-              : "Enter or generate your article outline here. Use H1, H2, H3 for structure."
-          } // Placeholder reflects loading state
+          id="editedOutline"
+          value={editedOutline}
+          onChange={(e) => setEditedOutline(e.target.value)}
+          placeholder="Edited outline will appear here after processing."
           rows="15"
           className="block w-full p-2 border border-gray-300 rounded-md resize-y"
-          disabled={isLoading || isSavingOutlineDoc} // Disable textarea while busy
+          disabled={isLoading || isSavingOutlineDoc}
         ></textarea>
       </div>
 
-      {/* --- NEW BUTTON TO SAVE OUTLINE AS DOC --- */}
       <button
-        onClick={handleSaveOutlineAsDoc} // Call the modified handler
-        disabled={
-          isSavingOutlineDoc ||
-          isLoading ||
-          !projectData.outline ||
-          !projectData.outline.trim()
-        } // Disable if saving, generating, or outline is empty
+        onClick={handleSaveOutlineAsDoc}
+        disabled={isSavingOutlineDoc || isLoading || !outlineContent.trim()}
         className={`mt-4 px-4 py-2 rounded text-white transition-colors ${
-          isSavingOutlineDoc ||
-          isLoading ||
-          !projectData.outline ||
-          !projectData.outline.trim()
+          isSavingOutlineDoc || isLoading || !outlineContent.trim()
             ? "bg-gray-400 cursor-not-allowed"
-            : "bg-green-600 hover:bg-green-700" // Green color for saving
+            : "bg-green-600 hover:bg-green-700"
         }`}
       >
         {isSavingOutlineDoc ? "Saving Outline..." : "Confirm"}
       </button>
-      {/* --- END NEW BUTTON --- */}
 
-      {/* Next Button */}
       <button
         onClick={handleNext}
-        // disabled={
-        //   isLoading ||
-        //   isSavingOutlineDoc ||
-        //   !projectData.outline ||
-        //   !projectData.outline.trim()
-        // }
         className={`mt-4 px-4 py-2 rounded text-white transition-colors ${
-          isLoading ||
-          isSavingOutlineDoc ||
-          !projectData.outline ||
-          !projectData.outline.trim()
+          isLoading || isSavingOutlineDoc || !outlineContent.trim()
             ? "bg-gray-400 cursor-not-allowed"
-            : "bg-indigo-600 hover:bg-indigo-700" // Different color for Next
+            : "bg-indigo-600 hover:bg-indigo-700"
         }`}
       >
-        Next: Article {/* Step 4 is Persona based on STEPS[3].id */}
+        Next: Article
       </button>
 
-      {/* Add ToastContainer to render toasts */}
       <ToastContainer
         position="top-right"
         autoClose={5000}
