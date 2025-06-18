@@ -1,7 +1,7 @@
-export default function Loader() {
+export default function Loader({className}) {
   return (
     // <div className="loader-container">
-      <div className="loader"></div>
+    <div className={`${className ? className : "loader"}`}></div>
     // </div>
   );
 }

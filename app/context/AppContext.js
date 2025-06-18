@@ -1,20 +1,20 @@
 "use client"; // This is a client component
 
+import { usePathname } from "next/navigation";
 import React, { createContext, useState, useContext } from "react";
-
 const AppContext = createContext();
 
-export const STEPS = [
-  { id: "step1", name: "Connect Google Drive" },
-  { id: "step2", name: "Intent" },
-  { id: "step3", name: "Outline Creation" },
-  // { id: "step4", name: "Persona" },
-  // { id: "step5", name: "Content Parameters" },
-  { id: "step6", name: " Article " },
-];
-
 export function AppProvider({ children }) {
-  const [activeStep, setActiveStep] = useState(STEPS[0].id);
+  // const pathName = usePathname();
+  const STEPS = [
+    { id: "step1", name: "Connect Google Drive", route: "/" },
+    { id: "step2", name: "Rows" },
+    // { id: "step3", name: "Outline Creation" },
+    // { id: "step4", name: "Persona" },
+    // { id: "step5", name: "Content Parameters" },
+    // { id: "step6", name: " Article " },
+  ];
+  // const [activeStep, setActiveStep] = useState(STEPS[0].id);
   const [projectData, setProjectData] = useState({
     projectName: "",
     gDriveFiles: [],
@@ -31,6 +31,9 @@ export function AppProvider({ children }) {
     ctaText: "",
     generatedArticle: "",
     isGDriveConnected: false,
+    isModalOpen: false,
+    activeModalRowIndex: null,
+    activeModalTab: "Intent",
   });
 
   const updateProjectData = (newData) => {
@@ -39,8 +42,8 @@ export function AppProvider({ children }) {
 
   const value = {
     STEPS,
-    activeStep,
-    setActiveStep,
+    // activeStep,
+    // setActiveStep,
     projectData,
     updateProjectData,
   };
