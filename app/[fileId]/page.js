@@ -3,10 +3,11 @@ import { useEffect, useState } from "react";
 import Loader from "@/components/common/Loader";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import { useAppContext } from "@/context/AppContext";
 
 export default function FileId() {
-  //   const { projectData, updateProjectData, setActiveStep, STEPS } =
-  //     useAppContext();
+  const { projectData, updateProjectData, setActiveStep, STEPS } =
+    useAppContext();
   const [isLoading, setIsLoading] = useState(false);
   const [apiError, setApiError] = useState(null);
   const [keywords, setKeywords] = useState([]);
