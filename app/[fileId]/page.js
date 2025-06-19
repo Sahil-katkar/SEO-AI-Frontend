@@ -12,7 +12,7 @@ export default function FileId() {
   const [isLoading, setIsLoading] = useState(false);
   const [apiError, setApiError] = useState(null);
   const [keywords, setKeywords] = useState([]);
-  const [status, setStatus] = useState("loading"); // Tracks API status: "loading", "disabled", "success"
+  const [rowStatuses, setRowStatuses] = useState([]); // Array to track status per row
   const params = useParams();
   const fileId = params.fileId;
   const router = useRouter();
@@ -24,7 +24,8 @@ export default function FileId() {
       if (cachedData) {
         const parsedData = JSON.parse(cachedData);
         setKeywords(parsedData.keywords);
-        return;
+        setRowStatuses(new Array(parsedData.keywords.length).fill("loading"));
+        return parsedData.keywords;
       }
 
       setIsLoading(true);
@@ -37,20 +38,25 @@ export default function FileId() {
         });
         const readSpreadsheetData1 = await readSpreadsheetData.json();
         setKeywords(readSpreadsheetData1.keywords);
+        setRowStatuses(
+          new Array(readSpreadsheetData1.keywords.length).fill("loading")
+        );
         localStorage.setItem(
           `spreadsheet_${fileId}`,
           JSON.stringify(readSpreadsheetData1)
         );
+        return readSpreadsheetData1.keywords;
       } catch (error) {
         setApiError(error.message);
+        return [];
       } finally {
         setIsLoading(false);
       }
     };
 
-    const call_main_agent = async (user_id) => {
+    const call_main_agent = async (user_id, keyword, index) => {
       const payload = {
-        rows_content: [{ user_id: user_id }],
+        rows_content: [{ user_id: user_id, keyword }],
       };
       try {
         const gdriveResponse = await fetch("/api/call-main-agent", {
@@ -59,22 +65,34 @@ export default function FileId() {
           body: JSON.stringify(payload),
         });
 
-        if (gdriveResponse.status === 200) {
-          setStatus("success");
-        } else {
-          setStatus("disabled");
-        }
+        setRowStatuses((prev) =>
+          prev.map((status, i) =>
+            i === index
+              ? gdriveResponse.status === 200
+                ? "success"
+                : "disabled"
+              : status
+          )
+        );
 
         const gdriveDetails = await gdriveResponse.json();
-        console.log("gdriveDetails", gdriveDetails);
+        console.log(`Row ${index + 1} response:`, gdriveDetails);
       } catch (error) {
-        setStatus("disabled");
+        setRowStatuses((prev) =>
+          prev.map((status, i) => (i === index ? "disabled" : status))
+        );
         setApiError(error.message);
       }
     };
 
-    readSpreadSheet(fileId);
-    call_main_agent(user_id);
+    const processRowsSequentially = async () => {
+      const keywords = await readSpreadSheet(fileId);
+      for (let index = 0; index < keywords.length; index++) {
+        await call_main_agent(user_id, keywords[index], index);
+      }
+    };
+
+    processRowsSequentially();
   }, [fileId]);
 
   return (
@@ -108,11 +126,13 @@ export default function FileId() {
               >
                 <div>{eachKeyword}</div>
                 <div className="ml-auto flex items-center justify-center max-w-[80px] w-[100%]">
-                  {status === "loading" && <Loader className="loader-sm" />}
-                  {status === "success" && (
+                  {rowStatuses[index] === "loading" && (
+                    <Loader className="loader-sm" />
+                  )}
+                  {rowStatuses[index] === "success" && (
                     <span className="text-green-500">✔</span>
                   )}
-                  {status === "disabled" && (
+                  {rowStatuses[index] === "disabled" && (
                     <span className="text-gray-500">Disabled</span>
                   )}
                 </div>
