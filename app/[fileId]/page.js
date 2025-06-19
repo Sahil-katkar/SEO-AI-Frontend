@@ -55,6 +55,7 @@ export default function FileId() {
     };
 
     const call_main_agent = async (user_id, keyword, index) => {
+      console.log("row", index);
       const payload = {
         rows_content: [{ user_id: user_id, keyword }],
       };

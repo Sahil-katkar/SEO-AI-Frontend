@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react";
 import Loader from "@/components/common/Loader";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useAppContext } from "@/context/AppContext";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"; // ✅ Use client-side Supabase client
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 
 export default function FileRow() {
   const {
@@ -23,8 +23,8 @@ export default function FileRow() {
   const [intentdata, setIntentData] = useState([]);
   const [outlineData, setOutlineData] = useState([]);
   const params = useParams();
-
-  const supabase = createClientComponentClient(); // ✅ Use correct client method
+  const router = useRouter();
+  const supabase = createClientComponentClient();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -72,12 +72,31 @@ export default function FileRow() {
     updateProjectData({ activeModalTab: tabName });
   };
 
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      router.back();
+    }
+  };
+
   return (
     <div className="container">
       <main className="main-content step-component">
-        <h3 className="text-xl font-semibold mb-4 text-blue-500 pb-8">
-          Processing Row data {params.row}
-        </h3>
+        <div className="flex items-center gap-4 mb-4">
+          <span
+            className="p-2 text-blue-500 hover:text-blue-600 text-xl rounded-full hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+            onClick={() => router.back()}
+            onKeyDown={handleKeyDown}
+            tabIndex={0}
+            role="button"
+            aria-label="Go back"
+          >
+            ←
+          </span>
+          <h3 className="text-xl font-semibold text-blue-500">
+            Processing Row data {params.row}
+          </h3>
+        </div>
 
         {apiError && <div className="text-red-500">Error: {apiError}</div>}
         {isLoading && <Loader />}
@@ -156,7 +175,7 @@ export default function FileRow() {
                         }
 
                         return (
-                          <div key={index} className="mb-6">
+                          <div key={index} ibald className="mb-6">
                             <div>
                               <h4 className="text-lg font-semibold text-black-700 mb-2">
                                 Generated Outline
@@ -238,9 +257,6 @@ export default function FileRow() {
                     )}
                   </div>
                 )}
-                {/* {projectData.activeModalTab === "Content" && (
-                  <pre>{JSON.stringify(articledata, null, 2)}</pre>
-                )} */}
               </div>
             </div>
           </div>
