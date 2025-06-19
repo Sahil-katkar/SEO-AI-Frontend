@@ -4,6 +4,7 @@ import Loader from "@/components/common/Loader";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { useAppContext } from "@/context/AppContext";
+import { useRouter } from "next/navigation";
 
 export default function FileId() {
   const { projectData, updateProjectData, setActiveStep, STEPS } =
@@ -13,6 +14,7 @@ export default function FileId() {
   const [keywords, setKeywords] = useState([]);
   const params = useParams();
   const fileId = params.fileId;
+  const router = useRouter();
 
   useEffect(() => {
     const readSpreadSheet = async (fileId) => {
@@ -76,28 +78,26 @@ export default function FileId() {
           {keywords &&
             keywords.map((eachKeyword, index) => {
               return (
-                <>
-                  <div
-                    key={index}
-                    className="border-b-[1px] border-[#eceef1] flex gap-[30px] items-center py-[8px]"
-                  >
-                    <div>{eachKeyword}</div>
-                    <div className="ml-auto flex items-center justify-center max-w-[80px] w-[100%]">
-                      <Loader className={"loader-sm"} />
-                    </div>
-                    <div className="">
-                      <button
-                        className="redirect-btn"
-                        onClick={() => {
-                          updateProjectData({ activeModalTab: "Logs" });
-                          router.push(`/${fileId}/${index + 1}`);
-                        }}
-                      >
-                        View
-                      </button>
-                    </div>
+                <div
+                  key={index}
+                  className="border-b-[1px] border-[#eceef1] flex gap-[30px] items-center py-[8px]"
+                >
+                  <div>{eachKeyword}</div>
+                  <div className="ml-auto flex items-center justify-center max-w-[80px] w-[100%]">
+                    <Loader className={"loader-sm"} />
                   </div>
-                </>
+                  <div className="">
+                    <button
+                      className="redirect-btn"
+                      onClick={() => {
+                        updateProjectData({ activeModalTab: "Logs" });
+                        router.push(`/${fileId}/${index + 1}`);
+                      }}
+                    >
+                      View
+                    </button>
+                  </div>
+                </div>
               );
             })}
         </div>

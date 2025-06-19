@@ -1,9 +1,10 @@
 "use client";
+
 import { useEffect, useState } from "react";
 import Loader from "@/components/common/Loader";
 import { useParams } from "next/navigation";
-import Link from "next/link";
 import { useAppContext } from "@/context/AppContext";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"; // ✅ Use client-side Supabase client
 
 export default function FileRow() {
   const {
@@ -15,108 +16,235 @@ export default function FileRow() {
     activeModalRowIndex,
     activeModalTab,
   } = useAppContext();
-  const [isLoading, setIsLoading] = useState(false);
+
+  const [isLoading, setIsLoading] = useState(true);
   const [apiError, setApiError] = useState(null);
-  const [keywords, setKeywords] = useState([]);
+  const [articledata, setArticleData] = useState([]);
+  const [intentdata, setIntentData] = useState([]);
+  const [outlineData, setOutlineData] = useState([]);
   const params = useParams();
-  //   const fileId = params.fileId;
-  console.log(params);
 
-  //   useEffect(() => {
-  //     setIsLoading(true);
-  //     const readSpreadSheet = async (fileId) => {
-  //       const body = {
-  //         file_id: fileId,
-  //       };
-  //       const readSpreadsheetData = await fetch(`/api/read-spreadsheet`, {
-  //         method: "POST",
-  //         headers: { "Content-Type": "application/json" },
-  //         body: JSON.stringify(body),
-  //       });
+  const supabase = createClientComponentClient(); // ✅ Use correct client method
 
-  //       const readSpreadsheetData1 = await readSpreadsheetData.json();
-  //       setKeywords(readSpreadsheetData1.keywords);
-  //       setIsLoading(false);
-  //       console.log("readSpreadsheetData1", readSpreadsheetData1);
-  //     };
-  //     readSpreadSheet(fileId);
-  //   }, [fileId]);
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // const row_id = params.row;
+        const row_id = "123";
 
-  //   const ActiveStepComponent =
-  //     stepComponents[activeStep] || (() => <div>Step not found</div>);
+        const { data: article, error: articleError } = await supabase
+          .from("article")
+          .select("content")
+          .eq("row_id", row_id);
+
+        const { data: intent, error: intentError } = await supabase
+          .from("intent")
+          .select("content")
+          .eq("row_id", row_id);
+
+        const { data: outline, error: outlineError } = await supabase
+          .from("outline")
+          .select("content")
+          .eq("row_id", row_id);
+
+        if (articleError || intentError || outlineError) {
+          throw new Error(
+            articleError?.message ||
+              intentError?.message ||
+              outlineError?.message
+          );
+        }
+
+        setArticleData(article || []);
+        setIntentData(intent || []);
+        setOutlineData(outline || []);
+      } catch (error) {
+        setApiError(error.message || "Something went wrong");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [params.row, supabase]);
+
   const handleTabChange = (tabName) => {
     updateProjectData({ activeModalTab: tabName });
   };
-
-  console.log("activeModalTab", activeModalTab);
 
   return (
     <div className="container">
       <main className="main-content step-component">
         <h3 className="text-xl font-semibold mb-4 text-blue-500 pb-8">
-          3. Row number {params.row}
+          Processing Row data {params.row}
         </h3>
 
-        <div className="input-section">{/* <h4>Rows:</h4> */}</div>
-
-        {apiError && <div className="mt-2 text-red-500">Error: {apiError}</div>}
-
+        {apiError && <div className="text-red-500">Error: {apiError}</div>}
         {isLoading && <Loader />}
 
-        <div className="flex flex-col gap-[8px]">
-          {true && (
-            <div
-            // className="modal-overlay"
-            >
-              <div
-              // className="modal-content"
-              // onClick={(e) => e.stopPropagation()}
-              >
-                {/* <div className="modal-header">
-                  <h4>Details for:123</h4>
-                  <button className="modal-close-button">×</button>
-                </div> */}
+        {!isLoading && (
+          <div className="flex flex-col gap-[8px]">
+            <div>
+              <div className="modal-tabs">
+                {["Logs", "Intent", "Outline", "Content"].map((tabName) => (
+                  <button
+                    key={tabName}
+                    className={`modal-tab-button ${
+                      projectData.activeModalTab === tabName ? "active" : ""
+                    }`}
+                    onClick={() => handleTabChange(tabName)}
+                  >
+                    {tabName}
+                  </button>
+                ))}
+              </div>
 
-                <div className="modal-tabs">
-                  {["Logs", "Intent", "Outline", "Content"].map((tabName) => (
-                    <button
-                      key={tabName}
-                      className={`modal-tab-button ${
-                        projectData.activeModalTab === tabName ? "active" : ""
-                      }`}
-                      onClick={() => handleTabChange(tabName)}
-                    >
-                      {tabName}
-                    </button>
-                  ))}
-                </div>
+              <div className="modal-tab-content">
+                {projectData.activeModalTab === "Logs" && (
+                  <pre>Processing Logs...</pre>
+                )}
+                {projectData.activeModalTab === "Intent" && (
+                  <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200">
+                    {intentdata.length > 0 ? (
+                      intentdata.map((item, index) => {
+                        let parsedContent;
+                        try {
+                          parsedContent = JSON.parse(item.content);
+                        } catch (e) {
+                          parsedContent = {
+                            intent: "Invalid JSON",
+                            explanation: item.content,
+                          };
+                        }
 
-                <div className="modal-tab-content">
-                  {projectData.activeModalTab === "Logs" && (
-                    <div>
-                      <pre>Processing Logs</pre>
-                    </div>
-                  )}
-                  {projectData.activeModalTab === "Intent" && (
-                    <div>
-                      <pre>Generated Intent</pre>
-                    </div>
-                  )}
-                  {projectData.activeModalTab === "Outline" && (
-                    <div>
-                      <pre>Generated Outline</pre>
-                    </div>
-                  )}
-                  {projectData.activeModalTab === "Content" && (
-                    <div>
-                      <pre>Generated Content</pre>
-                    </div>
-                  )}
-                </div>
+                        return (
+                          <div key={index} className="mb-6">
+                            <h4 className="text-lg font-semibold text-black-700 mb-2">
+                              Intent
+                            </h4>
+                            <p className="text-black-600 text-base mb-4">
+                              {parsedContent.intent}
+                            </p>
+
+                            <h4 className="text-lg font-semibold text-black-700 mb-2">
+                              Explanation
+                            </h4>
+                            <p className="text-black-600 leading-relaxed">
+                              {parsedContent.explanation}
+                            </p>
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <p className="text-black-500">
+                        No intent data available.
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {projectData.activeModalTab === "Outline" && (
+                  <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200">
+                    {outlineData.length > 0 ? (
+                      outlineData.map((item, index) => {
+                        let parsedOutline;
+
+                        try {
+                          parsedOutline = JSON.parse(item.content);
+                        } catch (e) {
+                          parsedOutline = item.content; // fallback if not JSON
+                        }
+
+                        return (
+                          <div key={index} className="mb-6">
+                            <div>
+                              <h4 className="text-lg font-semibold text-black-700 mb-2">
+                                Generated Outline
+                              </h4>
+
+                              {typeof parsedOutline === "string" ? (
+                                <p className="text-black-600 whitespace-pre-line">
+                                  {parsedOutline}
+                                </p>
+                              ) : (
+                                <ul className="list-disc pl-6 text-black-600">
+                                  {Object.entries(parsedOutline).map(
+                                    ([key, value]) => (
+                                      <li key={key} className="mb-2">
+                                        <strong className="text-black-700">
+                                          {key}:
+                                        </strong>{" "}
+                                        {value}
+                                      </li>
+                                    )
+                                  )}
+                                </ul>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <p className="text-black-500">
+                        No outline data available.
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {projectData.activeModalTab === "Content" && (
+                  <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200">
+                    {articledata.length > 0 ? (
+                      articledata.map((item, index) => {
+                        let parsedOutline;
+
+                        try {
+                          parsedOutline = JSON.parse(item.content);
+                        } catch (e) {
+                          parsedOutline = item.content; // fallback if not JSON
+                        }
+
+                        return (
+                          <div key={index} className="mb-6">
+                            <h4 className="text-lg font-semibold text-black-700 mb-2">
+                              Generated Article
+                            </h4>
+
+                            {typeof parsedOutline === "string" ? (
+                              <p className="text-black-600 whitespace-pre-line">
+                                {parsedOutline}
+                              </p>
+                            ) : (
+                              <ul className="list-disc pl-6 text-black-600">
+                                {Object.entries(parsedOutline).map(
+                                  ([key, value]) => (
+                                    <li key={key} className="mb-2">
+                                      <strong className="text-black-700">
+                                        {key}:
+                                      </strong>{" "}
+                                      {value}
+                                    </li>
+                                  )
+                                )}
+                              </ul>
+                            )}
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <p className="text-black-500">
+                        No Article data available.
+                      </p>
+                    )}
+                  </div>
+                )}
+                {/* {projectData.activeModalTab === "Content" && (
+                  <pre>{JSON.stringify(articledata, null, 2)}</pre>
+                )} */}
               </div>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </main>
     </div>
   );

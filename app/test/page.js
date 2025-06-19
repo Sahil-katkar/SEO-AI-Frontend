@@ -3,7 +3,7 @@ import { createClient } from "../../utils/supabase/server";
 export default async function Instruments() {
   const supabase = await createClient();
 
-  const row_id = "1";
+  const row_id = "123";
   const article = await supabase
     .from("article")
     .select("content")
