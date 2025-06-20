@@ -12,20 +12,20 @@ export default function FileId() {
   const [isLoading, setIsLoading] = useState(false);
   const [apiError, setApiError] = useState(null);
   const [keywords, setKeywords] = useState([]);
-  const [rowStatuses, setRowStatuses] = useState([]); // Array to track status per row
+  const [status, setStatus] = useState("loading"); // Tracks API status: "loading", "disabled", "success"
   const params = useParams();
   const fileId = params.fileId;
   const router = useRouter();
   const user_id = "1122";
 
+  // console.log
   useEffect(() => {
     const readSpreadSheet = async (fileId) => {
       const cachedData = localStorage.getItem(`spreadsheet_${fileId}`);
       if (cachedData) {
         const parsedData = JSON.parse(cachedData);
         setKeywords(parsedData.keywords);
-        setRowStatuses(new Array(parsedData.keywords.length).fill("loading"));
-        return parsedData.keywords;
+        return;
       }
 
       setIsLoading(true);
@@ -38,26 +38,20 @@ export default function FileId() {
         });
         const readSpreadsheetData1 = await readSpreadsheetData.json();
         setKeywords(readSpreadsheetData1.keywords);
-        setRowStatuses(
-          new Array(readSpreadsheetData1.keywords.length).fill("loading")
-        );
         localStorage.setItem(
           `spreadsheet_${fileId}`,
           JSON.stringify(readSpreadsheetData1)
         );
-        return readSpreadsheetData1.keywords;
       } catch (error) {
         setApiError(error.message);
-        return [];
       } finally {
         setIsLoading(false);
       }
     };
 
-    const call_main_agent = async (user_id, keyword, index) => {
-      console.log("row", index);
+    const call_main_agent = async (user_id) => {
       const payload = {
-        rows_content: [{ user_id: user_id, keyword }],
+        rows_content: [{ user_id: user_id }],
       };
       try {
         const gdriveResponse = await fetch("/api/call-main-agent", {
@@ -66,34 +60,22 @@ export default function FileId() {
           body: JSON.stringify(payload),
         });
 
-        setRowStatuses((prev) =>
-          prev.map((status, i) =>
-            i === index
-              ? gdriveResponse.status === 200
-                ? "success"
-                : "disabled"
-              : status
-          )
-        );
+        if (gdriveResponse.status === 200) {
+          setStatus("success");
+        } else {
+          setStatus("disabled");
+        }
 
         const gdriveDetails = await gdriveResponse.json();
-        console.log(`Row ${index + 1} response:`, gdriveDetails);
+        console.log("gdriveDetails", gdriveDetails);
       } catch (error) {
-        setRowStatuses((prev) =>
-          prev.map((status, i) => (i === index ? "disabled" : status))
-        );
+        setStatus("disabled");
         setApiError(error.message);
       }
     };
 
-    const processRowsSequentially = async () => {
-      const keywords = await readSpreadSheet(fileId);
-      for (let index = 0; index < keywords.length; index++) {
-        await call_main_agent(user_id, keywords[index], index);
-      }
-    };
-
-    processRowsSequentially();
+    readSpreadSheet(fileId);
+    call_main_agent(user_id);
   }, [fileId]);
 
   return (
@@ -127,13 +109,11 @@ export default function FileId() {
               >
                 <div>{eachKeyword}</div>
                 <div className="ml-auto flex items-center justify-center max-w-[80px] w-[100%]">
-                  {rowStatuses[index] === "loading" && (
-                    <Loader className="loader-sm" />
-                  )}
-                  {rowStatuses[index] === "success" && (
+                  {status === "loading" && <Loader className="loader-sm" />}
+                  {status === "success" && (
                     <span className="text-green-500">✔</span>
                   )}
-                  {rowStatuses[index] === "disabled" && (
+                  {status === "disabled" && (
                     <span className="text-gray-500">Disabled</span>
                   )}
                 </div>
