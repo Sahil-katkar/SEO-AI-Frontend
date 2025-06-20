@@ -17,7 +17,8 @@ export default function FileId() {
   const params = useParams();
   const fileId = params.fileId;
   const router = useRouter();
-  const user_id = "1122";
+  const user_id = fileId;
+  console.log("fileID", fileId);
 
   // console.log
   useEffect(() => {
@@ -57,8 +58,10 @@ export default function FileId() {
 
     const call_main_agent = async (user_id, keyword, index) => {
       const payload = {
-        rows_content: [{ user_id: user_id, keyword }],
+        rows_content: [{ user_id: `${user_id}_${index + 1}`, keyword }],
       };
+      console.log("payload datd", payload);
+
       try {
         const gdriveResponse = await fetch("/api/call-main-agent", {
           method: "POST",
