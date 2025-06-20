@@ -12,20 +12,23 @@ export default function Sidebar() {
   const router = useRouter();
   const pathName = usePathname();
 
+  console.log(pathName);
+
   return (
     <aside className="sidebar">
-      <h2>SEO AI</h2>
+      <h2 className="font-bold">SEO AI</h2>
       <ul>
-        {STEPS.map((step) => (
+        {STEPS.map((step, index) => (
           <li
             key={step.id}
             className={`
-              ${pathName === "/" && step.id === "step1" ? "active" : ""}
-              whitespace-nowrap`}
+              whitespace-nowrap
+              ${step.route && pathName === step.route ? "active" : ""}
+
+              `}
             onClick={() => {
-              // setActiveStep(step.id);
-              if (step.route === "/") {
-                router.push("/");
+              if (step.route) {
+                router.push(step.route);
               }
             }}
           >

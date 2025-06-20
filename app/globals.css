@@ -370,6 +370,7 @@ textarea {
   display: flex;
   border-bottom: 1px solid #ccc;
   margin-bottom: 20px;
+  padding-bottom: 8px;
 }
 
 .modal-tab-button {
@@ -391,7 +392,6 @@ textarea {
 
   /* border-bottom: 3px solid #1abc9c; */
   /* font-weight: bold; */
-
 }
 
 .modal-tab-button:hover:not(.active) {

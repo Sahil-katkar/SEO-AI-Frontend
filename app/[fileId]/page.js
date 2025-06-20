@@ -148,6 +148,7 @@ export default function FileId() {
                 </div>
                 <div>
                   <button
+                    disabled={rowStatuses[index] === "loading" ? true : false}
                     className="redirect-btn"
                     onClick={() => {
                       updateProjectData({ activeModalTab: "Logs" });
