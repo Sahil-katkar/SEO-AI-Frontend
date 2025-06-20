@@ -30,7 +30,7 @@ export default function FileRow() {
     const fetchData = async () => {
       try {
         // const row_id = params.row;
-        const row_id = "123";
+        const row_id = "19OSWJXm_2IqF3I0RFQgYxU_4UlQOM0QF_g70UXRBhjQ_1";
 
         const { data: article, error: articleError } = await supabase
           .from("article")

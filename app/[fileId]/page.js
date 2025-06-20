@@ -41,6 +41,8 @@ export default function FileId() {
           body: JSON.stringify(body),
         });
         const readSpreadsheetData1 = await readSpreadsheetData.json();
+        console.log("readSpreadsheetData1", readSpreadsheetData1);
+
         setKeywords(readSpreadsheetData1.keywords);
         setRowStatuses(
           new Array(readSpreadsheetData1.keywords.length).fill("loading")
