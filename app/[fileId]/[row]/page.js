@@ -22,6 +22,10 @@ export default function FileRow() {
   const [articledata, setArticleData] = useState([]);
   const [intentdata, setIntentData] = useState([]);
   const [outlineData, setOutlineData] = useState([]);
+  const [editIntent, setEditIntent] = useState(false);
+  const [parsedContentState, setParsedContentState] = useState();
+  const [saveEditedIntent, setSaveEditedIntent] = useState(false);
+
   const params = useParams();
   const router = useRouter();
   const supabase = createClientComponentClient();
@@ -57,6 +61,7 @@ export default function FileRow() {
 
         setArticleData(article || []);
         setIntentData(intent || []);
+        setParsedContentState(JSON.parse(intent[0]?.content));
         setOutlineData(outline || []);
       } catch (error) {
         setApiError(error.message || "Something went wrong");
@@ -77,6 +82,37 @@ export default function FileRow() {
       e.preventDefault();
       router.back();
     }
+  };
+
+  const handleCancelEditedIntent = () => {
+    if (intentdata.length > 0) {
+      setParsedContentState(JSON.parse(intentdata[0].content));
+    }
+  };
+
+  const payload = {
+    users_id: "string",
+    Mainkeyword: "string",
+    edit_content: {
+      additionalProp1: "string",
+      additionalProp2: "string",
+      additionalProp3: "string",
+    },
+  };
+
+  const handleSaveEditedIntent = async () => {
+    console.log("hi");
+    setSaveEditedIntent(true);
+    setTimeout(() => {
+      setSaveEditedIntent(false);
+    }, 3000);
+    // const res = await fetch("/api/contentEdit", {
+    //   method: "POST",
+    //   headers: {
+    //     "Content-Type": "application/json",
+    //   },
+    //   body: JSON.stringify(payload),
+    // });
   };
 
   return (
@@ -122,38 +158,86 @@ export default function FileRow() {
                 {projectData.activeModalTab === "Logs" && (
                   <pre>Processing Logs...</pre>
                 )}
+
                 {projectData.activeModalTab === "Intent" && (
                   <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200">
                     {intentdata.length > 0 ? (
-                      intentdata.map((item, index) => {
-                        let parsedContent;
-                        try {
-                          parsedContent = JSON.parse(item.content);
-                        } catch (e) {
-                          parsedContent = {
-                            intent: "Invalid JSON",
-                            explanation: item.content,
-                          };
-                        }
+                      <div className="mb-6">
+                        <div className="flex justify-between items-center mb-2">
+                          <h4 className="text-lg font-semibold text-black-700 mb-2">
+                            Intent
+                          </h4>
 
-                        return (
-                          <div key={index} className="mb-6">
-                            <h4 className="text-lg font-semibold text-black-700 mb-2">
-                              Intent
-                            </h4>
-                            <p className="text-black-600 text-base mb-4">
-                              {parsedContent.intent}
-                            </p>
+                          <div className="ml-auto flex items-center gap-[30px]">
+                            {!editIntent && (
+                              <button
+                                onClick={() => {
+                                  setEditIntent(true);
+                                }}
+                              >
+                                Edit
+                              </button>
+                            )}
 
-                            <h4 className="text-lg font-semibold text-black-700 mb-2">
-                              Explanation
-                            </h4>
-                            <p className="text-black-600 leading-relaxed">
-                              {parsedContent.explanation}
-                            </p>
+                            {editIntent && (
+                              <>
+                                {saveEditedIntent && (
+                                  <Loader className={"loader-sm"} />
+                                )}
+                                <button
+                                  disabled={saveEditedIntent}
+                                  onClick={() => {
+                                    handleSaveEditedIntent();
+                                  }}
+                                >
+                                  Save
+                                </button>
+                                <button
+                                  disabled={saveEditedIntent}
+                                  onClick={() => {
+                                    setEditIntent(false);
+                                    handleCancelEditedIntent();
+                                  }}
+                                >
+                                  Cancel
+                                </button>
+                              </>
+                            )}
                           </div>
-                        );
-                      })
+                        </div>
+                        {editIntent ? (
+                          <textarea
+                            disabled={saveEditedIntent}
+                            defaultValue={parsedContentState.intent}
+                            onChange={(e) => {
+                              parsedContentState.intent = e.target.value;
+                            }}
+                          />
+                        ) : (
+                          <p className="text-black-600 text-base mb-4">
+                            {parsedContentState && parsedContentState?.intent}
+                          </p>
+                        )}
+
+                        <h4 className="text-lg font-semibold text-black-700 mb-2">
+                          Explanation
+                        </h4>
+
+                        {editIntent ? (
+                          <textarea
+                            disabled={saveEditedIntent}
+                            defaultValue={parsedContentState.explanation}
+                            onChange={(e) => {
+                              parsedContentState.explanation = e.target.value;
+                            }}
+                          />
+                        ) : (
+                          <p className="text-black-600 leading-relaxed">
+                            {parsedContentState &&
+                              parsedContentState?.explanation}
+                          </p>
+                        )}
+                      </div>
                     ) : (
                       <p className="text-black-500">
                         No intent data available.
@@ -175,7 +259,7 @@ export default function FileRow() {
                         }
 
                         return (
-                          <div key={index} ibald className="mb-6">
+                          <div key={index} className="mb-6">
                             <div>
                               <h4 className="text-lg font-semibold text-black-700 mb-2">
                                 Generated Outline

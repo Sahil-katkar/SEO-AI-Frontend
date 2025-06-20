@@ -6,9 +6,11 @@ const AppContext = createContext();
 
 export function AppProvider({ children }) {
   // const pathName = usePathname();
+  const pathName = usePathname();
+
   const STEPS = [
     { id: "step1", name: "Connect Google Drive", route: "/" },
-    { id: "step2", name: "Rows" },
+    { id: "step2", name: "Rows", route: `${pathName === "/" ? '' : pathName}` },
     // { id: "step3", name: "Outline Creation" },
     // { id: "step4", name: "Persona" },
     // { id: "step5", name: "Content Parameters" },
