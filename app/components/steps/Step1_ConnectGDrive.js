@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 
 export default function Step1_ConnectGDrive() {
   const { projectData, updateProjectData, setActiveStep, STEPS } =
@@ -21,6 +22,7 @@ export default function Step1_ConnectGDrive() {
   const [files, setFiles] = useState(projectData?.gDriveFiles);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const supabase = createClientComponentClient();
 
   // const handleViewArticle = async () => {
   //   setArticleLoading(true);
@@ -161,6 +163,21 @@ export default function Step1_ConnectGDrive() {
   //   }, 8000);
   // };
 
+  const insertFileDetailsListed = async (data) => {
+    const { dataUpdated } = await supabase.from("file_details").insert([
+      {
+        content: JSON.stringify(data),
+        file: true,
+      },
+    ]);
+
+    if (dataUpdated) {
+      console.error("Insert error:", error);
+    } else {
+      console.log("Successfully inserted.");
+    }
+  };
+
   const handleListFiles = async () => {
     setError(null);
     // setFiles(null);
@@ -182,6 +199,8 @@ export default function Step1_ConnectGDrive() {
 
       const data = await response.json();
 
+      insertFileDetailsListed(data);
+
       setFiles(data);
       updateProjectData({
         isGDriveConnected: true,
@@ -190,6 +209,7 @@ export default function Step1_ConnectGDrive() {
       });
       setIsLoading(false);
       console.log("Successfully listed files:", data);
+      // insertFileDetails(data);
     } catch (e) {
       setIsLoading(false);
       console.error("Failed to list files (caught error):", e);

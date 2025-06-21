@@ -1,109 +1,197 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import Loader from "@/components/common/Loader";
-import { useParams } from "next/navigation";
-import Link from "next/link";
+import { useParams, useRouter } from "next/navigation";
 import { useAppContext } from "@/context/AppContext";
-import { useRouter } from "next/navigation";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 
 export default function FileId() {
-  const { projectData, updateProjectData, setActiveStep, STEPS } =
-    useAppContext();
+  const { updateProjectData } = useAppContext();
   const [isLoading, setIsLoading] = useState(false);
   const [apiError, setApiError] = useState(null);
   const [keywords, setKeywords] = useState([]);
-  const [status, setStatus] = useState("loading"); // Tracks API status: "loading", "disabled", "success"
-  const [rowStatuses, setRowStatuses] = useState([]); // Array to track status per row
-  const params = useParams();
-  const fileId = params.fileId;
+  const [url, setUrl] = useState([]);
+  const [rowStatuses, setRowStatuses] = useState([]);
+  const { fileId } = useParams();
   const router = useRouter();
-  const user_id = fileId;
-  console.log("fileID", fileId);
+  const supabase = createClientComponentClient();
+  const hasInsertedRef = useRef(false);
 
-  // console.log
+  const insertFileDetails = async (
+    sheetData,
+    keywordsArray,
+    competitorArray
+  ) => {
+    try {
+      const { data: existingData, error: checkError } = await supabase
+        .from("file_details")
+        .select("id")
+        .eq("fileId", fileId)
+        .eq("row", true);
+
+      if (checkError) throw new Error(`Check error: ${checkError.message}`);
+      if (existingData.length > 0) {
+        console.log("ℹ️ Data already exists for fileId:", fileId);
+        hasInsertedRef.current = true;
+        return;
+      }
+
+      const { error } = await supabase.from("file_details").insert([
+        {
+          content: JSON.stringify(sheetData || []),
+          keywords: JSON.stringify(keywordsArray || []),
+          url: JSON.stringify(competitorArray || []),
+          row: true,
+          fileId,
+        },
+      ]);
+
+      if (error) throw new Error(`Insert error: ${error.message}`);
+      console.log("✅ Inserted file details for fileId:", fileId);
+      hasInsertedRef.current = true;
+    } catch (error) {
+      console.error("❌ insertFileDetails error:", error.message);
+      setApiError(error.message);
+    }
+  };
+
+  const fetchFromSupabase = async () => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("file_details")
+        .select("keywords, content, url")
+        .eq("fileId", fileId)
+        .eq("row", true);
+
+      if (error) throw new Error(`Supabase fetch error: ${error.message}`);
+
+      if (data && data.length > 0) {
+        const parsedKeywords = JSON.parse(data[0].keywords || "[]");
+        const parsedUrls = JSON.parse(data[0].url || "[]");
+
+        setKeywords(parsedKeywords);
+        setUrl(parsedUrls);
+        setRowStatuses(new Array(parsedKeywords.length).fill("loading"));
+      } else {
+        const cachedData = localStorage.getItem(`spreadsheet_${fileId}`);
+        if (cachedData) {
+          const parsedData = JSON.parse(cachedData);
+          setKeywords(parsedData.keywords);
+          setUrl(parsedData.competitors);
+          setRowStatuses(new Array(parsedData.keywords.length).fill("loading"));
+
+          if (!hasInsertedRef.current) {
+            await insertFileDetails(
+              parsedData.full_content,
+              parsedData.keywords,
+              parsedData.competitors
+            );
+          }
+        } else {
+          const response = await fetch(`/api/read-spreadsheet`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ file_id: fileId }),
+          });
+
+          if (!response.ok)
+            throw new Error(`HTTP error! status: ${response.status}`);
+
+          const spreadsheetData = await response.json();
+          const sheetData = spreadsheetData.full_content?.Sheet1 || [];
+          const keywordsArray = sheetData
+            .map((row) => row.KEYWORDS)
+            .filter(Boolean);
+          const competitorArray = sheetData
+            .map((row) => row.COMPETITORS)
+            .filter(Boolean);
+
+          setKeywords(keywordsArray);
+          setUrl(competitorArray);
+          setRowStatuses(new Array(keywordsArray.length).fill("loading"));
+          localStorage.setItem(
+            `spreadsheet_${fileId}`,
+            JSON.stringify(spreadsheetData)
+          );
+
+          if (!hasInsertedRef.current) {
+            await insertFileDetails(sheetData, keywordsArray, competitorArray);
+          }
+        }
+      }
+    } catch (error) {
+      setApiError(error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const callMainAgent = async (userId, keyword, index, currentUrl) => {
+    const payload = {
+      rows_content: [
+        {
+          user_id: `${userId}_${index + 1}`,
+          primary_keyword: keyword,
+          URLs: currentUrl,
+        },
+      ],
+    };
+
+    try {
+      const response = await fetch("/api/call-main-agent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      setRowStatuses((prev) =>
+        prev.map((status, i) =>
+          i === index
+            ? response.status === 200
+              ? "success"
+              : "disabled"
+            : status
+        )
+      );
+
+      const data = await response.json();
+      console.log(`✅ Row ${index + 1} response:`, data);
+    } catch (error) {
+      setRowStatuses((prev) =>
+        prev.map((status, i) => (i === index ? "disabled" : status))
+      );
+      setApiError(error.message);
+    }
+  };
+
+  // Initial fetch
   useEffect(() => {
-    const readSpreadSheet = async (fileId) => {
-      const cachedData = localStorage.getItem(`spreadsheet_${fileId}`);
-      if (cachedData) {
-        const parsedData = JSON.parse(cachedData);
-        setKeywords(parsedData.keywords);
-        // return;
-        setRowStatuses(new Array(parsedData.keywords.length).fill("loading"));
-        return parsedData.keywords;
-      }
-
-      setIsLoading(true);
-      const body = { file_id: fileId };
-      try {
-        const readSpreadsheetData = await fetch(`/api/read-spreadsheet`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
-        });
-        const readSpreadsheetData1 = await readSpreadsheetData.json();
-        console.log("readSpreadsheetData1", readSpreadsheetData1);
-
-        setKeywords(readSpreadsheetData1.keywords);
-        setRowStatuses(
-          new Array(readSpreadsheetData1.keywords.length).fill("loading")
-        );
-        localStorage.setItem(
-          `spreadsheet_${fileId}`,
-          JSON.stringify(readSpreadsheetData1)
-        );
-      } catch (error) {
-        setApiError(error.message);
-      } finally {
-        setIsLoading(false);
-      }
+    if (fileId) {
+      hasInsertedRef.current = false;
+      fetchFromSupabase();
+    }
+    return () => {
+      hasInsertedRef.current = false;
     };
-
-    const call_main_agent = async (user_id, keyword, index) => {
-      const payload = {
-        rows_content: [{ user_id: `${user_id}_${index + 1}`, keyword }],
-      };
-      console.log("payload datd", payload);
-
-      try {
-        const gdriveResponse = await fetch("/api/call-main-agent", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-
-        setRowStatuses((prev) =>
-          prev.map((status, i) =>
-            i === index
-              ? gdriveResponse.status === 200
-                ? "success"
-                : "disabled"
-              : status
-          )
-        );
-
-        const gdriveDetails = await gdriveResponse.json();
-        // console.log("gdriveDetails", gdriveDetails);
-        console.log(`Row ${index + 1} response:`, gdriveDetails);
-      } catch (error) {
-        // setStatus("disabled");
-        setRowStatuses((prev) =>
-          prev.map((status, i) => (i === index ? "disabled" : status))
-        );
-        setApiError(error.message);
-      }
-    };
-
-    // readSpreadSheet(fileId);
-    // call_main_agent(user_id);
-    const processRowsSequentially = async () => {
-      const keywords = await readSpreadSheet(fileId);
-      for (let index = 0; index < keywords.length; index++) {
-        await call_main_agent(user_id, keywords[index], index);
-      }
-    };
-
-    processRowsSequentially();
   }, [fileId]);
+
+  // Process rows only when keywords and url are both available
+  useEffect(() => {
+    const processRows = async () => {
+      for (let index = 0; index < keywords.length; index++) {
+        const keyword = keywords[index];
+        const currentUrl = url[index] || "";
+        if (keyword) {
+          await callMainAgent(fileId, keyword, index, currentUrl);
+        }
+      }
+    };
+
+    if (keywords.length && url.length) {
+      processRows();
+    }
+  }, [keywords, url]);
 
   return (
     <div className="container">
@@ -112,54 +200,49 @@ export default function FileId() {
           2. Rows inside your spreadsheet
         </h3>
 
-        <div className="input-section">{/* <h4>Rows:</h4> */}</div>
-
         {apiError && <div className="mt-2 text-red-500">Error: {apiError}</div>}
-
         {isLoading && <Loader />}
 
-        <div className="flex flex-col gap-[8px]">
-          <div className="flex gap-[30px] items-center">
+        <div className="flex flex-col gap-2">
+          <div className="flex gap-8 items-center">
             <div className="font-bold">Rows</div>
-            <div className="font-bold ml-auto flex items-center justify-center max-w-[80px] w-[100%]">
+            <div className="font-bold ml-auto flex items-center justify-center w-20">
               Status
             </div>
-            <div className="invisible">
-              <button className="redirect-btn">View</button>
-            </div>
+            <div className="w-16" />
           </div>
-          {keywords &&
-            keywords.map((eachKeyword, index) => (
-              <div
-                key={index}
-                className="border-b-[1px] border-[#eceef1] flex gap-[30px] items-center py-[8px]"
-              >
-                <div>{eachKeyword}</div>
-                <div className="ml-auto flex items-center justify-center max-w-[80px] w-[100%]">
-                  {rowStatuses[index] === "loading" && (
-                    <Loader className="loader-sm" />
-                  )}
-                  {rowStatuses[index] === "success" && (
-                    <span className="text-green-500">✔</span>
-                  )}
-                  {rowStatuses[index] === "disabled" && (
-                    <span className="text-gray-500">Disabled</span>
-                  )}
-                </div>
-                <div>
-                  <button
-                    disabled={rowStatuses[index] === "loading" ? true : false}
-                    className="redirect-btn"
-                    onClick={() => {
-                      updateProjectData({ activeModalTab: "Logs" });
-                      router.push(`/${fileId}/${index + 1}`);
-                    }}
-                  >
-                    View
-                  </button>
-                </div>
+
+          {keywords.map((keyword, index) => (
+            <div
+              key={index}
+              className="border-b border-[#eceef1] flex gap-8 items-center py-2"
+            >
+              <div className="flex-1">{keyword}</div>
+              <div className="flex items-center justify-center w-20">
+                {rowStatuses[index] === "loading" && (
+                  <Loader className="loader-sm" />
+                )}
+                {rowStatuses[index] === "success" && (
+                  <span className="text-green-500">✔</span>
+                )}
+                {rowStatuses[index] === "disabled" && (
+                  <span className="text-gray-500">Disabled</span>
+                )}
               </div>
-            ))}
+              <div className="w-16">
+                <button
+                  disabled={rowStatuses[index] === "loading"}
+                  className="redirect-btn"
+                  onClick={() => {
+                    updateProjectData({ activeModalTab: "Logs" });
+                    router.push(`/${fileId}/${index + 1}`);
+                  }}
+                >
+                  View
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
       </main>
     </div>
