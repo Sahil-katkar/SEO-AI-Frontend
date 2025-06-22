@@ -20,8 +20,12 @@ export default function FileRow() {
   const [isLoading, setIsLoading] = useState(true);
   const [apiError, setApiError] = useState(null);
   const [articledata, setArticleData] = useState([]);
+  const [articledataUpdated, setArticleDataUpdated] = useState([]);
+
   const [intentdata, setIntentData] = useState([]);
   const [outlineData, setOutlineData] = useState([]);
+  const [outlineDataUpdated, setOutlineDataUpdated] = useState([]);
+
   const [editIntent, setEditIntent] = useState(false);
   const [parsedContentState, setParsedContentState] = useState();
   const [saveEditedIntent, setSaveEditedIntent] = useState(false);
@@ -74,7 +78,49 @@ export default function FileRow() {
       }
     };
 
+    const fetchDataUpdated = async () => {
+      try {
+        // const row_id = params.row;
+        const row_id = `${fileId}_${row}`;
+
+        const { data: articleUpdated, error: articleError } = await supabase
+          .from("article")
+          .select("Updated_content")
+          .eq("row_id", row_id);
+
+        const { data: intent, error: intentError } = await supabase
+          .from("intent")
+          .select("updated_content")
+          .eq("row_id", row_id);
+
+        const { data: outlineUpdated, error: outlineError } = await supabase
+          .from("outline")
+          .select("updated_content")
+          .eq("row_id", row_id);
+
+        if (articleError || intentError || outlineError) {
+          throw new Error(
+            articleError?.message ||
+              intentError?.message ||
+              outlineError?.message
+          );
+        }
+
+        setArticleDataUpdated(articleUpdated || []);
+        setIntentData(intent || []);
+        // setParsedContentState(JSON.parse(intent[0]?.content));
+        setOutlineDataUpdated(outlineUpdated || []);
+
+        console.log("articleUpdated", articleUpdated);
+      } catch (error) {
+        setApiError(error.message || "Something went wrong");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
     fetchData();
+    fetchDataUpdated();
   }, [params.row, supabase]);
 
   const handleTabChange = (tabName) => {
@@ -296,6 +342,55 @@ export default function FileRow() {
                         No outline data available.
                       </p>
                     )}
+
+                    {outlineDataUpdated.length > 0 ? (
+                      outlineDataUpdated.map((item, index) => {
+                        let parsedOutlineUpdated;
+                        try {
+                          parsedOutlineUpdated = item.updated_content
+                            ? item.updated_content
+                            : null;
+                        } catch (e) {
+                          console.error(
+                            "Failed to parse updated outline content:",
+                            e
+                          );
+                          parsedOutlineUpdated = item.updated_content; // Fallback to raw content if not JSON
+                        }
+
+                        return (
+                          <div key={`updated-${index}`} className="mb-6">
+                            <h4 className="text-lg font-semibold text-black-700 mb-2">
+                              Generated Outline Updated
+                            </h4>
+                            {typeof parsedOutlineUpdated === "string" ? (
+                              <p className="text-black-600 whitespace-pre-line">
+                                {parsedOutlineUpdated ||
+                                  "No updated outline content available"}
+                              </p>
+                            ) : (
+                              <ul className="list-disc pl-6 text-black-600">
+                                {parsedOutlineUpdated &&
+                                  Object.entries(parsedOutlineUpdated).map(
+                                    ([key, value]) => (
+                                      <li key={key} className="mb-2">
+                                        <strong className="text-black-700">
+                                          {key}:
+                                        </strong>{" "}
+                                        {value}
+                                      </li>
+                                    )
+                                  )}
+                              </ul>
+                            )}
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <p className="text-black-500">
+                        No updated outline data available.
+                      </p>
+                    )}
                   </div>
                 )}
 
@@ -341,6 +436,55 @@ export default function FileRow() {
                     ) : (
                       <p className="text-black-500">
                         No Article data available.
+                      </p>
+                    )}
+
+                    {articledataUpdated.length > 0 ? (
+                      articledataUpdated.map((item, index) => {
+                        let parsedArticleUpdated;
+                        try {
+                          parsedArticleUpdated = item.Updated_content
+                            ? item.Updated_content
+                            : null;
+                        } catch (e) {
+                          console.error(
+                            "Failed to parse updated outline content:",
+                            e
+                          );
+                          parsedArticleUpdated = item.Updated_content; // Fallback to raw content if not JSON
+                        }
+
+                        return (
+                          <div key={`updated-${index}`} className="mb-6">
+                            <h4 className="text-lg font-semibold text-black-700 mb-2">
+                              Generated Article Updated
+                            </h4>
+                            {typeof parsedArticleUpdated === "string" ? (
+                              <p className="text-black-600 whitespace-pre-line">
+                                {parsedArticleUpdated ||
+                                  "No updated outline content available"}
+                              </p>
+                            ) : (
+                              <ul className="list-disc pl-6 text-black-600">
+                                {parsedArticleUpdated &&
+                                  Object.entries(parsedArticleUpdated).map(
+                                    ([key, value]) => (
+                                      <li key={key} className="mb-2">
+                                        <strong className="text-black-700">
+                                          {key}:
+                                        </strong>{" "}
+                                        {value}
+                                      </li>
+                                    )
+                                  )}
+                              </ul>
+                            )}
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <p className="text-black-500">
+                        No updated outline data available.
                       </p>
                     )}
                   </div>
