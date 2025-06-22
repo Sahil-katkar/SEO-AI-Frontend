@@ -27,6 +27,10 @@ export default function FileRow() {
   const [saveEditedIntent, setSaveEditedIntent] = useState(false);
 
   const params = useParams();
+  const fileId = params.fileId;
+  const row = params.row;
+
+  console.log("file id from params:", `${fileId}_${row}`);
   const router = useRouter();
   const supabase = createClientComponentClient();
 
@@ -34,7 +38,7 @@ export default function FileRow() {
     const fetchData = async () => {
       try {
         // const row_id = params.row;
-        const row_id = "19OSWJXm_2IqF3I0RFQgYxU_4UlQOM0QF_g70UXRBhjQ_1";
+        const row_id = `${fileId}_${row}`;
 
         const { data: article, error: articleError } = await supabase
           .from("article")
