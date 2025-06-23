@@ -8,11 +8,14 @@ export default function Sidebar() {
     STEPS,
     // activeStep,
     // setActiveStep
+    projectData,
   } = useAppContext();
+
   const router = useRouter();
   const pathName = usePathname();
 
   console.log(pathName);
+  // localStorage.getItem(`spreadsheet_${fileId}`);
 
   return (
     <aside className="sidebar">
@@ -24,11 +27,12 @@ export default function Sidebar() {
             className={`
               whitespace-nowrap
               ${step.route && pathName === step.route ? "active" : ""}
-
               `}
             onClick={() => {
-              if (step.route) {
+              if (step.route === "/") {
                 router.push(step.route);
+              } else {
+                router.push(projectData.fileId);
               }
             }}
           >
