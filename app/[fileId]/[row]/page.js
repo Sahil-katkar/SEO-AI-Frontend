@@ -6,6 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useAppContext } from "@/context/AppContext";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { toast, ToastContainer } from "react-toastify";
+import { useSearchParams } from "next/navigation";
 
 export default function FileRow() {
   const {
@@ -16,6 +17,7 @@ export default function FileRow() {
     isModalOpen,
     activeModalRowIndex,
     activeModalTab,
+    primaryKeyword,
   } = useAppContext();
 
   const [isLoading, setIsLoading] = useState(true);
@@ -37,77 +39,87 @@ export default function FileRow() {
   const [saveStatus, setSaveStatus] = useState(false);
   const params = useParams();
   const fileId = params.fileId;
+  const searchParams = useSearchParams();
+  const keyword = searchParams.get("keyword");
+
+  // console.log("keyword sss", keyword);
+
   const row = params.row;
 
   const router = useRouter();
   const supabase = createClientComponentClient();
 
-  useEffect(
-    () => {
-      const row_id = `${fileId}_${row}`;
+  // Fetch initial data
+  useEffect(() => {
+    const row_id = `${fileId}_${row}`;
 
-      const fetchData = async () => {
-        try {
-          const { data: article } = await supabase
-            .from("article")
-            .select("content")
-            .eq("row_id", row_id);
+    const fetchData = async () => {
+      try {
+        const { data: article } = await supabase
+          .from("article")
+          .select("content")
+          .eq("row_id", row_id);
 
-          const { data: intent } = await supabase
-            .from("intent")
-            .select("content")
-            .eq("row_id", row_id);
+        const { data: intent } = await supabase
+          .from("intent")
+          .select("content")
+          .eq("row_id", row_id);
 
-          const { data: outline } = await supabase
-            .from("outline")
-            .select("content")
-            .eq("row_id", row_id);
+        const { data: outline } = await supabase
+          .from("outline")
+          .select("content")
+          .eq("row_id", row_id);
 
-          setArticleData(article || []);
-          setIntentData(intent || []);
-          setOutlineData(outline || []);
+        setArticleData(article || []);
+        setIntentData(intent || []);
+        setOutlineData(outline || []);
 
-          const parsed = JSON.parse(intent?.[0]?.content || "{}");
-          setParsedContentState(parsed);
-          setEditedIntent(parsed.intent || "");
-          setEditedExplanation(parsed.explanation || "");
-        } catch (error) {
-          setApiError(error.message || "Something went wrong");
-        } finally {
-          setIsLoading(false);
-        }
-      };
+        const parsed = JSON.parse(intent?.[0]?.content || "{}");
+        setParsedContentState(parsed);
+        setEditedIntent(parsed.intent || "");
+        setEditedExplanation(parsed.explanation || "");
+      } catch (error) {
+        setApiError(error.message || "Something went wrong");
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-      const fetchDataUpdated = async () => {
-        try {
-          const { data: articleUpdated } = await supabase
-            .from("article")
-            .select("updated_content")
-            .eq("row_id", row_id);
+    fetchData();
+  }, [fileId, row]);
 
-          const { data: intentUpdated } = await supabase
-            .from("intent")
-            .select("updated_content")
-            .eq("row_id", row_id);
+  // Fetch updated data when saveStatus changes
+  useEffect(() => {
+    if (!saveStatus) return;
+    fetchDataUpdated();
+  }, [saveStatus, fileId, row]);
 
-          const { data: outlineUpdated } = await supabase
-            .from("outline")
-            .select("updated_content")
-            .eq("row_id", row_id);
+  // Function to fetch updated data
+  const fetchDataUpdated = async () => {
+    const row_id = `${fileId}_${row}`;
+    try {
+      const { data: articleUpdated } = await supabase
+        .from("article")
+        .select("updated_content")
+        .eq("row_id", row_id);
 
-          setArticleDataUpdated(articleUpdated || []);
-          setOutlineDataUpdated(outlineUpdated || []);
-        } catch (error) {
-          setApiError(error.message || "Something went wrong");
-        }
-      };
+      const { data: intentUpdated } = await supabase
+        .from("intent")
+        .select("updated_content")
+        .eq("row_id", row_id);
 
-      fetchData();
-      fetchDataUpdated();
-    },
-    [params.row],
-    [saveStatus]
-  );
+      const { data: outlineUpdated } = await supabase
+        .from("outline")
+        .select("updated_content")
+        .eq("row_id", row_id);
+
+      setArticleDataUpdated(articleUpdated || []);
+      setOutlineDataUpdated(outlineUpdated || []);
+      setSaveStatus(false); // Reset saveStatus to prevent redundant fetches
+    } catch (error) {
+      setApiError(error.message || "Something went wrong");
+    }
+  };
 
   const handleTabChange = (tabName) => {
     updateProjectData({ activeModalTab: tabName });
@@ -136,11 +148,13 @@ export default function FileRow() {
 
     const payload = {
       user_id: `${fileId}_${row}`,
-      Mainkeyword: "contentful",
+      Mainkeyword: keyword,
       edit_content: {
         intent: stringifiedIntent,
       },
     };
+
+    console.log("payloadd", payload);
 
     setSaveEditedIntent(true);
     try {
@@ -158,7 +172,8 @@ export default function FileRow() {
         });
         setParsedContentState(updatedContent);
         setEditIntent(false);
-        setSaveStatus(true);
+        setSaveStatus(true); // Trigger useEffect to fetch updated data
+        await fetchDataUpdated(); // Fetch updated data immediately
       } else {
         const errorRes = await res.json();
         toast.error(errorRes.message || "Something went wrong", {

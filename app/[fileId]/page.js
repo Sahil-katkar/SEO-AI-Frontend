@@ -6,7 +6,7 @@ import { useAppContext } from "@/context/AppContext";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 
 export default function FileId() {
-  const { updateProjectData } = useAppContext();
+  const { updateProjectData, primaryKeyword } = useAppContext();
   const [isLoading, setIsLoading] = useState(false);
   const [apiError, setApiError] = useState(null);
   const [keywords, setKeywords] = useState([]);
@@ -337,17 +337,41 @@ export default function FileId() {
                 )}
               </div>
               <div className="w-16">
+                {/* <button
+                  disabled={rowStatuses[index] === "loading"}
+                  className="redirect-btn"
+                  onClick={() => {
+                    updateProjectData({
+                      activeModalTab: "Logs",
+                    });
+
+                    router.push(`/${fileId}/${index + 1}/`);
+                  }}
+                >
+                  View
+                </button> */}
                 <button
                   disabled={rowStatuses[index] === "loading"}
                   className="redirect-btn"
                   onClick={() => {
-                    updateProjectData({ activeModalTab: "Logs" });
-                    router.push(`/${fileId}/${index + 1}`);
+                    updateProjectData({
+                      activeModalTab: "Logs",
+                    });
+
+                    const rowNumber = index + 1;
+                    const queryParams = new URLSearchParams({
+                      keyword: keyword,
+                    });
+
+                    router.push(
+                      `/${fileId}/${rowNumber}/?${queryParams.toString()}`
+                    );
                   }}
                 >
                   View
                 </button>
               </div>
+              {console.log("keyword", keyword)}
             </div>
           ))}
         </div>
