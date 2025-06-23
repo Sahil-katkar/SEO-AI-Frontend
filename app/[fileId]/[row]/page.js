@@ -307,7 +307,7 @@ export default function FileRow() {
                 </div>
               )}
 
-              {projectData.activeModalTab === "Outline" && (
+              {/* {projectData.activeModalTab === "Outline" && (
                 <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200">
                   {[...outlineData, ...outlineDataUpdated].map(
                     (item, index) => {
@@ -351,9 +351,202 @@ export default function FileRow() {
                     }
                   )}
                 </div>
+              )} */}
+
+              {/* {projectData.activeModalTab === "Outline" && (
+                <div className="flex flex-col md:flex-row gap-6">
+                  <div className="w-full md:w-1/2 bg-gray-50 p-4 border border-gray-300 rounded-lg shadow-sm">
+                    <h4 className="text-lg font-semibold text-black-700 mb-2">
+                      Generated Outline
+                    </h4>
+                    {outlineData.length > 0 ? (
+                      outlineData.map((item, index) => {
+                        const content = item.content || "";
+                        let parsedOutline;
+
+                        try {
+                          parsedOutline =
+                            typeof content === "string"
+                              ? JSON.parse(content)
+                              : content;
+                        } catch {
+                          parsedOutline = content;
+                        }
+
+                        return (
+                          <div key={`original-${index}`} className="mb-4">
+                            {typeof parsedOutline === "string" ? (
+                              <p className="text-black-600 whitespace-pre-line">
+                                {parsedOutline}
+                              </p>
+                            ) : (
+                              <ul className="list-disc pl-6 text-black-600">
+                                {Object.entries(parsedOutline).map(
+                                  ([key, value]) => (
+                                    <li key={key} className="mb-2">
+                                      <strong>{key}:</strong> {value}
+                                    </li>
+                                  )
+                                )}
+                              </ul>
+                            )}
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <p className="text-black-500">
+                        No original outline available.
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="w-full md:w-1/2 bg-blue-50 p-4 border border-blue-300 rounded-lg shadow-sm">
+                    <h4 className="text-lg font-semibold text-blue-700 mb-2">
+                      Updated Outline
+                    </h4>
+                    {outlineDataUpdated.length > 0 ? (
+                      outlineDataUpdated.map((item, index) => {
+                        const content = item.updated_content || "";
+
+                        console.log("content", content);
+
+                        let parsedOutline;
+
+                        try {
+                          parsedOutline =
+                            typeof content === "string"
+                              ? JSON.parse(content)
+                              : content;
+                        } catch {
+                          parsedOutline = content;
+                        }
+
+                        return (
+                          <div key={`updated-${index}`} className="mb-4">
+                            {typeof parsedOutline === "string" ? (
+                              <p className="text-black-600 whitespace-pre-line">
+                                {parsedOutline}
+                              </p>
+                            ) : (
+                              <ul className="list-disc pl-6 text-black-600">
+                                {Object.entries(parsedOutline).map(
+                                  ([key, value]) => (
+                                    <li key={key} className="mb-2">
+                                      <strong>{key}:</strong> {value}
+                                    </li>
+                                  )
+                                )}
+                              </ul>
+                            )}
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <p className="text-black-500">
+                        No updated outline available.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )} */}
+
+              {projectData.activeModalTab === "Outline" && (
+                <div className="flex flex-col md:flex-row gap-6">
+                  {/* Original Outline Box */}
+                  <div
+                    className={`${
+                      outlineDataUpdated.length > 0 ? "md:w-1/2" : "w-full"
+                    } w-full bg-gray-50 p-4 border border-gray-300 rounded-lg shadow-sm`}
+                  >
+                    <h4 className="text-lg font-semibold text-black-700 mb-2">
+                      Generated Outline
+                    </h4>
+                    {outlineData.length > 0 ? (
+                      outlineData.map((item, index) => {
+                        const content = item.content || "";
+                        let parsedOutline;
+
+                        try {
+                          parsedOutline =
+                            typeof content === "string"
+                              ? JSON.parse(content)
+                              : content;
+                        } catch {
+                          parsedOutline = content;
+                        }
+
+                        return (
+                          <div key={`original-${index}`} className="mb-4">
+                            {typeof parsedOutline === "string" ? (
+                              <p className="text-black-600 whitespace-pre-line">
+                                {parsedOutline}
+                              </p>
+                            ) : (
+                              <ul className="list-disc pl-6 text-black-600">
+                                {Object.entries(parsedOutline).map(
+                                  ([key, value]) => (
+                                    <li key={key} className="mb-2">
+                                      <strong>{key}:</strong> {value}
+                                    </li>
+                                  )
+                                )}
+                              </ul>
+                            )}
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <p className="text-black-500">
+                        No original outline available.
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Updated Outline Box */}
+                  {outlineDataUpdated.length > 0 && (
+                    <div className="w-full md:w-1/2 bg-blue-50 p-4 border border-blue-300 rounded-lg shadow-sm">
+                      <h4 className="text-lg font-semibold text-blue-700 mb-2">
+                        Updated Outline
+                      </h4>
+                      {outlineDataUpdated.map((item, index) => {
+                        const content = item.updated_content || "";
+                        let parsedOutline;
+
+                        try {
+                          parsedOutline =
+                            typeof content === "string"
+                              ? JSON.parse(content)
+                              : content;
+                        } catch {
+                          parsedOutline = content;
+                        }
+
+                        return (
+                          <div key={`updated-${index}`} className="mb-4">
+                            {typeof parsedOutline === "string" ? (
+                              <p className="text-black-600 whitespace-pre-line">
+                                {parsedOutline}
+                              </p>
+                            ) : (
+                              <ul className="list-disc pl-6 text-black-600">
+                                {Object.entries(parsedOutline).map(
+                                  ([key, value]) => (
+                                    <li key={key} className="mb-2">
+                                      <strong>{key}:</strong> {value}
+                                    </li>
+                                  )
+                                )}
+                              </ul>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
               )}
 
-              {projectData.activeModalTab === "Content" && (
+              {/* {projectData.activeModalTab === "Content" && (
                 <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200">
                   {[...articledata, ...articledataUpdated].map(
                     (item, index) => {
@@ -395,6 +588,102 @@ export default function FileRow() {
                         </div>
                       );
                     }
+                  )}
+                </div>
+              )} */}
+
+              {projectData.activeModalTab === "Content" && (
+                <div className="flex flex-col md:flex-row gap-6">
+                  {/* Original Article Box */}
+                  <div
+                    className={`${
+                      articledataUpdated.length > 0 ? "md:w-1/2" : "w-full"
+                    } w-full bg-gray-50 p-6 rounded-xl shadow-md border border-gray-200`}
+                  >
+                    <h4 className="text-lg font-semibold text-black-700 mb-4">
+                      Generated Article
+                    </h4>
+                    {articledata.length > 0 ? (
+                      articledata.map((item, index) => {
+                        const content = item.content || "";
+                        let parsedArticle;
+
+                        try {
+                          parsedArticle =
+                            typeof content === "string"
+                              ? JSON.parse(content)
+                              : content;
+                        } catch {
+                          parsedArticle = content;
+                        }
+
+                        return (
+                          <div key={`original-${index}`} className="mb-6">
+                            {typeof parsedArticle === "string" ? (
+                              <p className="text-black-600 whitespace-pre-line">
+                                {parsedArticle}
+                              </p>
+                            ) : (
+                              <ul className="list-disc pl-6 text-black-600">
+                                {Object.entries(parsedArticle).map(
+                                  ([key, value]) => (
+                                    <li key={key} className="mb-2">
+                                      <strong>{key}:</strong> {value}
+                                    </li>
+                                  )
+                                )}
+                              </ul>
+                            )}
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <p className="text-black-500">
+                        No article content available.
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Updated Article Box */}
+                  {articledataUpdated.length > 0 && (
+                    <div className="w-full md:w-1/2 bg-blue-50 p-6 rounded-xl shadow-md border border-blue-300">
+                      <h4 className="text-lg font-semibold text-blue-700 mb-4">
+                        Updated Article
+                      </h4>
+                      {articledataUpdated.map((item, index) => {
+                        const content = item.updated_content || "";
+                        let parsedArticle;
+
+                        try {
+                          parsedArticle =
+                            typeof content === "string"
+                              ? JSON.parse(content)
+                              : content;
+                        } catch {
+                          parsedArticle = content;
+                        }
+
+                        return (
+                          <div key={`updated-${index}`} className="mb-6">
+                            {typeof parsedArticle === "string" ? (
+                              <p className="text-black-600 whitespace-pre-line">
+                                {parsedArticle}
+                              </p>
+                            ) : (
+                              <ul className="list-disc pl-6 text-black-600">
+                                {Object.entries(parsedArticle).map(
+                                  ([key, value]) => (
+                                    <li key={key} className="mb-2">
+                                      <strong>{key}:</strong> {value}
+                                    </li>
+                                  )
+                                )}
+                              </ul>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
                   )}
                 </div>
               )}
