@@ -85,7 +85,7 @@ export default function FileRow() {
 
         const { data: articleUpdated, error: articleError } = await supabase
           .from("article")
-          .select("Updated_content")
+          .select("updated_content")
           .eq("row_id", row_id);
 
         const { data: intent, error: intentError } = await supabase
@@ -140,29 +140,38 @@ export default function FileRow() {
     }
   };
 
-  const payload = {
-    users_id: "string",
-    Mainkeyword: "string",
-    edit_content: {
-      additionalProp1: "string",
-      additionalProp2: "string",
-      additionalProp3: "string",
-    },
-  };
-
   const handleSaveEditedIntent = async () => {
-    console.log("hi");
+    const stringifiedIntent = JSON.stringify(intentdata, null, 4).replace(
+      /\\"/g,
+      '"'
+    );
+
+    console.log("stringifiedIntent", stringifiedIntent);
+    const payload = {
+      user_id: `${fileId}_${row}`,
+      Mainkeyword: "contentful",
+      edit_content: {
+        intent: stringifiedIntent,
+      },
+    };
+    console.log("hi", payload);
     setSaveEditedIntent(true);
     setTimeout(() => {
       setSaveEditedIntent(false);
     }, 3000);
-    // const res = await fetch("/api/contentEdit", {
-    //   method: "POST",
-    //   headers: {
-    //     "Content-Type": "application/json",
-    //   },
-    //   body: JSON.stringify(payload),
-    // });
+    const res = await fetch("/api/contentEdit", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (res.ok) {
+      console.log("updated intent");
+    } else {
+      console.log("failed to update intent");
+    }
   };
 
   return (
@@ -443,15 +452,15 @@ export default function FileRow() {
                       articledataUpdated.map((item, index) => {
                         let parsedArticleUpdated;
                         try {
-                          parsedArticleUpdated = item.Updated_content
-                            ? item.Updated_content
+                          parsedArticleUpdated = item.updated_content
+                            ? item.updated_content
                             : null;
                         } catch (e) {
                           console.error(
                             "Failed to parse updated outline content:",
                             e
                           );
-                          parsedArticleUpdated = item.Updated_content; // Fallback to raw content if not JSON
+                          parsedArticleUpdated = item.updated_content; // Fallback to raw content if not JSON
                         }
 
                         return (
