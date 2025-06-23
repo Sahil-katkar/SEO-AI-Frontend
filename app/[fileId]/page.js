@@ -13,6 +13,7 @@ export default function FileId() {
   const [url, setUrl] = useState([]);
   const [rowStatuses, setRowStatuses] = useState([]);
   const { fileId } = useParams();
+
   const router = useRouter();
   const supabase = createClientComponentClient();
   const hasInsertedRef = useRef(false);
@@ -240,65 +241,65 @@ export default function FileId() {
   }, [fileId]);
 
   // Process rows only when keywords and url are both available
-  useEffect(() => {
-    const processRows = async () => {
-      for (let index = 0; index < keywords.length; index++) {
-        const keyword = keywords[index];
-        const currentUrl = url[index] || "";
-        if (keyword && rowStatuses[index] !== "success") {
-          try {
-            // Check status in Supabase
-            const { data, error } = await supabase
-              .from("file_details")
-              .select("status")
-              .eq("fileId", fileId)
-              .eq("row_index", index + 1)
-              .eq("row", false)
-              .single();
+  // useEffect(() => {
+  //   const processRows = async () => {
+  //     for (let index = 0; index < keywords.length; index++) {
+  //       const keyword = keywords[index];
+  //       const currentUrl = url[index] || "";
+  //       if (keyword && rowStatuses[index] !== "success") {
+  //         try {
+  //           // Check status in Supabase
+  //           const { data, error } = await supabase
+  //             .from("file_details")
+  //             .select("status")
+  //             .eq("fileId", fileId)
+  //             .eq("row_index", index + 1)
+  //             .eq("row", false)
+  //             .single();
 
-            if (error && error.code !== "PGRST116") {
-              if (
-                error.message.includes(
-                  "column file_details.row_index does not exist"
-                )
-              ) {
-                console.warn(
-                  "⚠️ Supabase schema error: 'row_index' column missing in file_details table. " +
-                    "Please add it using: ALTER TABLE file_details ADD COLUMN IF NOT EXISTS row_index INTEGER;"
-                );
-                await callMainAgent(fileId, keyword, index, currentUrl);
-              } else {
-                setApiError(`Error checking status: ${error.message}`);
-                setRowStatuses((prev) =>
-                  prev.map((status, i) => (i === index ? "disabled" : status))
-                );
-              }
-              continue;
-            }
+  //           if (error && error.code !== "PGRST116") {
+  //             if (
+  //               error.message.includes(
+  //                 "column file_details.row_index does not exist"
+  //               )
+  //             ) {
+  //               console.warn(
+  //                 "⚠️ Supabase schema error: 'row_index' column missing in file_details table. " +
+  //                   "Please add it using: ALTER TABLE file_details ADD COLUMN IF NOT EXISTS row_index INTEGER;"
+  //               );
+  //               await callMainAgent(fileId, keyword, index, currentUrl);
+  //             } else {
+  //               setApiError(`Error checking status: ${error.message}`);
+  //               setRowStatuses((prev) =>
+  //                 prev.map((status, i) => (i === index ? "disabled" : status))
+  //               );
+  //             }
+  //             continue;
+  //           }
 
-            if (data && data.status === "processed") {
-              setRowStatuses((prev) =>
-                prev.map((status, i) => (i === index ? "success" : status))
-              );
-              console.log(`ℹ️ Skipping processed row ${index + 1}: ${keyword}`);
-              continue;
-            }
+  //           if (data && data.status === "processed") {
+  //             setRowStatuses((prev) =>
+  //               prev.map((status, i) => (i === index ? "success" : status))
+  //             );
+  //             console.log(`ℹ️ Skipping processed row ${index + 1}: ${keyword}`);
+  //             continue;
+  //           }
 
-            await callMainAgent(fileId, keyword, index, currentUrl);
-          } catch (error) {
-            setApiError(`Unexpected error checking status: ${error.message}`);
-            setRowStatuses((prev) =>
-              prev.map((status, i) => (i === index ? "disabled" : status))
-            );
-          }
-        }
-      }
-    };
+  //           await callMainAgent(fileId, keyword, index, currentUrl);
+  //         } catch (error) {
+  //           setApiError(`Unexpected error checking status: ${error.message}`);
+  //           setRowStatuses((prev) =>
+  //             prev.map((status, i) => (i === index ? "disabled" : status))
+  //           );
+  //         }
+  //       }
+  //     }
+  //   };
 
-    if (keywords.length && url.length) {
-      processRows();
-    }
-  }, [keywords, url, rowStatuses]);
+  //   if (keywords.length && url.length) {
+  //     processRows();
+  //   }
+  // }, [keywords, url, rowStatuses]);
 
   return (
     <div className="container">
@@ -337,19 +338,6 @@ export default function FileId() {
                 )}
               </div>
               <div className="w-16">
-                {/* <button
-                  disabled={rowStatuses[index] === "loading"}
-                  className="redirect-btn"
-                  onClick={() => {
-                    updateProjectData({
-                      activeModalTab: "Logs",
-                    });
-
-                    router.push(`/${fileId}/${index + 1}/`);
-                  }}
-                >
-                  View
-                </button> */}
                 <button
                   disabled={rowStatuses[index] === "loading"}
                   className="redirect-btn"
@@ -369,6 +357,28 @@ export default function FileId() {
                   }}
                 >
                   View
+                </button>
+              </div>
+
+              <div className="w-16">
+                <button
+                  // disabled={rowStatuses[index] === "loading"}
+                  className="redirect-btn"
+                  onClick={() => {
+                    // updateProjectData({
+                    //   activeModalTab: "Logs",
+                    // });
+                    // const rowNumber = index + 1;
+                    // const queryParams = new URLSearchParams({
+                    //   keyword: keyword,
+                    // });
+                    // router.push(
+                    //   `/${fileId}/${rowNumber}/?${queryParams.toString()}`
+                    // );
+                    callMainAgent(fileId, keyword, index, url[index]);
+                  }}
+                >
+                  Process
                 </button>
               </div>
               {console.log("keyword", keyword)}
