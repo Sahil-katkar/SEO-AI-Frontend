@@ -35,6 +35,7 @@ export default function FileRow() {
   const [editedIntent, setEditedIntent] = useState("");
   const [editedExplanation, setEditedExplanation] = useState("");
   const [saveEditedIntent, setSaveEditedIntent] = useState(false);
+  const [logs, setLogs] = useState([]);
 
   const [saveStatus, setSaveStatus] = useState(false);
   const params = useParams();
@@ -48,6 +49,7 @@ export default function FileRow() {
 
   const router = useRouter();
   const supabase = createClientComponentClient();
+  const row_id = `${fileId}_${row}`;
 
   // Fetch initial data
   useEffect(() => {
@@ -57,6 +59,11 @@ export default function FileRow() {
       try {
         const { data: article } = await supabase
           .from("article")
+          .select("content")
+          .eq("row_id", row_id);
+
+        const { data: logData, error } = await supabase
+          .from("event_log")
           .select("content")
           .eq("row_id", row_id);
 
@@ -73,6 +80,7 @@ export default function FileRow() {
         setArticleData(article || []);
         setIntentData(intent || []);
         setOutlineData(outline || []);
+        setLogs(logData || "");
 
         const parsed = JSON.parse(intent?.[0]?.content || "{}");
         setParsedContentState(parsed);
@@ -86,7 +94,7 @@ export default function FileRow() {
     };
 
     fetchData();
-  }, [fileId, row]);
+  }, [fileId, row, row_id]);
 
   // Fetch updated data when saveStatus changes
   useEffect(() => {
@@ -229,7 +237,18 @@ export default function FileRow() {
 
             <div className="modal-tab-content">
               {projectData.activeModalTab === "Logs" && (
-                <pre>Processing Logs...</pre>
+                <div className="mt-4 bg-gray-100 p-4 rounded">
+                  <h4 className="font-semibold mb-2">Processing Logs</h4>
+                  {logs.length > 0 ? (
+                    <ul className="list-disc list-inside text-sm text-gray-700">
+                      {logs.map((log, i) => (
+                        <li key={i}>{log.content}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-sm text-gray-500">No logs found.</p>
+                  )}
+                </div>
               )}
 
               {projectData.activeModalTab === "Intent" && (

@@ -302,88 +302,80 @@ export default function FileId() {
   // }, [keywords, url, rowStatuses]);
 
   return (
-    <div className="container">
+    <div className="container px-4 py-6">
       <main className="main-content step-component">
-        <h3 className="text-xl font-semibold mb-4 text-blue-500 pb-8">
+        <h3 className="text-xl font-semibold mb-6 text-blue-600">
           2. Rows inside your spreadsheet
         </h3>
 
-        {apiError && <div className="mt-2 text-red-500">Error: {apiError}</div>}
+        {apiError && <div className="mb-4 text-red-500">Error: {apiError}</div>}
         {isLoading && <Loader />}
 
-        <div className="flex flex-col gap-2">
-          <div className="flex gap-8 items-center">
-            <div className="font-bold">Rows</div>
-            <div className="font-bold ml-auto flex items-center justify-center w-20">
-              Status
+        <div className="overflow-x-auto">
+          <div className="min-w-[600px]">
+            <div className="flex font-semibold border-b border-gray-300 py-2 px-4 text-sm bg-gray-100">
+              <div className="w-1/2">Keyword</div>
+              <div className="w-1/6 text-center">Status</div>
+              <div className="w-1/3 text-center">Actions</div>
             </div>
-            <div className="w-16" />
+
+            {keywords.map((keyword, index) => (
+              <div
+                key={index}
+                className="flex items-center border-b border-gray-200 py-3 px-4 text-sm hover:bg-gray-50 transition"
+              >
+                {/* Keyword */}
+                <div className="w-1/2 text-gray-800">{keyword}</div>
+
+                {/* Status */}
+                <div className="w-1/6 text-center">
+                  {rowStatuses[index] === "loading" && (
+                    <Loader className="loader-sm" />
+                  )}
+                  {rowStatuses[index] === "success" && (
+                    <span className="text-green-500 font-medium">✔ Done</span>
+                  )}
+                  {rowStatuses[index] === "disabled" && (
+                    <span className="text-gray-400 font-medium">Skipped</span>
+                  )}
+                </div>
+
+                {/* Actions */}
+                <div className="w-1/3 flex justify-center gap-3">
+                  <button
+                    disabled={rowStatuses[index] === "loading"}
+                    className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-xs disabled:opacity-50"
+                    onClick={() => {
+                      updateProjectData({
+                        activeModalTab: "Logs",
+                      });
+
+                      const rowNumber = index + 1;
+                      const queryParams = new URLSearchParams({
+                        keyword: keyword,
+                      });
+
+                      router.push(
+                        `/${fileId}/${rowNumber}/?${queryParams.toString()}`
+                      );
+                    }}
+                  >
+                    View
+                  </button>
+
+                  <button
+                    disabled={rowStatuses[index] === "loading"}
+                    className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-xs disabled:opacity-50"
+                    onClick={() =>
+                      callMainAgent(fileId, keyword, index, url[index])
+                    }
+                  >
+                    Process
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
-
-          {keywords.map((keyword, index) => (
-            <div
-              key={index}
-              className="border-b border-[#eceef1] flex gap-8 items-center py-2"
-            >
-              <div className="flex-1">{keyword}</div>
-              <div className="flex items-center justify-center w-20">
-                {rowStatuses[index] === "loading" && (
-                  <Loader className="loader-sm" />
-                )}
-                {rowStatuses[index] === "success" && (
-                  <span className="text-green-500">✔</span>
-                )}
-                {rowStatuses[index] === "disabled" && (
-                  <span className="text-gray-500">Disabled</span>
-                )}
-              </div>
-              <div className="w-16">
-                <button
-                  disabled={rowStatuses[index] === "loading"}
-                  className="redirect-btn"
-                  onClick={() => {
-                    updateProjectData({
-                      activeModalTab: "Logs",
-                    });
-
-                    const rowNumber = index + 1;
-                    const queryParams = new URLSearchParams({
-                      keyword: keyword,
-                    });
-
-                    router.push(
-                      `/${fileId}/${rowNumber}/?${queryParams.toString()}`
-                    );
-                  }}
-                >
-                  View
-                </button>
-              </div>
-
-              <div className="w-16">
-                <button
-                  // disabled={rowStatuses[index] === "loading"}
-                  className="redirect-btn"
-                  onClick={() => {
-                    // updateProjectData({
-                    //   activeModalTab: "Logs",
-                    // });
-                    // const rowNumber = index + 1;
-                    // const queryParams = new URLSearchParams({
-                    //   keyword: keyword,
-                    // });
-                    // router.push(
-                    //   `/${fileId}/${rowNumber}/?${queryParams.toString()}`
-                    // );
-                    callMainAgent(fileId, keyword, index, url[index]);
-                  }}
-                >
-                  Process
-                </button>
-              </div>
-              {console.log("keyword", keyword)}
-            </div>
-          ))}
         </div>
       </main>
     </div>
