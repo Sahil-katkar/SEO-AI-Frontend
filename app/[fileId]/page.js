@@ -58,28 +58,29 @@ export default function FileId() {
   const fetchFromSupabase = async () => {
     setIsLoading(true);
     try {
-      const { data, error } = await supabase
+      // Fetch main file details (row = true)
+      const { data: mainData, error: mainError } = await supabase
         .from("file_details")
         .select("keywords, content, url")
         .eq("fileId", fileId)
         .eq("row", true);
 
-      if (error) throw new Error(`Supabase fetch error: ${error.message}`);
+      if (mainError)
+        throw new Error(`Supabase fetch error: ${mainError.message}`);
 
-      if (data && data.length > 0) {
-        const parsedKeywords = JSON.parse(data[0].keywords || "[]");
-        const parsedUrls = JSON.parse(data[0].url || "[]");
+      let parsedKeywords = [];
+      let parsedUrls = [];
 
-        setKeywords(parsedKeywords);
-        setUrl(parsedUrls);
-        setRowStatuses(new Array(parsedKeywords.length).fill("loading"));
+      if (mainData && mainData.length > 0) {
+        parsedKeywords = JSON.parse(mainData[0].keywords || "[]");
+        parsedUrls = JSON.parse(mainData[0].url || "[]");
       } else {
+        // Fallback to cached data or spreadsheet API
         const cachedData = localStorage.getItem(`spreadsheet_${fileId}`);
         if (cachedData) {
           const parsedData = JSON.parse(cachedData);
-          setKeywords(parsedData.keywords);
-          setUrl(parsedData.competitors);
-          setRowStatuses(new Array(parsedData.keywords.length).fill("loading"));
+          parsedKeywords = parsedData.keywords || [];
+          parsedUrls = parsedData.competitors || [];
 
           if (!hasInsertedRef.current) {
             await insertFileDetails(
@@ -107,9 +108,9 @@ export default function FileId() {
             .map((row) => row.COMPETITORS)
             .filter(Boolean);
 
-          setKeywords(keywordsArray);
-          setUrl(competitorArray);
-          setRowStatuses(new Array(keywordsArray.length).fill("loading"));
+          parsedKeywords = keywordsArray;
+          parsedUrls = competitorArray;
+
           localStorage.setItem(
             `spreadsheet_${fileId}`,
             JSON.stringify(spreadsheetData)
@@ -120,6 +121,39 @@ export default function FileId() {
           }
         }
       }
+
+      // Fetch row-specific statuses (row = false)
+      const { data: rowData, error: rowError } = await supabase
+        .from("file_details")
+        .select("keywords, status, row_index")
+        .eq("fileId", fileId)
+        .eq("row", false)
+        .order("row_index", { ascending: true });
+
+      if (
+        rowError &&
+        !rowError.message.includes(
+          "column file_details.row_index does not exist"
+        )
+      ) {
+        throw new Error(`Row status fetch error: ${rowError.message}`);
+      }
+
+      // Initialize rowStatuses based on Supabase status
+      const initialStatuses = new Array(parsedKeywords.length).fill("loading");
+      if (rowData && rowData.length > 0) {
+        rowData.forEach((row) => {
+          const index = row.row_index - 1;
+          if (index >= 0 && index < parsedKeywords.length) {
+            initialStatuses[index] =
+              row.status === "processed" ? "success" : "loading";
+          }
+        });
+      }
+
+      setKeywords(parsedKeywords);
+      setUrl(parsedUrls);
+      setRowStatuses(initialStatuses);
     } catch (error) {
       setApiError(error.message);
     } finally {
@@ -128,17 +162,33 @@ export default function FileId() {
   };
 
   const callMainAgent = async (userId, keyword, index, currentUrl) => {
-    const payload = {
-      rows_content: [
-        {
-          user_id: `${userId}_${index + 1}`,
-          primary_keyword: keyword,
-          URLs: currentUrl,
-        },
-      ],
-    };
-
     try {
+      // Insert initial record with status "processing started"
+      const { error: insertError } = await supabase
+        .from("file_details")
+        .insert([
+          {
+            fileId,
+            keywords: JSON.stringify([keyword]),
+            status: "processing started",
+            row: false,
+            row_index: index + 1,
+          },
+        ]);
+
+      if (insertError)
+        throw new Error(`Insert row error: ${insertError.message}`);
+
+      const payload = {
+        rows_content: [
+          {
+            user_id: `${userId}_${index + 1}`,
+            primary_keyword: keyword,
+            URLs: currentUrl,
+          },
+        ],
+      };
+
       const response = await fetch("/api/call-main-agent", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -154,6 +204,19 @@ export default function FileId() {
             : status
         )
       );
+
+      if (response.status === 200) {
+        // Update status to "processed" on success
+        const { error: updateError } = await supabase
+          .from("file_details")
+          .update({ status: "processed" })
+          .eq("fileId", userId)
+          .eq("row_index", index + 1)
+          .eq("row", false);
+
+        if (updateError)
+          throw new Error(`Update status error: ${updateError.message}`);
+      }
 
       const data = await response.json();
       console.log(`✅ Row ${index + 1} response:`, data);
@@ -182,8 +245,52 @@ export default function FileId() {
       for (let index = 0; index < keywords.length; index++) {
         const keyword = keywords[index];
         const currentUrl = url[index] || "";
-        if (keyword) {
-          await callMainAgent(fileId, keyword, index, currentUrl);
+        if (keyword && rowStatuses[index] !== "success") {
+          try {
+            // Check status in Supabase
+            const { data, error } = await supabase
+              .from("file_details")
+              .select("status")
+              .eq("fileId", fileId)
+              .eq("row_index", index + 1)
+              .eq("row", false)
+              .single();
+
+            if (error && error.code !== "PGRST116") {
+              if (
+                error.message.includes(
+                  "column file_details.row_index does not exist"
+                )
+              ) {
+                console.warn(
+                  "⚠️ Supabase schema error: 'row_index' column missing in file_details table. " +
+                    "Please add it using: ALTER TABLE file_details ADD COLUMN IF NOT EXISTS row_index INTEGER;"
+                );
+                await callMainAgent(fileId, keyword, index, currentUrl);
+              } else {
+                setApiError(`Error checking status: ${error.message}`);
+                setRowStatuses((prev) =>
+                  prev.map((status, i) => (i === index ? "disabled" : status))
+                );
+              }
+              continue;
+            }
+
+            if (data && data.status === "processed") {
+              setRowStatuses((prev) =>
+                prev.map((status, i) => (i === index ? "success" : status))
+              );
+              console.log(`ℹ️ Skipping processed row ${index + 1}: ${keyword}`);
+              continue;
+            }
+
+            await callMainAgent(fileId, keyword, index, currentUrl);
+          } catch (error) {
+            setApiError(`Unexpected error checking status: ${error.message}`);
+            setRowStatuses((prev) =>
+              prev.map((status, i) => (i === index ? "disabled" : status))
+            );
+          }
         }
       }
     };
@@ -191,7 +298,7 @@ export default function FileId() {
     if (keywords.length && url.length) {
       processRows();
     }
-  }, [keywords, url]);
+  }, [keywords, url, rowStatuses]);
 
   return (
     <div className="container">
