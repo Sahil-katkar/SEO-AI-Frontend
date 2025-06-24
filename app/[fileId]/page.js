@@ -364,7 +364,7 @@ export default function FileId() {
                   </button>
 
                   <button
-                    disabled={rowStatuses[index] === "loading"}
+                    // disabled={rowStatuses[index] === "loading"}
                     className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-xs disabled:opacity-50"
                     onClick={() =>
                       callMainAgent(fileId, keyword, index, url[index])
