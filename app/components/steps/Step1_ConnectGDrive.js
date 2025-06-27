@@ -1,16 +1,11 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAppContext } from "@/context/AppContext";
 import { useRouter } from "next/navigation";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import Loader from "@/components/common/Loader";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-import { FileText, Loader2, FolderOpen } from "lucide-react";
-
-// Color palette
-const primary = "#4f8cff";
-const secondary = "#a084e8";
+import { Search, Folder } from "lucide-react";
 
 export default function Step1_ConnectGDrive() {
   const { projectData, updateProjectData } = useAppContext();
@@ -21,28 +16,26 @@ export default function Step1_ConnectGDrive() {
   const router = useRouter();
   const supabase = createClientComponentClient();
 
-  const handleListFiles = async (fileId = null, folderName = null) => {
+  useEffect(() => {
+    document.getElementById("folder-input")?.focus();
+  }, []);
+
+  const handleListFiles = async () => {
     setError(null);
     setIsLoading(true);
     try {
       const queryParams = new URLSearchParams();
-      if (fileId) queryParams.append("file_id", fileId);
-      if (folderName) queryParams.append("folder_name", folderName);
+      if (folderNameInput) queryParams.append("folder_name", folderNameInput);
 
       const response = await fetch(`/api/list-files?${queryParams.toString()}`);
       const data = await response.json();
 
-      if (!response.ok) {
+      if (!response.ok)
         throw new Error(data.detail || `Error: ${response.status}`);
-      }
 
       setFiles(data);
-      updateProjectData({
-        isGDriveConnected: true,
-        gDriveFiles: data || [],
-      });
-
-      toast.success("🎉 Files listed successfully!");
+      updateProjectData({ isGDriveConnected: true, gDriveFiles: data || [] });
+      toast.success("✅ Files listed successfully!");
     } catch (e) {
       setError(e.message || "Something went wrong.");
       toast.error(`❌ ${e.message}`);
@@ -51,168 +44,96 @@ export default function Step1_ConnectGDrive() {
     }
   };
 
-  const handleOpenProcessRowsTab = (id) => {
-    router.push(`/${id}`);
-  };
-
   return (
     <div
-      className="min-h-screen py-10"
+      className="min-h-screen px-6 py-14 flex flex-col items-center"
       style={{
-        background: "linear-gradient(135deg, #f5f8ff 0%, #fff 100%)",
-        fontFamily: `'Inter', 'Nunito', 'Segoe UI', Arial, sans-serif`,
+        background: `linear-gradient(to bottom right, #eff6ff, #ecfeff)`,
+        fontFamily: `'Inter', sans-serif`,
       }}
     >
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        <h2
-          className="text-4xl font-extrabold mb-4 flex items-center gap-3"
-          style={{ color: primary, fontFamily: "inherit" }}
-        >
-          <FolderOpen className="w-8 h-8" style={{ color: secondary }} />
-          Connect Google Drive & Browse Files
-        </h2>
-        <p className="text-lg mb-8" style={{ color: "#4e5d6c" }}>
-          Enter your Google Drive folder name below to list and process your
-          files.
-        </p>
+      <div className="max-w-3xl w-full text-center mb-10">
+        <div className="flex items-center justify-center gap-2 mb-3">
+          {/* <div className="p-2 rounded-lg bg-yellow-100 shadow-inner inline-block">
+            <Folder className="w-6 h-6 text-yellow-500" />
+          </div> */}
 
-        <div
-          className="shadow-xl rounded-2xl p-8 mb-10 border"
-          style={{
-            background: "#fff",
-            borderColor: "#e3e8f0",
-          }}
-        >
-          <div className="flex flex-col sm:flex-row items-center gap-4 w-full">
+          <h1 className="text-xl sm:text-4xl font-bold text-gray-800">
+            📂Google Drive Manager
+          </h1>
+        </div>
+        <p className="text-gray-600 text-md sm:text-lg">
+          Connect to your Google Drive and manage your files with ease. Search
+          through folders and process your documents seamlessly.
+        </p>
+      </div>
+
+      {/* Search Card */}
+      <div className="w-full max-w-4xl bg-white shadow-xl rounded-2xl p-6 sm:p-8 mb-10 border border-gray-100">
+        <div className="flex flex-col sm:flex-row items-center gap-4">
+          <div className="flex items-center w-full sm:w-3/4 border rounded-xl px-4 py-3 bg-gray-50 border-gray-300">
+            <Folder className="w-5 h-5 text-gray-400 mr-3" />
             <input
+              id="folder-input"
               type="text"
-              placeholder="Enter folder name (e.g. My_SEO_Docs)"
               value={folderNameInput}
               onChange={(e) => setFolderNameInput(e.target.value)}
-              className="w-full sm:w-2/3 px-5 py-3 border-2 rounded-xl shadow-sm focus:ring-2 focus:outline-none text-lg transition"
-              style={{
-                borderColor: primary,
-                background: "#f5f8ff",
-                color: "#222",
-                fontFamily: "inherit",
-              }}
+              placeholder="Enter folder name "
+              className="w-full bg-transparent text-gray-800 focus:outline-none text-base border-none"
             />
-            <button
-              disabled={!folderNameInput || isLoading}
-              onClick={() => handleListFiles(null, folderNameInput)}
-              className="w-full sm:w-1/3 flex items-center justify-center px-6 py-3 text-lg font-bold rounded-xl shadow-md transition duration-200 gap-2"
-              style={
-                folderNameInput && !isLoading
-                  ? {
-                      background: `linear-gradient(90deg, ${primary} 0%, ${secondary} 100%)`,
-                      color: "#fff",
-                      border: "none",
-                      cursor: "pointer",
-                    }
-                  : {
-                      background: "#e3e8f0",
-                      color: "#a0aec0",
-                      cursor: "not-allowed",
-                      border: "none",
-                    }
-              }
-            >
-              {isLoading ? (
-                <span className="flex items-center gap-2">
-                  <Loader2 className="animate-spin w-5 h-5" />
-                  Listing...
-                </span>
-              ) : (
-                <>
-                  <FolderOpen className="w-5 h-5" />
-                  List Files
-                </>
-              )}
-            </button>
           </div>
 
-          {error && (
-            <div
-              className="mt-4 p-4 border rounded-xl text-base font-medium flex gap-2 items-center"
-              style={{
-                background: "#fff6f6",
-                borderColor: "#ffd6d6",
-                color: "#d7263d",
-                fontFamily: "inherit",
-              }}
-            >
-              <span>⚠️</span> {error}
-            </div>
-          )}
+          <button
+            disabled={!folderNameInput || isLoading}
+            onClick={handleListFiles}
+            className={`px-6 py-3 w-full sm:w-auto flex items-center justify-center gap-2 text-white font-semibold rounded-xl transition ${
+              folderNameInput && !isLoading
+                ? "bg-gradient-to-r from-blue-500 to-cyan-500 hover:scale-[1.02]"
+                : "bg-gray-300 cursor-not-allowed"
+            }`}
+          >
+            <Search className="w-5 h-5" />
+            {isLoading ? "Searching..." : "Search Files"}
+          </button>
         </div>
 
-        <div>
-          {isLoading && <Loader />}
-          {!isLoading && files.length === 0 && (
-            <p
-              className="text-center mt-10 text-lg"
-              style={{ color: "#b2bec3" }}
-            >
-              No files listed yet. Try entering a folder name above.
+        {error && <div className="mt-4 text-red-600 text-sm">{error}</div>}
+      </div>
+
+      {/* File Display */}
+      <div className="w-full max-w-5xl">
+        {files.length === 0 ? (
+          <div className="border-2 border-dashed border-gray-200 rounded-2xl p-12 text-center text-gray-400 bg-white shadow-sm">
+            <Folder className="w-10 h-10 mx-auto mb-3 text-gray-300" />
+            <p className="text-lg font-medium">No files found</p>
+            <p className="text-sm mt-1">
+              Enter a folder name above to search for files
             </p>
-          )}
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {files.map((file, index) => (
+          </div>
+        ) : (
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {files.map((file, i) => (
               <div
-                key={file.id || `${file.name}-${index}`}
-                className="group relative border rounded-2xl shadow-lg p-6 hover:shadow-2xl transition duration-300 flex flex-col"
-                style={{
-                  background: "#fff",
-                  borderColor: "#e3e8f0",
-                  fontFamily: "inherit",
-                }}
+                key={file.id || `${file.name}-${i}`}
+                className="bg-white shadow rounded-xl p-5 border border-gray-100 hover:shadow-lg transition"
               >
-                <div className="flex items-start gap-4 mb-4">
-                  <div
-                    className="p-3 rounded-xl shadow"
-                    style={{
-                      background: "#f5f8ff",
-                      color: primary,
-                    }}
-                  >
-                    <FileText className="w-7 h-7" />
-                  </div>
-                  <div className="flex-1">
-                    <h3
-                      className="text-xl font-bold truncate"
-                      style={{ color: primary, fontFamily: "inherit" }}
-                    >
-                      {file.name || "Untitled File"}
-                    </h3>
-                    <p className="text-sm" style={{ color: "#7f8c8d" }}>
-                      {file.mimeType || "Unknown Type"}
-                    </p>
-                  </div>
-                </div>
-
+                <h3 className="text-md font-semibold text-gray-800 truncate">
+                  {file.name}
+                </h3>
+                <p className="text-sm text-gray-500">{file.mimeType}</p>
                 <button
-                  className="mt-auto w-full py-3 px-4 rounded-xl font-semibold transition flex items-center justify-center gap-2"
-                  style={{
-                    background: `linear-gradient(90deg, ${primary} 0%, ${secondary} 100%)`,
-                    color: "#fff",
-                    fontFamily: "inherit",
-                  }}
-                  onClick={() => handleOpenProcessRowsTab(file.id)}
+                  onClick={() => router.push(`/${file.id}`)}
+                  className="mt-4 w-full bg-gradient-to-r from-blue-500 to-cyan-500 text-white py-2 rounded-xl text-sm font-semibold hover:scale-[1.01] transition"
                 >
-                  Select & Process <span className="ml-1">→</span>
+                  Select & Process →
                 </button>
               </div>
             ))}
           </div>
-        </div>
-
-        <ToastContainer />
+        )}
       </div>
-      {/* Font import for Inter/Nunito */}
-      <style jsx global>{`
-        @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Nunito:wght@400;700;900&display=swap");
-      `}</style>
+
+      <ToastContainer position="bottom-right" autoClose={3000} />
     </div>
   );
 }
