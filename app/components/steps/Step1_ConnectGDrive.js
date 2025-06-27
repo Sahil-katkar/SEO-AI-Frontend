@@ -1,578 +1,218 @@
 "use client";
-import Loader from "@/components/common/Loader";
+import { useState } from "react";
 import { useAppContext } from "@/context/AppContext";
 import { useRouter } from "next/navigation";
-import { useState, useEffect, useRef } from "react";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import Loader from "@/components/common/Loader";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { FileText, Loader2, FolderOpen } from "lucide-react";
+
+// Color palette
+const primary = "#4f8cff";
+const secondary = "#a084e8";
 
 export default function Step1_ConnectGDrive() {
-  const { projectData, updateProjectData, setActiveStep, STEPS } =
-    useAppContext();
+  const { projectData, updateProjectData } = useAppContext();
+  const [folderNameInput, setFolderNameInput] = useState("");
+  const [files, setFiles] = useState(projectData?.gDriveFiles || []);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [processingStatus, setProcessingStatus] = useState({});
-  const [agentStatusOutput, setAgentStatusOutput] = useState(null);
-  const [intentContent, setIntentContent] = useState(null);
-  const [outlineContent, setOutlineContent] = useState(null);
-  const [articleContent, setArticleContent] = useState(null);
-  const [documentIds, setDocumentIds] = useState({});
-  const pollingRef = useRef(null);
-  const [files, setFiles] = useState(projectData?.gDriveFiles);
-  const [loading, setLoading] = useState(false);
   const router = useRouter();
   const supabase = createClientComponentClient();
 
-  // const handleViewArticle = async () => {
-  //   setArticleLoading(true);
-  //   setArticleError(null);
-  //   setIntentContent(null);
-  //   setOutlineContent(null);
-  //   setArticleContent(null);
-  //   setDocumentIds({});
-  //   localStorage.removeItem("intent");
-  //   localStorage.removeItem("outline");
-  //   localStorage.removeItem("article");
-
-  //   try {
-  //     const response = await fetch("/api/view_article", {
-  //       method: "GET",
-  //       headers: { "Content-Type": "application/json" },
-  //     });
-
-  //     const rawText = await response.text();
-  //     console.log("Raw response in handleViewArticle:", rawText);
-
-  //     if (!response.ok) {
-  //       let errorData;
-  //       try {
-  //         errorData = JSON.parse(rawText);
-  //       } catch {
-  //         throw new Error(
-  //           `Error fetching article: ${response.status} ${response.statusText}`
-  //         );
-  //       }
-  //       throw new Error(
-  //         errorData.detail || `Error fetching article: ${response.status}`
-  //       );
-  //     }
-
-  //     let data;
-  //     try {
-  //       data = JSON.parse(rawText);
-  //     } catch (e) {
-  //       throw new Error(`Invalid JSON response: ${e.message}`);
-  //     }
-
-  //     const newDocumentIds = {};
-  //     data.forEach((item) => {
-  //       let parsedContent = item.content || "";
-  //       parsedContent = parsedContent.replace(/^\ufeff/, "");
-
-  //       if (item.name === "Intent") {
-  //         try {
-  //           parsedContent = JSON.parse(parsedContent);
-  //           setIntentContent(parsedContent);
-  //           localStorage.setItem("intent", JSON.stringify(parsedContent));
-  //           newDocumentIds["Intent"] = item.id;
-  //         } catch (e) {
-  //           console.error(`Failed to parse JSON for ${item.name}:`, e);
-  //           parsedContent = {
-  //             error: `Invalid JSON: ${e.message}`,
-  //             raw: parsedContent,
-  //           };
-  //           setIntentContent(parsedContent);
-  //           localStorage.setItem("intent", JSON.stringify(parsedContent));
-  //           newDocumentIds["Intent"] = item.id;
-  //         }
-  //       } else if (item.name === "Outline") {
-  //         parsedContent = parsedContent.replace(/^```markdown\n|\n```$/g, "");
-  //         setOutlineContent(parsedContent);
-  //         localStorage.setItem("outline", parsedContent);
-  //         newDocumentIds["Outline"] = item.id;
-  //       } else if (item.name === "Article") {
-  //         parsedContent = parsedContent.replace(/^```markdown\n|\n```$/g, "");
-  //         setArticleContent(parsedContent);
-  //         localStorage.setItem("article", parsedContent);
-  //         newDocumentIds["Article"] = item.id;
-  //       }
-  //     });
-
-  //     setDocumentIds(newDocumentIds);
-  //     toast.success("Article data fetched and stored successfully!");
-  //   } catch (e) {
-  //     console.error("Error fetching article:", e);
-  //     setArticleError(
-  //       `${e.message}${
-  //         e.rawResponse ? ` (Raw: ${e.rawResponse.slice(0, 100)}...)` : ""
-  //       }`
-  //     );
-  //     toast.error(`Article Fetch Error: ${e.message}`);
-  //   } finally {
-  //     setArticleLoading(false);
-  //   }
-  // };
-
-  const getCurrentStep = () => {
-    const status = agentStatusOutput?.status;
-    switch (status) {
-      case "in_progress":
-        return 1;
-      case "processing_file":
-        return 2;
-      case "completed":
-        return 3;
-      case "not_started":
-      default:
-        return 0;
-    }
-  };
-
-  const currentStep = getCurrentStep();
-
-  // const startPollingAgentStatus = () => {
-  //   if (pollingRef.current) clearInterval(pollingRef.current);
-
-  //   pollingRef.current = setInterval(async () => {
-  //     try {
-  //       const statusResponse = await fetch(
-  //         `/api/agent_status?PRIMARY_KEYWORD=${encodeURIComponent(
-  //           "Strapi CMS"
-  //         )}`
-  //       );
-  //       if (!statusResponse.ok) {
-  //         const errorData = await statusResponse.json();
-  //         throw new Error(
-  //           errorData.detail || `Agent status error: ${statusResponse.status}`
-  //         );
-  //       }
-
-  //       const statusData = await statusResponse.json();
-  //       console.log("Polling /api/agent_status:", statusData);
-  //       setAgentStatusOutput(statusData);
-  //     } catch (e) {
-  //       console.error("Polling error:", e);
-  //       setError(e.message || "Failed to fetch agent status.");
-  //       setAgentStatusOutput(null);
-  //       clearInterval(pollingRef.current);
-  //       pollingRef.current = null;
-  //       setIsLoading(false);
-  //       toast.error(`Polling Error: ${e.message}`);
-  //     }
-  //   }, 8000);
-  // };
-
-  const insertFileDetailsListed = async (data) => {
-    const { dataUpdated } = await supabase.from("file_details").insert([
-      {
-        content: JSON.stringify(data),
-        file: true,
-      },
-    ]);
-
-    if (dataUpdated) {
-      console.error("Insert error:", error);
-    } else {
-      console.log("Successfully inserted.");
-    }
-  };
-
-  const handleListFiles = async () => {
+  const handleListFiles = async (fileId = null, folderName = null) => {
     setError(null);
-    // setFiles(null);
     setIsLoading(true);
     try {
-      const response = await fetch("/api/list-files");
+      const queryParams = new URLSearchParams();
+      if (fileId) queryParams.append("file_id", fileId);
+      if (folderName) queryParams.append("folder_name", folderName);
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error(
-          "API returned an error response:",
-          response.status,
-          errorData
-        );
-        throw new Error(
-          errorData.detail || `HTTP error! status: ${response.status}`
-        );
-      }
-
+      const response = await fetch(`/api/list-files?${queryParams.toString()}`);
       const data = await response.json();
 
-      insertFileDetailsListed(data);
+      if (!response.ok) {
+        throw new Error(data.detail || `Error: ${response.status}`);
+      }
 
       setFiles(data);
       updateProjectData({
         isGDriveConnected: true,
         gDriveFiles: data || [],
-        // agentEvent: gdriveData,
       });
-      setIsLoading(false);
-      console.log("Successfully listed files:", data);
-      // insertFileDetails(data);
+
+      toast.success("🎉 Files listed successfully!");
     } catch (e) {
-      setIsLoading(false);
-      console.error("Failed to list files (caught error):", e);
-      setError(e.message || "An unexpected error occurred.");
-    } finally {
-    }
-  };
-
-  // const handleCallMainAgent = async () => {
-  //   setIsLoading(true);
-  //   setError(null);
-  //   setAgentStatusOutput(null);
-
-  //   try {
-  //     startPollingAgentStatus();
-
-  //     const gdriveResponse = await fetch("/api/call-main-agent", {
-  //       method: "POST",
-  //       headers: { "Content-Type": "application/json" },
-  //       body: JSON.stringify({ user_id: userId }),
-  //     });
-
-  //     if (pollingRef.current) {
-  //       clearInterval(pollingRef.current);
-  //       pollingRef.current = null;
-  //     }
-
-  //     if (!gdriveResponse.ok) {
-  //       const errorData = await gdriveResponse.json();
-  //       throw new Error(
-  //         errorData.detail || `GDrive error: ${gdriveResponse.status}`
-  //       );
-  //     }
-
-  //     const gdriveData = await gdriveResponse.json();
-  //     updateProjectData({
-  //       isGDriveConnected: true,
-  //       gDriveFiles: gdriveData.files || [],
-  //       agentEvent: gdriveData,
-  //     });
-
-  //     setIsLoading(false);
-  //     toast.success("Google Drive connected!");
-  //   } catch (e) {
-  //     console.error("Error:", e);
-  //     setError(e.message || "Unexpected error.");
-  //     setAgentStatusOutput(null);
-  //     if (pollingRef.current) {
-  //       clearInterval(pollingRef.current);
-  //       pollingRef.current = null;
-  //     }
-  //     setIsLoading(false);
-  //     toast.error(`Error: ${e.message}`);
-  //   }
-  // };
-
-  useEffect(() => {
-    localStorage.removeItem("intent");
-    localStorage.removeItem("outline");
-    localStorage.removeItem("article");
-    setIntentContent(null);
-    setOutlineContent(null);
-    setArticleContent(null);
-    setDocumentIds({});
-
-    return () => {
-      if (pollingRef.current) {
-        clearInterval(pollingRef.current);
-        pollingRef.current = null;
-      }
-    };
-  }, []);
-
-  const handleSaveFileToRepo = async (fileId, fileName) => {
-    setProcessingStatus((prev) => ({ ...prev, [fileId]: "processing" }));
-    setIsLoading(true);
-    setError(null);
-    try {
-      const response = await fetch(
-        `/api/file-content?file_id=${encodeURIComponent(fileId)}`
-      );
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(
-          errorData.detail || `Fetch file error: ${response.status}`
-        );
-      }
-      const data = await response.json();
-      if (!data.content) throw new Error(data.error || "No content in file.");
-
-      const saveResponse = await fetch("/api/save-to-repo", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          fileName: fileName || `${fileId}.txt`,
-          content: data.content,
-        }),
-      });
-
-      if (!saveResponse.ok) {
-        const errorData = await saveResponse.json();
-        throw new Error(
-          errorData.detail || `Save error: ${saveResponse.status}`
-        );
-      }
-
-      setProcessingStatus((prev) => ({ ...prev, [fileId]: "processed" }));
-      toast.success("File processed!");
-      updateProjectData({
-        primaryKeyword: "football",
-        primaryIntent: "This is intent.",
-      });
-      setActiveStep(STEPS[1].id);
-    } catch (e) {
-      console.error("File process error:", e);
-      setError(e.message || "Unexpected error.");
-      setProcessingStatus((prev) => ({ ...prev, [fileId]: "idle" }));
-      toast.error(`Error: ${e.message}`);
+      setError(e.message || "Something went wrong.");
+      toast.error(`❌ ${e.message}`);
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const getStatusBadge = (status) => {
-    let colorClass = "bg-gray-200 text-gray-700";
-    if (status === "completed") colorClass = "bg-green-100 text-green-700";
-    else if (status === "in_progress")
-      colorClass = "bg-yellow-100 text-yellow-700";
-    else if (status === "error") colorClass = "bg-red-100 text-red-700";
-    return (
-      <span
-        className={`px-3 py-1 rounded-full text-sm font-medium ${colorClass}`}
-      >
-        {status}
-      </span>
-    );
   };
 
   const handleOpenProcessRowsTab = (id) => {
-    console.log("hi");
-    // setActiveStep("step2");
     router.push(`/${id}`);
   };
 
   return (
-    <div className="step-component">
-      <h3 className="text-xl font-semibold mb-4 text-blue-500 pb-8">
-        1. Connect Google Drive & Select Source Data{" "}
-      </h3>
-      <button
-        onClick={handleListFiles}
-        className={"px-4 py-2 rounded text-white transition-colors"}
-      >
-        {"Connect to Google Drive and List Files"}
-      </button>
-      {isLoading && <Loader />}
-      <ul className="space-y-1 keyword-list ">
-        {files &&
-          files.map((file, index) => (
-            <li
-              key={file.id || `${file.name}-${index}`}
-              className="break-words text-lg"
+    <div
+      className="min-h-screen py-10"
+      style={{
+        background: "linear-gradient(135deg, #f5f8ff 0%, #fff 100%)",
+        fontFamily: `'Inter', 'Nunito', 'Segoe UI', Arial, sans-serif`,
+      }}
+    >
+      <div className="max-w-4xl mx-auto px-4 py-8">
+        <h2
+          className="text-4xl font-extrabold mb-4 flex items-center gap-3"
+          style={{ color: primary, fontFamily: "inherit" }}
+        >
+          <FolderOpen className="w-8 h-8" style={{ color: secondary }} />
+          Connect Google Drive & Browse Files
+        </h2>
+        <p className="text-lg mb-8" style={{ color: "#4e5d6c" }}>
+          Enter your Google Drive folder name below to list and process your
+          files.
+        </p>
+
+        <div
+          className="shadow-xl rounded-2xl p-8 mb-10 border"
+          style={{
+            background: "#fff",
+            borderColor: "#e3e8f0",
+          }}
+        >
+          <div className="flex flex-col sm:flex-row items-center gap-4 w-full">
+            <input
+              type="text"
+              placeholder="Enter folder name (e.g. My_SEO_Docs)"
+              value={folderNameInput}
+              onChange={(e) => setFolderNameInput(e.target.value)}
+              className="w-full sm:w-2/3 px-5 py-3 border-2 rounded-xl shadow-sm focus:ring-2 focus:outline-none text-lg transition"
+              style={{
+                borderColor: primary,
+                background: "#f5f8ff",
+                color: "#222",
+                fontFamily: "inherit",
+              }}
+            />
+            <button
+              disabled={!folderNameInput || isLoading}
+              onClick={() => handleListFiles(null, folderNameInput)}
+              className="w-full sm:w-1/3 flex items-center justify-center px-6 py-3 text-lg font-bold rounded-xl shadow-md transition duration-200 gap-2"
+              style={
+                folderNameInput && !isLoading
+                  ? {
+                      background: `linear-gradient(90deg, ${primary} 0%, ${secondary} 100%)`,
+                      color: "#fff",
+                      border: "none",
+                      cursor: "pointer",
+                    }
+                  : {
+                      background: "#e3e8f0",
+                      color: "#a0aec0",
+                      cursor: "not-allowed",
+                      border: "none",
+                    }
+              }
             >
-              <strong>{file.name || "Unnamed File"}</strong> (
-              {file.mimeType || "Unknown Type"})
-              <button
-                className=""
-                onClick={() => handleOpenProcessRowsTab(file.id)}
+              {isLoading ? (
+                <span className="flex items-center gap-2">
+                  <Loader2 className="animate-spin w-5 h-5" />
+                  Listing...
+                </span>
+              ) : (
+                <>
+                  <FolderOpen className="w-5 h-5" />
+                  List Files
+                </>
+              )}
+            </button>
+          </div>
+
+          {error && (
+            <div
+              className="mt-4 p-4 border rounded-xl text-base font-medium flex gap-2 items-center"
+              style={{
+                background: "#fff6f6",
+                borderColor: "#ffd6d6",
+                color: "#d7263d",
+                fontFamily: "inherit",
+              }}
+            >
+              <span>⚠️</span> {error}
+            </div>
+          )}
+        </div>
+
+        <div>
+          {isLoading && <Loader />}
+          {!isLoading && files.length === 0 && (
+            <p
+              className="text-center mt-10 text-lg"
+              style={{ color: "#b2bec3" }}
+            >
+              No files listed yet. Try entering a folder name above.
+            </p>
+          )}
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {files.map((file, index) => (
+              <div
+                key={file.id || `${file.name}-${index}`}
+                className="group relative border rounded-2xl shadow-lg p-6 hover:shadow-2xl transition duration-300 flex flex-col"
+                style={{
+                  background: "#fff",
+                  borderColor: "#e3e8f0",
+                  fontFamily: "inherit",
+                }}
               >
-                Select
-              </button>
-            </li>
-          ))}
-      </ul>
+                <div className="flex items-start gap-4 mb-4">
+                  <div
+                    className="p-3 rounded-xl shadow"
+                    style={{
+                      background: "#f5f8ff",
+                      color: primary,
+                    }}
+                  >
+                    <FileText className="w-7 h-7" />
+                  </div>
+                  <div className="flex-1">
+                    <h3
+                      className="text-xl font-bold truncate"
+                      style={{ color: primary, fontFamily: "inherit" }}
+                    >
+                      {file.name || "Untitled File"}
+                    </h3>
+                    <p className="text-sm" style={{ color: "#7f8c8d" }}>
+                      {file.mimeType || "Unknown Type"}
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  className="mt-auto w-full py-3 px-4 rounded-xl font-semibold transition flex items-center justify-center gap-2"
+                  style={{
+                    background: `linear-gradient(90deg, ${primary} 0%, ${secondary} 100%)`,
+                    color: "#fff",
+                    fontFamily: "inherit",
+                  }}
+                  onClick={() => handleOpenProcessRowsTab(file.id)}
+                >
+                  Select & Process <span className="ml-1">→</span>
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <ToastContainer />
+      </div>
+      {/* Font import for Inter/Nunito */}
+      <style jsx global>{`
+        @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Nunito:wght@400;700;900&display=swap");
+      `}</style>
     </div>
   );
 }
-
-// <div className="step-component">
-//   <h3 className="text-xl font-semibold mb-4 text-blue-500 pb-8">
-//     1. Connect Google Drive & Select Source Data
-//   </h3>
-
-//   <button
-//     onClick={handleCallMainAgent}
-//     disabled={isLoading || !userId}
-//     className={`px-4 py-2 rounded text-white transition-colors ${
-//       isLoading || !userId
-//         ? "bg-gray-400 cursor-not-allowed"
-//         : "bg-blue-500 hover:bg-blue-600"
-//     }`}
-//   >
-//     {isLoading ? "Processing..." : "Connect to Google Drive & Poll Status"}
-//   </button>
-
-//   <div className="stepper">
-//     {[
-//       {
-//         label: "Connecting to drive and extracting keyword",
-//         status: "scrape_content_tool_completed",
-//       },
-//       {
-//         label: "Scraping data and intent generation",
-//         status: "intent_agent_completed",
-//       },
-//       { label: "Outline Generation", status: "outline_agent_completed" },
-//       { label: "Article Generation", status: "article_agent_completed" },
-//     ].map((step, stepIndex, steps) => {
-//       const currentStatusIndex = steps.findIndex(
-//         (s) => s.status === agentStatusOutput?.status
-//       );
-//       const isCompleted = stepIndex <= currentStatusIndex;
-
-//       return (
-//         <div
-//           key={stepIndex}
-//           className="step flex flex-col items-center flex-1"
-//         >
-//           <div
-//             className={`circle mb-2 ${isCompleted ? "completed" : ""}`}
-//             style={{ width: 36, height: 36 }}
-//           >
-//             {isCompleted ? "✓" : stepIndex + 1}
-//           </div>
-//           <div className="text-xs text-center font-medium">
-//             {step.label}
-//           </div>
-//           {stepIndex < steps.length - 1 && (
-//             <div
-//               className={`line ${
-//                 stepIndex < currentStatusIndex ? "line-completed" : ""
-//               }`}
-//             />
-//           )}
-//         </div>
-//       );
-//     })}
-//   </div>
-
-//   {error && (
-//     <div className="mt-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded text-sm">
-//       <h4 className="font-semibold">Error:</h4>
-//       <p>{error}</p>
-//     </div>
-//   )}
-
-//   {isLoading && <Loader />}
-
-//   {agentStatusOutput && (
-//     <div className="mt-6 p-4 border border-gray-300 bg-white rounded shadow">
-//       <h4 className="text-xl font-semibold mb-2">Agent Status</h4>
-//       <div className="flex items-center space-x-4">
-//         <span className="text-gray-700">Status: </span>
-//         {getStatusBadge(agentStatusOutput.status || "unknown")}
-//       </div>
-
-//       {agentStatusOutput.status === "in_progress" && (
-//         <div className="mt-4">
-//           <h4 className="text-lg font-semibold text-blue-800 mb-2">
-//             Progress
-//           </h4>
-//           <div className="w-full bg-gray-300 rounded-full h-4 overflow-hidden">
-//             <div
-//               className="bg-blue-500 h-4"
-//               style={{ width: `${agentStatusOutput.progress || 0}%` }}
-//             ></div>
-//           </div>
-//           <p className="text-sm text-gray-700 mt-2">
-//             {agentStatusOutput.progress || 0}% completed
-//           </p>
-//         </div>
-//       )}
-//     </div>
-//   )}
-
-//   {projectData.isGDriveConnected && (
-//     <div className="mt-4">
-//       {projectData.gDriveFiles?.length > 0 ? (
-//         <>
-//           <h4 className="text-2xl font-semibold mb-2">Found Files:</h4>
-//           <ul className="space-y-2">
-//             {projectData.gDriveFiles.map((file, index) => {
-//               const status = processingStatus[file.id] || "idle";
-//               return (
-//                 <li
-//                   key={file.id || `${file.name}-${index}`}
-//                   className="flex justify-between items-center border-b py-2"
-//                 >
-//                   <span>{file.name || "Unnamed File"}</span>
-//                   <button
-//                     onClick={() => handleSaveFileToRepo(file.id, file.name)}
-//                     disabled={
-//                       isLoading ||
-//                       status === "processing" ||
-//                       status === "processed"
-//                     }
-//                     className={`px-3 py-1 rounded text-white text-sm ${
-//                       status === "processed"
-//                         ? "bg-green-500 cursor-default"
-//                         : isLoading || status === "processing"
-//                         ? "bg-gray-400 cursor-not-allowed"
-//                         : "bg-blue-500 hover:bg-blue-600"
-//                     }`}
-//                   >
-//                     {status === "processed"
-//                       ? "Processed"
-//                       : status === "processing"
-//                       ? "Processing..."
-//                       : "Select & Process"}
-//                   </button>
-//                 </li>
-//               );
-//             })}
-//           </ul>
-//         </>
-//       ) : (
-//         <div className="mt-4 p-3 bg-blue-100 border border-blue-400 text-blue-700 rounded">
-//           Your Article has generated. Click "Show Details" to get the link.
-//         </div>
-//       )}
-//     </div>
-//   )}
-
-//   <div className="mt-4">
-//     <button
-//       onClick={handleViewArticle}
-//       disabled={articleLoading}
-//       className={`px-3 py-1 rounded text-white text-sm transition-colors ${
-//         articleLoading
-//           ? "bg-gray-400 cursor-not-allowed"
-//           : "bg-blue-600 hover:bg-blue-700"
-//       }`}
-//     >
-//       {articleLoading ? "Fetching..." : " Show Details"}
-//     </button>
-//   </div>
-
-//   {Object.keys(documentIds).length > 0 && (
-//     <div className="mt-4 p-4 border border-gray-300 bg-white rounded shadow">
-//       <h4 className="text-lg font-semibold mb-2">
-//         Your data has been saved to :
-//       </h4>
-//       <ul className="space-y-1">
-//         {Object.entries(documentIds).map(([name, id]) => (
-//           <li key={name} className="text-sm">
-//             <span className="font-medium">{name}:</span>{" "}
-//             {id ? (
-//               <a
-//                 href={`https://docs.google.com/document/d/${id}`}
-//                 target="_blank"
-//                 rel="noopener noreferrer"
-//                 className="text-blue-600 hover:underline"
-//               >
-//                 https://docs.google.com/document/d/{id}
-//               </a>
-//             ) : (
-//               "No ID available"
-//             )}
-//           </li>
-//         ))}
-//       </ul>
-//     </div>
-//   )}
-
-//   <ToastContainer />
-// </div>
