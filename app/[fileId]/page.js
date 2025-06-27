@@ -80,6 +80,8 @@ export default function FileId() {
         const cachedData = localStorage.getItem(`spreadsheet_${fileId}`);
         if (cachedData) {
           const parsedData = JSON.parse(cachedData);
+          console.log("parsedData", parsedData);
+
           parsedKeywords = parsedData.keywords || [];
           parsedUrls = parsedData.competitors || [];
 
@@ -313,22 +315,24 @@ export default function FileId() {
 
         <div className="overflow-x-auto">
           <div className="min-w-[600px]">
-            <div className="flex font-semibold border-b border-gray-300 py-2 px-4 text-sm bg-gray-100">
-              <div className="w-1/2">Keyword</div>
-              <div className="w-1/6 text-center">Status</div>
-              <div className="w-1/3 text-center">Actions</div>
+            <div className="flex gap-[30px] font-semibold border-b border-gray-300 py-2 px-4 text-sm bg-gray-100">
+              <div className="">Keyword</div>
+              <div className="w-[10%] text-center ml-auto">Status</div>
+              <div className="w-[20%] text-center">Actions</div>
             </div>
 
+            {console.log("keywords", keywords)}
             {keywords.map((keyword, index) => (
               <div
                 key={index}
-                className="flex items-center border-b border-gray-200 py-3 px-4 text-sm hover:bg-gray-50 transition"
+                className="flex gap-[30px] items-center border-b border-gray-200 py-3 px-4 text-sm hover:bg-gray-50 transition"
               >
                 {/* Keyword */}
-                <div className="w-1/2 text-gray-800">{keyword}</div>
+                <div className=" text-gray-800">{keyword}</div>
 
                 {/* Status */}
-                <div className="w-1/6 text-center">
+                <div className="w-[10%] text-center ml-auto ">
+                  {rowStatuses[index] === "idle" && <></>}
                   {rowStatuses[index] === "loading" && (
                     <Loader className="loader-sm" />
                   )}
@@ -341,7 +345,7 @@ export default function FileId() {
                 </div>
 
                 {/* Actions */}
-                <div className="w-1/3 flex justify-center gap-3">
+                <div className="w-[20%] flex justify-center gap-3">
                   <button
                     disabled={rowStatuses[index] === "loading"}
                     className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-xs disabled:opacity-50"
@@ -364,11 +368,15 @@ export default function FileId() {
                   </button>
 
                   <button
+                    data={index}
                     // disabled={rowStatuses[index] === "loading"}
                     className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-xs disabled:opacity-50"
-                    onClick={() =>
-                      callMainAgent(fileId, keyword, index, url[index])
-                    }
+                    onClick={(e) => {
+                      console.log(e.target);
+
+                      // setStatus("loading");
+                      // callMainAgent(fileId, keyword, index, url[index]);
+                    }}
                   >
                     Process
                   </button>

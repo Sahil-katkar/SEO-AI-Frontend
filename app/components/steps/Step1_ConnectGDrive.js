@@ -35,7 +35,8 @@ export default function Step1_ConnectGDrive() {
 
       setFiles(data);
       updateProjectData({ isGDriveConnected: true, gDriveFiles: data || [] });
-      toast.success("✅ Files listed successfully!");
+      // toast.success("✅ Files listed successfully!");
+      toast.success("Files listed successfully!");
     } catch (e) {
       setError(e.message || "Something went wrong.");
       toast.error(`❌ ${e.message}`);
@@ -48,8 +49,8 @@ export default function Step1_ConnectGDrive() {
     <div
       className="min-h-screen px-6 py-14 flex flex-col items-center"
       style={{
-        background: `linear-gradient(to bottom right, #eff6ff, #ecfeff)`,
-        fontFamily: `'Inter', sans-serif`,
+        // background: `linear-gradient(to bottom right, #eff6ff, #ecfeff)`,
+        // fontFamily: `'Inter', sans-serif`,
       }}
     >
       <div className="max-w-3xl w-full text-center mb-10">
@@ -79,18 +80,21 @@ export default function Step1_ConnectGDrive() {
               value={folderNameInput}
               onChange={(e) => setFolderNameInput(e.target.value)}
               placeholder="Enter folder name "
-              className="w-full bg-transparent text-gray-800 focus:outline-none text-base border-none"
+              className="w-full bg-transparent text-gray-800 focus:outline-none text-base border-none !mb-[0px]"
             />
           </div>
 
           <button
             disabled={!folderNameInput || isLoading}
             onClick={handleListFiles}
-            className={`px-6 py-3 w-full sm:w-auto flex items-center justify-center gap-2 text-white font-semibold rounded-xl transition ${
-              folderNameInput && !isLoading
-                ? "bg-gradient-to-r from-blue-500 to-cyan-500 hover:scale-[1.02]"
-                : "bg-gray-300 cursor-not-allowed"
-            }`}
+            className={`px-6 py-3 w-full sm:w-auto flex items-center justify-center gap-2 text-white font-semibold rounded-xl transition 
+              ${
+                ""
+              // folderNameInput && !isLoading
+              //   ? "bg-gradient-to-r from-blue-500 to-cyan-500 hover:scale-[1.02]"
+              //   : "bg-gray-300 cursor-not-allowed"
+            }
+            `}
           >
             <Search className="w-5 h-5" />
             {isLoading ? "Searching..." : "Search Files"}
@@ -111,19 +115,19 @@ export default function Step1_ConnectGDrive() {
             </p>
           </div>
         ) : (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid ssm:grid-cols-2 llg:grid-cols-3 gap-6">
             {files.map((file, i) => (
               <div
                 key={file.id || `${file.name}-${i}`}
-                className="bg-white shadow rounded-xl p-5 border border-gray-100 hover:shadow-lg transition"
+                className="flex gap-[30px] items-center bg-white shadow rounded-xl p-3 bborder border-gray-100 hover:shadow-lg transition"
               >
-                <h3 className="text-md font-semibold text-gray-800 truncate">
+                <h3 className="flex-1 text-md font-semibold text-gray-800 truncate !pb-[0px] !border-0">
                   {file.name}
                 </h3>
-                <p className="text-sm text-gray-500">{file.mimeType}</p>
+                {/* <p className="text-sm text-gray-500">{file.mimeType}</p> */}
                 <button
                   onClick={() => router.push(`/${file.id}`)}
-                  className="mt-4 w-full bg-gradient-to-r from-blue-500 to-cyan-500 text-white py-2 rounded-xl text-sm font-semibold hover:scale-[1.01] transition"
+                  className=" whitespace-nowrap text-white py-2 rounded-xl text-sm font-semibold"
                 >
                   Select & Process →
                 </button>

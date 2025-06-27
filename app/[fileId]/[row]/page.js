@@ -22,36 +22,27 @@ export default function FileRow() {
 
   const [isLoading, setIsLoading] = useState(true);
   const [apiError, setApiError] = useState(null);
-
   const [articledata, setArticleData] = useState([]);
   const [articledataUpdated, setArticleDataUpdated] = useState([]);
-
   const [intentdata, setIntentData] = useState([]);
   const [outlineData, setOutlineData] = useState([]);
   const [outlineDataUpdated, setOutlineDataUpdated] = useState([]);
-
   const [editIntent, setEditIntent] = useState(false);
   const [parsedContentState, setParsedContentState] = useState({});
   const [editedIntent, setEditedIntent] = useState("");
   const [editedExplanation, setEditedExplanation] = useState("");
   const [saveEditedIntent, setSaveEditedIntent] = useState(false);
   const [logs, setLogs] = useState([]);
-
   const [saveStatus, setSaveStatus] = useState(false);
   const params = useParams();
   const fileId = params.fileId;
   const searchParams = useSearchParams();
   const keyword = searchParams.get("keyword");
-
-  // console.log("keyword sss", keyword);
-
   const row = params.row;
-
   const router = useRouter();
   const supabase = createClientComponentClient();
   const row_id = `${fileId}_${row}`;
 
-  // Fetch initial data
   useEffect(() => {
     const row_id = `${fileId}_${row}`;
 
@@ -123,7 +114,7 @@ export default function FileRow() {
 
       setArticleDataUpdated(articleUpdated || []);
       setOutlineDataUpdated(outlineUpdated || []);
-      setSaveStatus(false); // Reset saveStatus to prevent redundant fetches
+      setSaveStatus(false);
     } catch (error) {
       setApiError(error.message || "Something went wrong");
     }
@@ -180,8 +171,8 @@ export default function FileRow() {
         });
         setParsedContentState(updatedContent);
         setEditIntent(false);
-        setSaveStatus(true); // Trigger useEffect to fetch updated data
-        await fetchDataUpdated(); // Fetch updated data immediately
+        setSaveStatus(true);
+        await fetchDataUpdated();
       } else {
         const errorRes = await res.json();
         toast.error(errorRes.message || "Something went wrong", {
