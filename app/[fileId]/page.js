@@ -6,162 +6,16 @@ import { useAppContext } from "@/context/AppContext";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 
 export default function FileId() {
-  const { updateProjectData, primaryKeyword } = useAppContext();
+  const { updateProjectData } = useAppContext();
   const [isLoading, setIsLoading] = useState(false);
   const [apiError, setApiError] = useState(null);
   const [keywords, setKeywords] = useState([]);
   const [url, setUrl] = useState([]);
   const [rowStatuses, setRowStatuses] = useState([]);
   const { fileId } = useParams();
-
   const router = useRouter();
   const supabase = createClientComponentClient();
   const hasInsertedRef = useRef(false);
-
-  const insertFileDetails = async (
-    sheetData,
-    keywordsArray,
-    competitorArray
-  ) => {
-    try {
-      const { data: existingData, error: checkError } = await supabase
-        .from("file_details")
-        .select("id")
-        .eq("fileId", fileId)
-        .eq("row", true);
-
-      if (checkError) throw new Error(`Check error: ${checkError.message}`);
-      if (existingData.length > 0) {
-        console.log("ℹ️ Data already exists for fileId:", fileId);
-        hasInsertedRef.current = true;
-        return;
-      }
-
-      const { error } = await supabase.from("file_details").insert([
-        {
-          content: JSON.stringify(sheetData || []),
-          keywords: JSON.stringify(keywordsArray || []),
-          url: JSON.stringify(competitorArray || []),
-          row: true,
-          fileId,
-        },
-      ]);
-
-      if (error) throw new Error(`Insert error: ${error.message}`);
-      console.log("✅ Inserted file details for fileId:", fileId);
-      hasInsertedRef.current = true;
-    } catch (error) {
-      console.error("❌ insertFileDetails error:", error.message);
-      setApiError(error.message);
-    }
-  };
-
-  // const fetchFromSupabase = async () => {
-  //   setIsLoading(true);
-  //   try {
-  //     // Fetch main file details (row = true)
-  //     const { data: mainData, error: mainError } = await supabase
-  //       .from("row_details")
-  //       .select("keywords, content, url")
-  //       .eq("row_id", fileId);
-
-  //     if (mainError)
-  //       throw new Error(`Supabase fetch error: ${mainError.message}`);
-
-  //     let parsedKeywords = [];
-  //     let parsedUrls = [];
-
-  //     if (mainData && mainData.length > 0) {
-  //       parsedKeywords = JSON.parse(mainData[0].keywords || "[]");
-  //       parsedUrls = JSON.parse(mainData[0].url || "[]");
-  //     } else {
-  //       // Fallback to cached data or spreadsheet API
-  //       const cachedData = localStorage.getItem(`spreadsheet_${fileId}`);
-  //       if (cachedData) {
-  //         const parsedData = JSON.parse(cachedData);
-  //         console.log("parsedData", parsedData);
-
-  //         parsedKeywords = parsedData.keywords || [];
-  //         parsedUrls = parsedData.competitors || [];
-
-  //         if (!hasInsertedRef.current) {
-  //           await insertFileDetails(
-  //             parsedData.full_content,
-  //             parsedData.keywords,
-  //             parsedData.competitors
-  //           );
-  //         }
-  //       } else {
-  //         const response = await fetch(`/api/read-spreadsheet`, {
-  //           method: "POST",
-  //           headers: { "Content-Type": "application/json" },
-  //           body: JSON.stringify({ file_id: fileId }),
-  //         });
-
-  //         if (!response.ok)
-  //           throw new Error(`HTTP error! status: ${response.status}`);
-
-  //         const spreadsheetData = await response.json();
-  //         const sheetData = spreadsheetData.full_content?.Sheet1 || [];
-  //         const keywordsArray = sheetData
-  //           .map((row) => row.KEYWORDS)
-  //           .filter(Boolean);
-  //         const competitorArray = sheetData
-  //           .map((row) => row.COMPETITORS)
-  //           .filter(Boolean);
-
-  //         parsedKeywords = keywordsArray;
-  //         parsedUrls = competitorArray;
-
-  //         localStorage.setItem(
-  //           `spreadsheet_${fileId}`,
-  //           JSON.stringify(spreadsheetData)
-  //         );
-
-  //         if (!hasInsertedRef.current) {
-  //           await insertFileDetails(sheetData, keywordsArray, competitorArray);
-  //         }
-  //       }
-  //     }
-
-  //     // Fetch row-specific statuses (row = false)
-  //     const { data: rowData, error: rowError } = await supabase
-  //       .from("file_details")
-  //       .select("keywords, status, row_index")
-  //       .eq("fileId", fileId)
-  //       .eq("row", false)
-  //       .order("row_index", { ascending: true });
-
-  //     if (
-  //       rowError &&
-  //       !rowError.message.includes(
-  //         "column file_details.row_index does not exist"
-  //       )
-  //     ) {
-  //       throw new Error(`Row status fetch error: ${rowError.message}`);
-  //     }
-
-  //     // Initialize rowStatuses based on Supabase status
-  //     const initialStatuses = new Array(parsedKeywords.length).fill("loading");
-  //     if (rowData && rowData.length > 0) {
-  //       rowData.forEach((row) => {
-  //         const index = row.row_index - 1;
-  //         if (index >= 0 && index < parsedKeywords.length) {
-  //           initialStatuses[index] =
-  //             row.status === "processed" ? "success" : "loading";
-  //         }
-  //       });
-  //     }
-
-  //     setKeywords(parsedKeywords);
-  //     setUrl(parsedUrls);
-  //     setRowStatuses(initialStatuses);
-  //   } catch (error) {
-  //     setApiError(error.message);
-  //   } finally {
-  //     setIsLoading(false);
-  //   }
-  // };
 
   const fetchFromSupabase = async () => {
     setIsLoading(true);
@@ -171,14 +25,11 @@ export default function FileId() {
         .select("keyword, row_id")
         .like("row_id", `${fileId}_%`);
 
-      if (error) {
-        throw new Error(`Supabase fetch error: ${error.message}`);
-      }
+      if (error) throw new Error(`Supabase fetch error: ${error.message}`);
 
       const fetchedKeywords = rowData.map((row) => row.keyword).filter(Boolean);
-
       setKeywords(fetchedKeywords);
-      setRowStatuses(new Array(fetchedKeywords.length).fill("idle")); // optional init
+      setRowStatuses(new Array(fetchedKeywords.length).fill("idle"));
     } catch (error) {
       setApiError(error.message);
     } finally {
@@ -188,7 +39,6 @@ export default function FileId() {
 
   const callMainAgent = async (userId, keyword, index, currentUrl) => {
     try {
-      // Insert initial record with status "processing started"
       const { error: insertError } = await supabase
         .from("file_details")
         .insert([
@@ -231,16 +81,12 @@ export default function FileId() {
       );
 
       if (response.status === 200) {
-        // Update status to "processed" on success
-        const { error: updateError } = await supabase
+        await supabase
           .from("file_details")
           .update({ status: "processed" })
           .eq("fileId", userId)
           .eq("row_index", index + 1)
           .eq("row", false);
-
-        if (updateError)
-          throw new Error(`Update status error: ${updateError.message}`);
       }
 
       const data = await response.json();
@@ -253,7 +99,6 @@ export default function FileId() {
     }
   };
 
-  // Initial fetch
   useEffect(() => {
     if (fileId) {
       hasInsertedRef.current = false;
@@ -264,148 +109,160 @@ export default function FileId() {
     };
   }, [fileId]);
 
-  // Process rows only when keywords and url are both available
-  // useEffect(() => {
-  //   const processRows = async () => {
-  //     for (let index = 0; index < keywords.length; index++) {
-  //       const keyword = keywords[index];
-  //       const currentUrl = url[index] || "";
-  //       if (keyword && rowStatuses[index] !== "success") {
-  //         try {
-  //           // Check status in Supabase
-  //           const { data, error } = await supabase
-  //             .from("file_details")
-  //             .select("status")
-  //             .eq("fileId", fileId)
-  //             .eq("row_index", index + 1)
-  //             .eq("row", false)
-  //             .single();
-
-  //           if (error && error.code !== "PGRST116") {
-  //             if (
-  //               error.message.includes(
-  //                 "column file_details.row_index does not exist"
-  //               )
-  //             ) {
-  //               console.warn(
-  //                 "⚠️ Supabase schema error: 'row_index' column missing in file_details table. " +
-  //                   "Please add it using: ALTER TABLE file_details ADD COLUMN IF NOT EXISTS row_index INTEGER;"
-  //               );
-  //               await callMainAgent(fileId, keyword, index, currentUrl);
-  //             } else {
-  //               setApiError(`Error checking status: ${error.message}`);
-  //               setRowStatuses((prev) =>
-  //                 prev.map((status, i) => (i === index ? "disabled" : status))
-  //               );
-  //             }
-  //             continue;
-  //           }
-
-  //           if (data && data.status === "processed") {
-  //             setRowStatuses((prev) =>
-  //               prev.map((status, i) => (i === index ? "success" : status))
-  //             );
-  //             console.log(`ℹ️ Skipping processed row ${index + 1}: ${keyword}`);
-  //             continue;
-  //           }
-
-  //           await callMainAgent(fileId, keyword, index, currentUrl);
-  //         } catch (error) {
-  //           setApiError(`Unexpected error checking status: ${error.message}`);
-  //           setRowStatuses((prev) =>
-  //             prev.map((status, i) => (i === index ? "disabled" : status))
-  //           );
-  //         }
-  //       }
-  //     }
-  //   };
-
-  //   if (keywords.length && url.length) {
-  //     processRows();
-  //   }
-  // }, [keywords, url, rowStatuses]);
+  const statusBadge = (status) => {
+    const map = {
+      idle: ["⏸️", "Idle", "bg-gray-100 text-gray-600"],
+      loading: [
+        "⏳",
+        "Processing",
+        "bg-yellow-100 text-yellow-700 animate-pulse",
+      ],
+      success: ["✅", "Done", "bg-green-100 text-green-700"],
+      disabled: ["⚠️", "Skipped", "bg-red-100 text-red-600"],
+    };
+    const [icon, label, style] = map[status] || [];
+    return (
+      <span
+        className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium ${style}`}
+      >
+        {icon} {label}
+      </span>
+    );
+  };
 
   return (
-    <div className="container px-4 py-6">
-      <main className="main-content step-component">
-        <h3 className="text-xl font-semibold mb-6 text-blue-600">
-          2. Rows inside your spreadsheet
-        </h3>
+    <div className="bg-gradient-to-br from-purple-50 to-blue-50 min-h-screen px-6 py-10 w-full">
+      <main className="space-y-10 max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="text-center space-y-1">
+          <h1 className="text-4xl font-extrabold  text-[#1b806c]">
+            ✨ Keyword Analysis Dashboard
+          </h1>
+          <p className="text-gray-500">
+            Transform your SEO strategy with AI-powered keyword analysis and
+            real-time insights
+          </p>
+        </div>
 
-        {apiError && <div className="mb-4 text-red-500">Error: {apiError}</div>}
-        {isLoading && <Loader />}
-
-        <div className="overflow-x-auto">
-          <div className="min-w-[600px]">
-            <div className="flex gap-[30px] font-semibold border-b border-gray-300 py-2 px-4 text-sm bg-gray-100">
-              <div className="">Keyword</div>
-              <div className="w-[10%] text-center ml-auto">Status</div>
-              <div className="w-[20%] text-center">Actions</div>
-            </div>
-
-            {console.log("keywords", keywords)}
-            {keywords.map((keyword, index) => (
-              <div
-                key={index}
-                className="flex gap-[30px] items-center border-b border-gray-200 py-3 px-4 text-sm hover:bg-gray-50 transition"
-              >
-                {/* Keyword */}
-                <div className=" text-gray-800">{keyword}</div>
-
-                {/* Status */}
-                <div className="w-[10%] text-center ml-auto ">
-                  {rowStatuses[index] === "idle" && <></>}
-                  {rowStatuses[index] === "loading" && (
-                    <Loader className="loader-sm" />
-                  )}
-                  {rowStatuses[index] === "success" && (
-                    <span className="text-green-500 font-medium">✔ Done</span>
-                  )}
-                  {rowStatuses[index] === "disabled" && (
-                    <span className="text-gray-400 font-medium">Skipped</span>
-                  )}
-                </div>
-
-                {/* Actions */}
-                <div className="w-[20%] flex justify-center gap-3">
-                  <button
-                    disabled={rowStatuses[index] === "loading"}
-                    className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-xs disabled:opacity-50"
-                    onClick={() => {
-                      updateProjectData({
-                        activeModalTab: "Logs",
-                      });
-
-                      const rowNumber = index + 1;
-                      const queryParams = new URLSearchParams({
-                        keyword: keyword,
-                      });
-
-                      router.push(
-                        `/${fileId}/${rowNumber}/?${queryParams.toString()}`
-                      );
-                    }}
-                  >
-                    View
-                  </button>
-
-                  <button
-                    data={index}
-                    // disabled={rowStatuses[index] === "loading"}
-                    className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-xs disabled:opacity-50"
-                    onClick={(e) => {
-                      console.log(e.target);
-
-                      // setStatus("loading");
-                      // callMainAgent(fileId, keyword, index, url[index]);
-                    }}
-                  >
-                    Process
-                  </button>
-                </div>
-              </div>
-            ))}
+        {/* Stat Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="bg-white rounded-xl shadow-md p-5">
+            <p className="text-sm font-medium text-gray-500">Total Keywords</p>
+            <h2 className="text-3xl font-bold text-blue-500">0</h2>
+            <p className="text-sm text-gray-400 mt-1">📄 Ready for analysis</p>
           </div>
+          <div className="bg-white rounded-xl shadow-md p-5">
+            <p className="text-sm font-medium text-gray-500">Completed</p>
+            <h2 className="text-3xl font-bold text-green-500">0</h2>
+            <p className="text-sm text-gray-400 mt-1">
+              ✅ Successfully processed
+            </p>
+          </div>
+          <div className="bg-white rounded-xl shadow-md p-5">
+            <p className="text-sm font-medium text-gray-500">Processing</p>
+            <h2 className="text-3xl font-bold text-purple-500">0</h2>
+            <p className="text-sm text-gray-400 mt-1">⚡ In progress now</p>
+          </div>
+          <div className="bg-white rounded-xl shadow-md p-5">
+            <p className="text-sm font-medium text-gray-500">Success Rate</p>
+            <h2 className="text-3xl font-bold text-indigo-500">0%</h2>
+            <p className="text-sm text-gray-400 mt-1">📈 Analysis accuracy</p>
+          </div>
+        </div>
+
+        {/* Search + Filter */}
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+          <input
+            type="text"
+            className="w-full md:w-2/3 p-3 rounded-lg border border-gray-200 shadow-sm focus:outline-none focus:ring focus:border-blue-300"
+            placeholder="🔍 Search keywords..."
+          />
+          <div className="flex gap-2">
+            <select className="px-3 py-2 rounded-lg border border-gray-200 shadow-sm">
+              <option>All Status</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Error */}
+        {apiError && (
+          <div className="p-4 rounded-lg bg-red-100 border border-red-300 text-red-700 font-medium">
+            ❌ {apiError}
+          </div>
+        )}
+
+        {/* Content */}
+        {isLoading ? (
+          <div className="flex justify-center py-24">
+            <Loader />
+          </div>
+        ) : keywords.length === 0 ? (
+          <div className="text-center text-slate-400 mt-24 space-y-3">
+            <div className="text-6xl">📭</div>
+            <p className="text-lg">No keywords found in the spreadsheet</p>
+          </div>
+        ) : (
+          <div className="space-y-6 bg-white rounded-xl shadow-md overflow-hidden">
+            <div className="p-4 font-semibold text-purple-600 bg-purple-50 border-b border-purple-100">
+              📋 Keywords Analysis Dashboard{" "}
+              <span className="text-sm text-gray-400">
+                ({keywords.length} items)
+              </span>
+            </div>
+            <div className="divide-y divide-gray-100">
+              {keywords.map((keyword, index) => (
+                <div
+                  key={index}
+                  className="flex flex-col md:flex-row justify-between gap-6 px-6 py-4"
+                >
+                  <div className="w-full md:w-3/5 space-y-1">
+                    <div className="text-lg font-semibold text-gray-800 truncate">
+                      🔑 {keyword}
+                    </div>
+                    <div>{statusBadge(rowStatuses[index])}</div>
+                  </div>
+                  <div className="flex flex-wrap gap-4 md:justify-end">
+                    <button
+                      disabled={rowStatuses[index] === "loading"}
+                      className="px-5 py-2 text-sm font-medium rounded-lg text-blue-700 border border-blue-300 bg-blue-50 hover:bg-blue-100 disabled:opacity-50 transition"
+                      onClick={() => {
+                        updateProjectData({ activeModalTab: "Logs" });
+                        router.push(
+                          `/${fileId}/${index + 1}/?keyword=${keyword}`
+                        );
+                      }}
+                    >
+                      🔍 View Logs
+                    </button>
+                    <button
+                      disabled={rowStatuses[index] === "loading"}
+                      className="px-5 py-2 text-sm font-medium rounded-lg text-white bg-green-600 hover:bg-green-700 disabled:opacity-50 transition"
+                      onClick={() =>
+                        callMainAgent(fileId, keyword, index, url[index] || "")
+                      }
+                    >
+                      ⚙ Run Agent
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Footer Stats */}
+        <div className="flex justify-center gap-6 mt-10 text-sm text-gray-600">
+          <span className="flex items-center gap-1 text-green-600">
+            ● {keywords.filter((_, i) => rowStatuses[i] === "completed").length}{" "}
+            Completed
+          </span>
+          <span className="flex items-center gap-1 text-blue-600">
+            ● {keywords.filter((_, i) => rowStatuses[i] === "loading").length}{" "}
+            Processing
+          </span>
+          <span className="flex items-center gap-1 text-gray-400">
+            ● {keywords.filter((_, i) => !rowStatuses[i]).length} Pending
+          </span>
         </div>
       </main>
     </div>
