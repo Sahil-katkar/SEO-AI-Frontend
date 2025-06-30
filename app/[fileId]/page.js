@@ -57,107 +57,129 @@ export default function FileId() {
     }
   };
 
+  // const fetchFromSupabase = async () => {
+  //   setIsLoading(true);
+  //   try {
+  //     // Fetch main file details (row = true)
+  //     const { data: mainData, error: mainError } = await supabase
+  //       .from("row_details")
+  //       .select("keywords, content, url")
+  //       .eq("row_id", fileId);
+
+  //     if (mainError)
+  //       throw new Error(`Supabase fetch error: ${mainError.message}`);
+
+  //     let parsedKeywords = [];
+  //     let parsedUrls = [];
+
+  //     if (mainData && mainData.length > 0) {
+  //       parsedKeywords = JSON.parse(mainData[0].keywords || "[]");
+  //       parsedUrls = JSON.parse(mainData[0].url || "[]");
+  //     } else {
+  //       // Fallback to cached data or spreadsheet API
+  //       const cachedData = localStorage.getItem(`spreadsheet_${fileId}`);
+  //       if (cachedData) {
+  //         const parsedData = JSON.parse(cachedData);
+  //         console.log("parsedData", parsedData);
+
+  //         parsedKeywords = parsedData.keywords || [];
+  //         parsedUrls = parsedData.competitors || [];
+
+  //         if (!hasInsertedRef.current) {
+  //           await insertFileDetails(
+  //             parsedData.full_content,
+  //             parsedData.keywords,
+  //             parsedData.competitors
+  //           );
+  //         }
+  //       } else {
+  //         const response = await fetch(`/api/read-spreadsheet`, {
+  //           method: "POST",
+  //           headers: { "Content-Type": "application/json" },
+  //           body: JSON.stringify({ file_id: fileId }),
+  //         });
+
+  //         if (!response.ok)
+  //           throw new Error(`HTTP error! status: ${response.status}`);
+
+  //         const spreadsheetData = await response.json();
+  //         const sheetData = spreadsheetData.full_content?.Sheet1 || [];
+  //         const keywordsArray = sheetData
+  //           .map((row) => row.KEYWORDS)
+  //           .filter(Boolean);
+  //         const competitorArray = sheetData
+  //           .map((row) => row.COMPETITORS)
+  //           .filter(Boolean);
+
+  //         parsedKeywords = keywordsArray;
+  //         parsedUrls = competitorArray;
+
+  //         localStorage.setItem(
+  //           `spreadsheet_${fileId}`,
+  //           JSON.stringify(spreadsheetData)
+  //         );
+
+  //         if (!hasInsertedRef.current) {
+  //           await insertFileDetails(sheetData, keywordsArray, competitorArray);
+  //         }
+  //       }
+  //     }
+
+  //     // Fetch row-specific statuses (row = false)
+  //     const { data: rowData, error: rowError } = await supabase
+  //       .from("file_details")
+  //       .select("keywords, status, row_index")
+  //       .eq("fileId", fileId)
+  //       .eq("row", false)
+  //       .order("row_index", { ascending: true });
+
+  //     if (
+  //       rowError &&
+  //       !rowError.message.includes(
+  //         "column file_details.row_index does not exist"
+  //       )
+  //     ) {
+  //       throw new Error(`Row status fetch error: ${rowError.message}`);
+  //     }
+
+  //     // Initialize rowStatuses based on Supabase status
+  //     const initialStatuses = new Array(parsedKeywords.length).fill("loading");
+  //     if (rowData && rowData.length > 0) {
+  //       rowData.forEach((row) => {
+  //         const index = row.row_index - 1;
+  //         if (index >= 0 && index < parsedKeywords.length) {
+  //           initialStatuses[index] =
+  //             row.status === "processed" ? "success" : "loading";
+  //         }
+  //       });
+  //     }
+
+  //     setKeywords(parsedKeywords);
+  //     setUrl(parsedUrls);
+  //     setRowStatuses(initialStatuses);
+  //   } catch (error) {
+  //     setApiError(error.message);
+  //   } finally {
+  //     setIsLoading(false);
+  //   }
+  // };
+
   const fetchFromSupabase = async () => {
     setIsLoading(true);
     try {
-      // Fetch main file details (row = true)
-      const { data: mainData, error: mainError } = await supabase
-        .from("file_details")
-        .select("keywords, content, url")
-        .eq("fileId", fileId)
-        .eq("row", true);
+      const { data: rowData, error } = await supabase
+        .from("row_details")
+        .select("keyword, row_id")
+        .like("row_id", `${fileId}_%`);
 
-      if (mainError)
-        throw new Error(`Supabase fetch error: ${mainError.message}`);
-
-      let parsedKeywords = [];
-      let parsedUrls = [];
-
-      if (mainData && mainData.length > 0) {
-        parsedKeywords = JSON.parse(mainData[0].keywords || "[]");
-        parsedUrls = JSON.parse(mainData[0].url || "[]");
-      } else {
-        // Fallback to cached data or spreadsheet API
-        const cachedData = localStorage.getItem(`spreadsheet_${fileId}`);
-        if (cachedData) {
-          const parsedData = JSON.parse(cachedData);
-          console.log("parsedData", parsedData);
-
-          parsedKeywords = parsedData.keywords || [];
-          parsedUrls = parsedData.competitors || [];
-
-          if (!hasInsertedRef.current) {
-            await insertFileDetails(
-              parsedData.full_content,
-              parsedData.keywords,
-              parsedData.competitors
-            );
-          }
-        } else {
-          const response = await fetch(`/api/read-spreadsheet`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ file_id: fileId }),
-          });
-
-          if (!response.ok)
-            throw new Error(`HTTP error! status: ${response.status}`);
-
-          const spreadsheetData = await response.json();
-          const sheetData = spreadsheetData.full_content?.Sheet1 || [];
-          const keywordsArray = sheetData
-            .map((row) => row.KEYWORDS)
-            .filter(Boolean);
-          const competitorArray = sheetData
-            .map((row) => row.COMPETITORS)
-            .filter(Boolean);
-
-          parsedKeywords = keywordsArray;
-          parsedUrls = competitorArray;
-
-          localStorage.setItem(
-            `spreadsheet_${fileId}`,
-            JSON.stringify(spreadsheetData)
-          );
-
-          if (!hasInsertedRef.current) {
-            await insertFileDetails(sheetData, keywordsArray, competitorArray);
-          }
-        }
+      if (error) {
+        throw new Error(`Supabase fetch error: ${error.message}`);
       }
 
-      // Fetch row-specific statuses (row = false)
-      const { data: rowData, error: rowError } = await supabase
-        .from("file_details")
-        .select("keywords, status, row_index")
-        .eq("fileId", fileId)
-        .eq("row", false)
-        .order("row_index", { ascending: true });
+      const fetchedKeywords = rowData.map((row) => row.keyword).filter(Boolean);
 
-      if (
-        rowError &&
-        !rowError.message.includes(
-          "column file_details.row_index does not exist"
-        )
-      ) {
-        throw new Error(`Row status fetch error: ${rowError.message}`);
-      }
-
-      // Initialize rowStatuses based on Supabase status
-      const initialStatuses = new Array(parsedKeywords.length).fill("loading");
-      if (rowData && rowData.length > 0) {
-        rowData.forEach((row) => {
-          const index = row.row_index - 1;
-          if (index >= 0 && index < parsedKeywords.length) {
-            initialStatuses[index] =
-              row.status === "processed" ? "success" : "loading";
-          }
-        });
-      }
-
-      setKeywords(parsedKeywords);
-      setUrl(parsedUrls);
-      setRowStatuses(initialStatuses);
+      setKeywords(fetchedKeywords);
+      setRowStatuses(new Array(fetchedKeywords.length).fill("idle")); // optional init
     } catch (error) {
       setApiError(error.message);
     } finally {
