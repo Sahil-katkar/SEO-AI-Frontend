@@ -9,7 +9,8 @@ export function AppProvider({ children }) {
 
   const STEPS = [
     { id: "step1", name: "Connect Google Drive", route: "/" },
-    { id: "step2", name: "Rows", route: `${pathName === "/" ? "" : pathName}` },
+    { id: "step2", name: "Analysis", route: "/analysis" },
+    { id: "step3", name: "Rows", route: `${pathName === "/" ? "" : pathName}` },
   ];
   // const [activeStep, setActiveStep] = useState(STEPS[0].id);
   const [projectData, setProjectData] = useState({

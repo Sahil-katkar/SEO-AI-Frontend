@@ -13,6 +13,8 @@ export default function FileId() {
   const [url, setUrl] = useState([]);
   const [rowStatuses, setRowStatuses] = useState([]);
   const { fileId } = useParams();
+  console.log("fileId", fileId);
+
   const router = useRouter();
   const supabase = createClientComponentClient();
   const hasInsertedRef = useRef(false);
@@ -100,7 +102,9 @@ export default function FileId() {
   };
 
   useEffect(() => {
+    console.log("1");
     if (fileId) {
+      console.log("2");
       hasInsertedRef.current = false;
       fetchFromSupabase();
     }
