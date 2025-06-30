@@ -202,12 +202,14 @@ export default function FileId() {
           </div>
         ) : keywords.length === 0 ? (
           <div className="text-center text-slate-400 mt-24 space-y-3">
-            <div className="text-6xl">📭</div>
-            <p className="text-lg">No keywords found in the spreadsheet</p>
+            <div className="text-7xl">📭</div>
+            <p className="text-xl font-semibold">
+              No keywords found in the spreadsheet
+            </p>
           </div>
         ) : (
-          <div className="space-y-6 bg-white rounded-xl shadow-md overflow-hidden">
-            <div className="p-4 font-semibold text-purple-600 bg-purple-50 border-b border-purple-100">
+          <div className="space-y-6 bg-white rounded-2xl shadow-md overflow-hidden">
+            <div className="p-5 font-semibold text-indigo-700 bg-indigo-50 border-b border-indigo-100 text-lg">
               📋 Keywords Analysis Dashboard{" "}
               <span className="text-sm text-gray-400">
                 ({keywords.length} items)
@@ -217,18 +219,18 @@ export default function FileId() {
               {keywords.map((keyword, index) => (
                 <div
                   key={index}
-                  className="flex flex-col md:flex-row justify-between gap-6 px-6 py-4"
+                  className="flex flex-col md:flex-row justify-between gap-6 px-6 py-4 hover:bg-gray-50 transition-all"
                 >
                   <div className="w-full md:w-3/5 space-y-1">
-                    <div className="text-lg font-semibold text-gray-800 truncate">
+                    <div className="text-base font-semibold text-gray-800 truncate">
                       🔑 {keyword}
                     </div>
                     <div>{statusBadge(rowStatuses[index])}</div>
                   </div>
-                  <div className="flex flex-wrap gap-4 md:justify-end">
+                  <div className="flex flex-wrap gap-3 md:justify-end">
                     <button
                       disabled={rowStatuses[index] === "loading"}
-                      className="px-5 py-2 text-sm font-medium rounded-lg text-blue-700 border border-blue-300 bg-blue-50 hover:bg-blue-100 disabled:opacity-50 transition"
+                      className="px-5 py-2 text-sm font-semibold rounded-xl text-blue-700 border border-blue-300 bg-blue-50 hover:bg-blue-100 disabled:opacity-50 transition"
                       onClick={() => {
                         updateProjectData({ activeModalTab: "Logs" });
                         router.push(
@@ -240,7 +242,7 @@ export default function FileId() {
                     </button>
                     <button
                       disabled={rowStatuses[index] === "loading"}
-                      className="px-5 py-2 text-sm font-medium rounded-lg text-white bg-green-600 hover:bg-green-700 disabled:opacity-50 transition"
+                      className="px-5 py-2 text-sm font-semibold rounded-xl text-white bg-green-600 hover:bg-green-700 disabled:opacity-50 transition"
                       onClick={() =>
                         callMainAgent(fileId, keyword, index, url[index] || "")
                       }
@@ -255,16 +257,16 @@ export default function FileId() {
         )}
 
         {/* Footer Stats */}
-        <div className="flex justify-center gap-6 mt-10 text-sm text-gray-600">
-          <span className="flex items-center gap-1 text-green-600">
+        <div className="flex justify-center gap-6 mt-12 text-sm font-medium text-gray-700">
+          <span className="flex items-center gap-2 text-green-600">
             ● {keywords.filter((_, i) => rowStatuses[i] === "completed").length}{" "}
             Completed
           </span>
-          <span className="flex items-center gap-1 text-blue-600">
+          <span className="flex items-center gap-2 text-blue-600">
             ● {keywords.filter((_, i) => rowStatuses[i] === "loading").length}{" "}
             Processing
           </span>
-          <span className="flex items-center gap-1 text-gray-400">
+          <span className="flex items-center gap-2 text-gray-400">
             ● {keywords.filter((_, i) => !rowStatuses[i]).length} Pending
           </span>
         </div>
