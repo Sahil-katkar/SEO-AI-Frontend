@@ -39,65 +39,90 @@ export default function FileId() {
     }
   };
 
-  const callMainAgent = async (userId, keyword, index, currentUrl) => {
+  // const callMainAgent = async (userId, keyword, index, currentUrl) => {
+  //   try {
+  // const { error: insertError } = await supabase
+  //   .from("row_")
+  //   .insert([
+  //     {
+  //       fileId,
+  //       keywords: JSON.stringify([keyword]),
+  //       status: "processing started",
+  //       row: false,
+  //       fileId: index + 1,
+  //     },
+  //   ]);
+
+  // if (insertError)
+  //   throw new Error(`Insert row error: ${insertError.message}`);
+
+  //   const payload = {
+  //     rows_content: [
+  //       {
+  //         user_id: `${userId}_${index + 1}`,
+  //         primary_keyword: keyword,
+  //         URLs: currentUrl,
+  //       },
+  //     ],
+  //   };
+
+  //   const response = await fetch("/api/call-main-agent", {
+  //     method: "POST",
+  //     headers: { "Content-Type": "application/json" },
+  //     body: JSON.stringify(payload),
+  //   });
+
+  //   setRowStatuses((prev) =>
+  //     prev.map((status, i) =>
+  //       i === index
+  //         ? response.status === 200
+  //           ? "success"
+  //           : "disabled"
+  //         : status
+  //     )
+  //   );
+
+  //   if (response.status === 200) {
+  //     await supabase
+  //       .from("file_details")
+  //       .update({ status: "processed" })
+  //       .eq("fileId", userId)
+  //       .eq("row_index", index + 1)
+  //       .eq("row", false);
+  //   }
+
+  //   const data = await response.json();
+  //   console.log(`✅ Row ${index + 1} response:`, data);
+  // } catch (error) {
+  //   setRowStatuses((prev) =>
+  //     prev.map((status, i) => (i === index ? "disabled" : status))
+  //   );
+  //   setApiError(error.message);
+
+  // };
+
+  const contentbrief = async (fileId, keyword, index) => {
     try {
-      const { error: insertError } = await supabase
-        .from("file_details")
-        .insert([
-          {
-            fileId,
-            keywords: JSON.stringify([keyword]),
-            status: "processing started",
-            row: false,
-            row_index: index + 1,
-          },
-        ]);
+      const file__Id = `${fileId}_${index + 1}`;
+      console.log("Sending fileId:", file__Id); // Debug log
 
-      if (insertError)
-        throw new Error(`Insert row error: ${insertError.message}`);
-
-      const payload = {
-        rows_content: [
-          {
-            user_id: `${userId}_${index + 1}`,
-            primary_keyword: keyword,
-            URLs: currentUrl,
-          },
-        ],
-      };
-
-      const response = await fetch("/api/call-main-agent", {
+      const response = await fetch("/api/contentBrief", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ fileId: file__Id }),
       });
 
-      setRowStatuses((prev) =>
-        prev.map((status, i) =>
-          i === index
-            ? response.status === 200
-              ? "success"
-              : "disabled"
-            : status
-        )
-      );
-
-      if (response.status === 200) {
-        await supabase
-          .from("file_details")
-          .update({ status: "processed" })
-          .eq("fileId", userId)
-          .eq("row_index", index + 1)
-          .eq("row", false);
-      }
-
       const data = await response.json();
-      console.log(`✅ Row ${index + 1} response:`, data);
+
+      if (response.ok) {
+        console.log("Success:", data);
+      } else {
+        console.error("Error:", data.error || data);
+      }
     } catch (error) {
-      setRowStatuses((prev) =>
-        prev.map((status, i) => (i === index ? "disabled" : status))
-      );
-      setApiError(error.message);
+      console.error("Error from catch:", error);
     }
   };
 
@@ -152,7 +177,9 @@ export default function FileId() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           <div className="bg-white rounded-xl shadow-md p-5">
             <p className="text-sm font-medium text-gray-500">Total Keywords</p>
-            <h2 className="text-3xl font-bold text-blue-500">0</h2>
+            <h2 className="text-3xl font-bold text-blue-500">
+              {keywords.length}
+            </h2>
             <p className="text-sm text-gray-400 mt-1">📄 Ready for analysis</p>
           </div>
           <div className="bg-white rounded-xl shadow-md p-5">
@@ -175,7 +202,7 @@ export default function FileId() {
         </div>
 
         {/* Search + Filter */}
-        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+        {/* <div className="flex flex-col md:flex-row items-center justify-between gap-4">
           <input
             type="text"
             className="w-full md:w-2/3 p-3 rounded-lg border border-gray-200 shadow-sm focus:outline-none focus:ring focus:border-blue-300"
@@ -186,7 +213,7 @@ export default function FileId() {
               <option>All Status</option>
             </select>
           </div>
-        </div>
+        </div> */}
 
         {/* Error */}
         {apiError && (
@@ -210,7 +237,7 @@ export default function FileId() {
         ) : (
           <div className="space-y-6 bg-white rounded-2xl shadow-md overflow-hidden">
             <div className="p-5 font-semibold text-indigo-700 bg-indigo-50 border-b border-indigo-100 text-lg">
-              📋 Keywords Analysis Dashboard{" "}
+              📋 Keywords{" "}
               <span className="text-sm text-gray-400">
                 ({keywords.length} items)
               </span>
@@ -244,7 +271,7 @@ export default function FileId() {
                       disabled={rowStatuses[index] === "loading"}
                       className="px-5 py-2 text-sm font-semibold rounded-xl text-white bg-green-600 hover:bg-green-700 disabled:opacity-50 transition"
                       onClick={() =>
-                        callMainAgent(fileId, keyword, index, url[index] || "")
+                        contentbrief(fileId, keyword, index, url[index] || "")
                       }
                     >
                       ⚙ Run Agent
