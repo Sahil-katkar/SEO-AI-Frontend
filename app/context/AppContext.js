@@ -11,8 +11,13 @@ export function AppProvider({ children }) {
     { id: "step1", name: "Connect Google Drive", route: "/" },
     { id: "step2", name: "Analysis", route: "/analysis" },
     { id: "step3", name: "Rows", route: `${pathName === "/" ? "" : pathName}` },
+    {
+      id: "step4",
+      name: "Content Brief",
+      route: "/contentBrief/[file_id]/index",
+    }, // Updated route
   ];
-  // const [activeStep, setActiveStep] = useState(STEPS[0].id);
+
   const [projectData, setProjectData] = useState({
     projectName: "",
     gDriveFiles: [],
@@ -40,8 +45,6 @@ export function AppProvider({ children }) {
 
   const value = {
     STEPS,
-    // activeStep,
-    // setActiveStep,
     projectData,
     updateProjectData,
   };

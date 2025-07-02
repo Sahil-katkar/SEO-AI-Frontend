@@ -39,6 +39,10 @@ export default function FileId() {
     }
   };
 
+  const contentbrief = async (fileId, keyword, index) => {
+    router.push(`/contentBrief/${fileId}/${index + 1}`);
+  };
+
   // const callMainAgent = async (userId, keyword, index, currentUrl) => {
   //   try {
   // const { error: insertError } = await supabase
@@ -101,30 +105,27 @@ export default function FileId() {
 
   // };
 
-  const contentbrief = async (fileId, keyword, index) => {
-    try {
-      const file__Id = `${fileId}_${index + 1}`;
-      console.log("Sending fileId:", file__Id); // Debug log
-
-      const response = await fetch("/api/contentBrief", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ fileId: file__Id }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        console.log("Success:", data);
-      } else {
-        console.error("Error:", data.error || data);
-      }
-    } catch (error) {
-      console.error("Error from catch:", error);
-    }
-  };
+  // const contentbrief = async (fileId, keyword, index) => {
+  //   // try {
+  //   //   const file__Id = `${fileId}_${index + 1}`;
+  //   //   console.log("Sending fileId:", file__Id); // Debug log
+  //   //   const response = await fetch("/api/contentBrief", {
+  //   //     method: "POST",
+  //   //     headers: {
+  //   //       "Content-Type": "application/json",
+  //   //     },
+  //   //     body: JSON.stringify({ fileId: file__Id }),
+  //   //   });
+  //   //   const data = await response.json();
+  //   //   if (response.ok) {
+  //   //     console.log("Success:", data);
+  //   //   } else {
+  //   //     console.error("Error:", data.error || data);
+  //   //   }
+  //   // } catch (error) {
+  //   //   console.error("Error from catch:", error);
+  //   // }
+  // };
 
   useEffect(() => {
     console.log("1");
