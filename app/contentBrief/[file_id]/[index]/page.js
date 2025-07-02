@@ -113,7 +113,7 @@ export default function ContentBriefPage() {
     fetchContentBrief();
   }, [fileId, index]);
 
-  // --- Handlers for Mission Plan Editing ---
+  // --- Handlers ---
 
   const handleEditIntent = (compIndex) => {
     setEditIntent({ [`comp${compIndex}`]: true });
@@ -126,9 +126,6 @@ export default function ContentBriefPage() {
     setMissionPlanValue(responseData?.generated_mission_plan || "");
   };
 
-  /**
-   * CORRECTED: Saves the edited mission plan to the database.
-   */
   const handleSaveIntent = async () => {
     setIsSaving(true);
     setError(null); // Clear previous errors before trying to save
@@ -164,6 +161,14 @@ export default function ContentBriefPage() {
     } finally {
       setIsSaving(false);
     }
+  };
+
+  // NEW: Handler for the "Next" button
+  const handleNext = () => {
+    console.log("Navigating to the next step...");
+    router.push("/analysis");
+    // Example: router.push(`/next-step-url/${fileId}/${index}`);
+    // Replace with your actual navigation logic.
   };
 
   const isEditing = editIntent[`comp${index + 1}`];
@@ -229,6 +234,18 @@ export default function ContentBriefPage() {
               value={missionPlanValue}
               onChange={(e) => setMissionPlanValue(e.target.value)}
             />
+
+            {/* --- NEW: "Next" button section --- */}
+            <div className="mt-6 flex justify-end">
+              <button
+                onClick={handleNext}
+                className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                disabled={isEditing} // Optional: disable "Next" while editing
+              >
+                Next
+              </button>
+            </div>
+            {/* --- End of "Next" button section --- */}
           </>
         )}
         <div className="overflow-x-auto mt-4">
