@@ -5,14 +5,17 @@ import Loader from "@/components/common/Loader";
 import React, { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useAppContext } from "@/app/context/AppContext"; // Adjust path as needed
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 
 export default function ContentBriefPage() {
   // State
-  const [isLoading, setIsLoading] = useState(false); // Tracks API loading state
-  const [responseData, setResponseData] = useState(null); // Stores API response
+  const [isLoading, setIsLoading] = useState(true); // Start with true since we fetch on mount
+  const [isSaving, setIsSaving] = useState(false); // Tracks saving state for the button
+  const [responseData, setResponseData] = useState(null); // Stores API/DB response
   const [error, setError] = useState(null); // Stores error messages
   const [editIntent, setEditIntent] = useState({}); // Tracks edit mode for intent
   const [missionPlanValue, setMissionPlanValue] = useState(""); // Stores mission plan value during edit
+  const supabase = createClientComponentClient();
 
   // Context and Navigation
   const { projectData, updateProjectData } = useAppContext();
@@ -21,42 +24,77 @@ export default function ContentBriefPage() {
   const fileId = params.file_id; // From /contentBrief/[file_id]/index route
   const index = params.index;
 
-  // Fetch content brief from API
+  // Fetch content brief from database or API
   const fetchContentBrief = async () => {
     setIsLoading(true);
     setError(null);
     setResponseData(null);
 
     try {
-      // Validate fileId
-      if (!fileId) {
-        throw new Error("No file ID provided in URL");
+      if (!fileId || typeof index === "undefined") {
+        throw new Error("File ID or index not provided in URL");
       }
 
-      // Construct file__Id with dynamic index
       const file__Id = `${fileId}_${index}`;
-      console.log("Sending fileId:", file__Id);
+      console.log("Checking database for fileId:", file__Id);
 
-      // Make API call
+      // Check database first
+      const { data: dbData, error: dbError } = await supabase
+        .from("row_details")
+        .select("mission_plan")
+        .eq("row_id", file__Id)
+        .single();
+
+      // If there's a database error, but it's NOT the "no rows found" error, then it's a real problem.
+      if (dbError && dbError.code !== "PGRST116") {
+        console.error("Supabase query error:", dbError);
+        throw new Error(`Database query error: ${dbError.message}`);
+      }
+
+      // If mission_plan exists and is not empty, use it from the database
+      if (dbData?.mission_plan) {
+        console.log("Found mission plan in database:", dbData.mission_plan);
+        const data = { generated_mission_plan: dbData.mission_plan };
+        setResponseData(data);
+        setMissionPlanValue(data.generated_mission_plan);
+        return; // Exit early if data is found
+      }
+
+      // If no mission plan in database, call API
+      console.log("No mission plan in database, calling API...");
       const response = await fetch("/api/contentBrief", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ fileId: file__Id }),
       });
 
-      // Check response status
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || `HTTP error: ${response.status}`);
       }
 
-      // Parse and store response
       const data = await response.json();
       console.log("API Response:", data);
       setResponseData(data);
-      // Initialize mission plan value from response
+
+      // Upsert API response to database
+      if (data.generated_mission_plan) {
+        const { error: upsertError } = await supabase
+          .from("row_details")
+          .upsert(
+            {
+              row_id: file__Id,
+              mission_plan: data.generated_mission_plan,
+            },
+            { onConflict: "row_id" }
+          );
+
+        if (upsertError) {
+          // Log this error but don't block the UI, as the data is still available from the API
+          console.error("Supabase upsert error after API call:", upsertError);
+        }
+      }
+
       setMissionPlanValue(data.generated_mission_plan || "");
     } catch (error) {
       console.error("Fetch Error:", {
@@ -73,29 +111,62 @@ export default function ContentBriefPage() {
 
   useEffect(() => {
     fetchContentBrief();
-  }, [fileId, index]); // Add fileId and index to dependencies
+  }, [fileId, index]);
 
-  // Handlers for Mission Plan Editing
+  // --- Handlers for Mission Plan Editing ---
+
   const handleEditIntent = (compIndex) => {
-    setEditIntent((prev) => ({ ...prev, [`comp${compIndex}`]: true }));
+    setEditIntent({ [`comp${compIndex}`]: true });
     setMissionPlanValue(responseData?.generated_mission_plan || "");
-  };
-
-  const handleSaveIntent = () => {
-    setEditIntent((prev) => ({ ...prev, [`comp${index + 1}`]: false }));
-    // Update responseData with new mission plan
-    setResponseData((prev) => ({
-      ...prev,
-      generated_mission_plan: missionPlanValue,
-    }));
-    // Optionally update projectData in context
-    // updateProjectData({ generated_mission_plan: missionPlanValue });
   };
 
   const handleCancelIntent = (compIndex) => {
-    setEditIntent((prev) => ({ ...prev, [`comp${compIndex}`]: false }));
+    setEditIntent({ [`comp${compIndex}`]: false });
+    // Reset the textarea to the last saved value
     setMissionPlanValue(responseData?.generated_mission_plan || "");
   };
+
+  /**
+   * CORRECTED: Saves the edited mission plan to the database.
+   */
+  const handleSaveIntent = async () => {
+    setIsSaving(true);
+    setError(null); // Clear previous errors before trying to save
+
+    const file__Id = `${fileId}_${index}`;
+
+    try {
+      const { error: upsertError } = await supabase.from("row_details").upsert(
+        {
+          row_id: file__Id,
+          mission_plan: missionPlanValue, // Use the state value from the textarea
+        },
+        { onConflict: "row_id" }
+      );
+
+      if (upsertError) {
+        // Throw an error to be caught by the catch block
+        throw new Error(`Failed to save to database: ${upsertError.message}`);
+      }
+
+      // On successful save, update local state to reflect the change
+      setResponseData((prev) => ({
+        ...prev,
+        generated_mission_plan: missionPlanValue,
+      }));
+
+      // Exit edit mode
+      setEditIntent({ [`comp${index + 1}`]: false });
+      console.log("Mission plan saved successfully.");
+    } catch (error) {
+      console.error("Save Error:", error);
+      setError(error.message); // Set error state to display to the user
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const isEditing = editIntent[`comp${index + 1}`];
 
   return (
     <div className="container px-4 py-6">
@@ -104,75 +175,62 @@ export default function ContentBriefPage() {
           Mission Plan Generator:
         </h3>
 
-        {/* Loading State */}
         {isLoading && <Loader />}
 
-        {/* Error Message */}
         {error && (
-          <div className="text-red-600 mb-4">
-            Error: {error}
+          <div className="text-red-600 mb-4 p-3 bg-red-100 border border-red-400 rounded">
+            <strong>Error:</strong> {error}
             <button
-              onClick={fetchContentBrief} // Use the defined function
-              className="ml-4 bg-blue-600 text-white px-2 py-1 rounded"
+              onClick={fetchContentBrief}
+              className="ml-4 bg-blue-600 text-white px-2 py-1 rounded text-sm"
             >
               Retry
             </button>
           </div>
         )}
 
-        {/* Mission Plan Section */}
         {!isLoading && !error && responseData && (
           <>
-            <div className="mb-[8px] flex justify-between items-center">
+            <div className="mb-2 flex justify-between items-center">
               <p className="font-bold">Mission Plan:</p>
-              <div className="flex gap-[8px]">
-                {!editIntent[`comp${index + 1}`] && (
+              <div className="flex gap-2">
+                {!isEditing && (
                   <button
                     onClick={() => handleEditIntent(index + 1)}
-                    className="bg-green-500 text-white px-2 py-1 rounded"
+                    className="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600 transition-colors"
                   >
                     Edit
                   </button>
                 )}
-                {editIntent[`comp${index + 1}`] && (
-                  <button
-                    onClick={handleSaveIntent}
-                    className="bg-blue-600 text-white px-2 py-1 rounded"
-                  >
-                    Save
-                  </button>
-                )}
-                {editIntent[`comp${index + 1}`] && (
-                  <button
-                    onClick={() => handleCancelIntent(index + 1)}
-                    className="bg-red-600 text-white px-2 py-1 rounded"
-                  >
-                    Cancel
-                  </button>
+                {isEditing && (
+                  <>
+                    <button
+                      onClick={handleSaveIntent}
+                      className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition-colors disabled:bg-blue-300"
+                      disabled={isSaving}
+                    >
+                      {isSaving ? "Saving..." : "Save"}
+                    </button>
+                    <button
+                      onClick={() => handleCancelIntent(index + 1)}
+                      className="bg-gray-500 text-white px-3 py-1 rounded hover:bg-gray-600 transition-colors"
+                      disabled={isSaving}
+                    >
+                      Cancel
+                    </button>
+                  </>
                 )}
               </div>
             </div>
             <textarea
-              disabled={!editIntent[`comp${index + 1}`]}
-              className="w-full border p-2 focus:outline-[#1abc9c] focus:outline-2 rounded"
+              disabled={!isEditing || isSaving}
+              className="w-full border p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
               rows="10"
-              value={missionPlanValue} // Use missionPlanValue
+              value={missionPlanValue}
               onChange={(e) => setMissionPlanValue(e.target.value)}
             />
           </>
         )}
-
-        {/* API Response (Raw) - Optional */}
-        {/* {responseData && (
-          <div className="mt-4 p-4 bg-gray-100 rounded">
-            <h4 className="text-lg font-medium mb-2">Raw API Response:</h4>
-            <pre className="text-sm overflow-auto">
-              {JSON.stringify(responseData, null, 2)}
-            </pre>
-          </div>
-        )} */}
-
-        {/* Placeholder for Additional Content */}
         <div className="overflow-x-auto mt-4">
           <div className="flex flex-col gap-[30px]"></div>
         </div>
