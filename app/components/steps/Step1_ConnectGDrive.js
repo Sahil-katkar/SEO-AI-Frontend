@@ -119,30 +119,30 @@ export default function Step1_ConnectGDrive() {
 
       const rows = data.full_content?.Sheet1;
 
+      console.log("rows", rows);
+
       if (!Array.isArray(rows)) {
         throw new Error("Invalid data format: Sheet1 is not an array.");
       }
 
       // Prepare the rows for upsertion
-      const formattedRows = rows.map((row, index) => {
-        updateProjectData({
-          selectedFileId: fileId,
-          selectedRowIndex: index,
-        });
-        return {
-          keyword: row.KEYWORD || "",
-          intent: row.INTENT || "",
-          faq: row["FAQs"] || "",
-          comp_url: row.COMPETITORS || "",
-          questions: row.MUST_ANSWER || "",
-          lsi_keywords: row.LSI_TERMS || "",
-          ai_mode: row.AI_MODE_ANSWER || "",
-          persona: row.PERSONA || "",
-          BUSINESS_GOAL: row.BUSINESS_GOAL || "",
-          // This row_id will be used to check for conflicts
-          row_id: `${fileId}_${index + 1}`,
-        };
-      });
+      const formattedRows = rows.map((row, index) => ({
+        keyword: row.KEYWORD || "",
+        intent: row.INTENT || "",
+        faq: row["FAQs"] || "",
+        comp_url: row.COMPETITORS || "",
+        questions: row.MUST_ANSWER || "",
+        lsi_keywords: row.LSI_TERMS || "",
+        ai_mode: row.AI_MODE_ANSWER || "",
+        persona: row.PERSONA || "",
+        BUSINESS_GOAL: row.BUSINESS_GOAL || "",
+        cluster: row.CLUSTER || "",
+        pillar: row.PILLAR || "",
+        article_outcome: row.article_outcome || "",
+
+        // This row_id will be used to check for conflicts
+        row_id: `${fileId}_${index + 1}`,
+      }));
 
       // --- MODIFICATION START ---
       // Use .upsert() instead of .insert()
