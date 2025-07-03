@@ -45,7 +45,28 @@ export default function ContentBriefPage() {
         .eq("row_id", file__Id)
         .single();
 
-      // If there's a database error, but it's NOT the "no rows found" error, then it's a real problem.
+      const { data: dataInput, error: dberror } = await supabase
+        .from("row_details")
+        .select(
+          "keyword, BUSINESS_GOAL, target_audience,intent,article_outcome,pillar,cluster"
+        )
+        .eq("row_id", file__Id);
+
+      if (error) {
+        console.error("Error fetching row details:", error);
+      } else {
+        console.log("keyword:", dataInput);
+
+        console.log("keyword:", dataInput?.[0].keyword || "");
+        console.log("BUSINESS_GOAL:", dataInput?.[0].BUSINESS_GOAL || "");
+        console.log("target_audience:", dataInput?.[0].target_audience || "");
+        console.log("intent:", dataInput?.[0].intent || "");
+        console.log("article_outcome:", dataInput?.[0].article_outcome || "");
+
+        console.log("pillar:", dataInput?.[0].pillar || "");
+        console.log("cluster:", dataInput?.[0].cluster || "");
+      }
+
       if (dbError && dbError.code !== "PGRST116") {
         console.error("Supabase query error:", dbError);
         throw new Error(`Database query error: ${dbError.message}`);
