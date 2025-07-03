@@ -5,27 +5,61 @@ const FASTAPI_BACKEND_URL =
 
 export async function POST(request) {
   try {
-    const { fileId } = await request.json();
-    console.log("Received fileId:", fileId);
+    // 1. Destructure all the fields from the incoming request body
+    const {
+      fileId,
+      pillar,
+      cluster,
+      business_goal,
+      target_audience,
+      the_one_thing,
+      user_intent,
+      primary_keyword,
+    } = await request.json();
 
-    if (!fileId) {
+    // Log the entire received payload for easier debugging
+    console.log("Received request body:", {
+      fileId,
+      pillar,
+      cluster /* ...and so on */,
+    });
+
+    // 2. Validate that essential fields are present
+    if (!fileId || !primary_keyword) {
       return NextResponse.json(
-        { error: "fileId is required" },
+        { error: "fileId and primary_keyword are required" },
         { status: 400 }
       );
     }
 
+    // 3. Construct the payload for the FastAPI backend.
+    //    - Note the conversion of `fileId` (camelCase) to `file_id` (snake_case),
+    //      a common practice when calling Python backends.
+    //    - The other keys are passed as-is since they already match a common snake_case format.
+    const backendPayload = {
+      // file_id: fileId,
+      pillar,
+      cluster,
+      business_goal,
+      target_audience,
+      the_one_thing,
+      user_intent,
+      primary_keyword,
+    };
+
+    // 4. Forward the complete payload to your FastAPI backend
     const apiResponse = await fetch(`${FASTAPI_BACKEND_URL}/content_brief/`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ file_id: fileId }),
+      body: JSON.stringify(backendPayload),
     });
 
     const data = await apiResponse.json();
     console.log("FastAPI response:", data);
 
+    // Handle potential errors from the backend
     if (!apiResponse.ok) {
       return NextResponse.json(
         { error: data.detail || "Backend error" },
@@ -33,6 +67,7 @@ export async function POST(request) {
       );
     }
 
+    // Return the successful response from the backend
     return NextResponse.json(data, { status: 200 });
   } catch (error) {
     console.error("Error in Next.js API route:", error);

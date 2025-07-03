@@ -33,11 +33,15 @@ export default function Step1_ConnectGDrive() {
       if (!response.ok)
         throw new Error(data.detail || `Error: ${response.status}`);
 
+      if (!Array.isArray(data)) {
+        throw new Error("API did not return a list of files.");
+      }
+
       setFiles(data);
       updateProjectData({ isGDriveConnected: true, gDriveFiles: data || [] });
-      // toast.success("✅ Files listed successfully!");
       toast.success("Files listed successfully!");
     } catch (e) {
+      setFiles([]);
       setError(e.message || "Something went wrong.");
       toast.error(`❌ ${e.message}`);
     } finally {
@@ -219,11 +223,10 @@ export default function Step1_ConnectGDrive() {
             disabled={!folderNameInput || isLoading}
             onClick={handleListFiles}
             className={`px-6 py-3 w-full sm:w-auto flex items-center justify-center gap-2 text-white font-semibold rounded-xl transition 
-              ${
-                ""
-                // folderNameInput && !isLoading
-                //   ? "bg-gradient-to-r from-blue-500 to-cyan-500 hover:scale-[1.02]"
-                //   : "bg-gray-300 cursor-not-allowed"
+              ${""
+              // folderNameInput && !isLoading
+              //   ? "bg-gradient-to-r from-blue-500 to-cyan-500 hover:scale-[1.02]"
+              //   : "bg-gray-300 cursor-not-allowed"
               }
             `}
           >
@@ -247,26 +250,27 @@ export default function Step1_ConnectGDrive() {
           </div>
         ) : (
           <div className="grid ssm:grid-cols-2 llg:grid-cols-3 gap-6">
-            {files.map((file, i) => (
-              <div
-                key={file.id || `${file.name}-${i}`}
-                className="flex gap-[30px] items-center bg-white shadow rounded-xl p-3 bborder border-gray-100 hover:shadow-lg transition"
-              >
-                <h3 className="flex-1 text-md font-semibold text-gray-800 truncate !pb-[0px] !border-0">
-                  {file.name}
-                </h3>
-                {/* <p className="text-sm text-gray-500">{file.mimeType}</p> */}
-                <button
-                  disabled={!folderNameInput || isLoading}
-                  onClick={() => {
-                    handleReadSpreadsheet(file.id);
-                  }}
-                  className=" whitespace-nowrap text-white py-2 rounded-xl text-sm font-semibold"
+            {files &&
+              files.map((file, i) => (
+                <div
+                  key={file.id || `${file.name}-${i}`}
+                  className="flex gap-[30px] items-center bg-white shadow rounded-xl p-3 bborder border-gray-100 hover:shadow-lg transition"
                 >
-                  Select & Process →
-                </button>
-              </div>
-            ))}
+                  <h3 className="flex-1 text-md font-semibold text-gray-800 truncate !pb-[0px] !border-0">
+                    {file.name}
+                  </h3>
+                  {/* <p className="text-sm text-gray-500">{file.mimeType}</p> */}
+                  <button
+                    disabled={!folderNameInput || isLoading}
+                    onClick={() => {
+                      handleReadSpreadsheet(file.id);
+                    }}
+                    className=" whitespace-nowrap text-white py-2 rounded-xl text-sm font-semibold"
+                  >
+                    Select & Process →
+                  </button>
+                </div>
+              ))}
           </div>
         )}
       </div>

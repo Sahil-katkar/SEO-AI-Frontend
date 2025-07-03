@@ -56,15 +56,6 @@ export default function ContentBriefPage() {
         console.error("Error fetching row details:", error);
       } else {
         console.log("keyword:", dataInput);
-
-        console.log("keyword:", dataInput?.[0].keyword || "");
-        console.log("BUSINESS_GOAL:", dataInput?.[0].BUSINESS_GOAL || "");
-        console.log("target_audience:", dataInput?.[0].target_audience || "");
-        console.log("intent:", dataInput?.[0].intent || "");
-        console.log("article_outcome:", dataInput?.[0].article_outcome || "");
-
-        console.log("pillar:", dataInput?.[0].pillar || "");
-        console.log("cluster:", dataInput?.[0].cluster || "");
       }
 
       if (dbError && dbError.code !== "PGRST116") {
@@ -82,11 +73,38 @@ export default function ContentBriefPage() {
       }
 
       // If no mission plan in database, call API
+
+      console.log("keyword:", dataInput?.[0].keyword || "");
+      console.log("BUSINESS_GOAL:", dataInput?.[0].BUSINESS_GOAL || "");
+      console.log("target_audience:", dataInput?.[0].target_audience || "");
+      console.log("intent:", dataInput?.[0].intent || "");
+      console.log("article_outcome:", dataInput?.[0].article_outcome || "");
+
+      console.log("pillar:", dataInput?.[0].pillar || "");
+      console.log("cluster:", dataInput?.[0].cluster || "");
+
+      const keyword = dataInput?.[0].keyword || "";
+      const BUSINESS_GOAL = dataInput?.[0].BUSINESS_GOAL || "";
+      const target_audience = dataInput?.[0].target_audience || "";
+      const intent = dataInput?.[0].intent || "";
+      const article_outcome = dataInput?.[0].article_outcome || "";
+      const pillar = dataInput?.[0].pillar || "";
+      const cluster = dataInput?.[0].cluster || "";
+
       console.log("No mission plan in database, calling API...");
       const response = await fetch("/api/contentBrief", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fileId: file__Id }),
+        body: JSON.stringify({
+          fileId: file__Id,
+          pillar: pillar,
+          cluster: cluster,
+          business_goal: BUSINESS_GOAL,
+          target_audience: target_audience,
+          the_one_thing: article_outcome,
+          user_intent: intent,
+          primary_keyword: keyword,
+        }),
       });
 
       if (!response.ok) {
@@ -96,6 +114,22 @@ export default function ContentBriefPage() {
 
       const data = await response.json();
       console.log("API Response:", data);
+
+      const { data: updateData, error: updateError } = await supabase
+        .from("row_details") // Your table name
+        .update({ mission_plan: data }) // The column to update and the data to insert
+        .eq("row_id", file__Id) // The 'WHERE' clause: find the row where row_id matches
+        .select(); // Optional: .select() returns the updated row data
+
+      // 3. Handle any errors from the Supabase operation
+      if (updateError) {
+        console.error("Supabase update error:", updateError);
+        throw new Error(`Failed to save to Supabase: ${updateError.message}`);
+      }
+
+      // 4. Log success
+      console.log("Successfully saved to Supabase:", updateData);
+
       setResponseData(data);
 
       // Upsert API response to database
@@ -115,6 +149,8 @@ export default function ContentBriefPage() {
           console.error("Supabase upsert error after API call:", upsertError);
         }
       }
+
+      console.log("dssss", data.generated_mission_plan);
 
       setMissionPlanValue(data.generated_mission_plan || "");
     } catch (error) {
