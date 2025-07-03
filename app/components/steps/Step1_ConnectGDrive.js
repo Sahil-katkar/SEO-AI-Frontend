@@ -119,6 +119,8 @@ export default function Step1_ConnectGDrive() {
 
       const rows = data.full_content?.Sheet1;
 
+      console.log("rows", rows);
+
       if (!Array.isArray(rows)) {
         throw new Error("Invalid data format: Sheet1 is not an array.");
       }
@@ -134,6 +136,10 @@ export default function Step1_ConnectGDrive() {
         ai_mode: row.AI_MODE_ANSWER || "",
         persona: row.PERSONA || "",
         BUSINESS_GOAL: row.BUSINESS_GOAL || "",
+        cluster: row.CLUSTER || "",
+        pillar: row.PILLAR || "",
+        article_outcome: row.article_outcome || "",
+
         // This row_id will be used to check for conflicts
         row_id: `${fileId}_${index + 1}`,
       }));
