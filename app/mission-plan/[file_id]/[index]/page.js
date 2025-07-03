@@ -187,7 +187,7 @@ export default function ContentBriefPage() {
   // NEW: Handler for the "Next" button
   const handleNext = () => {
     console.log("Navigating to the next step...");
-    router.push("/analysis");
+    router.push(`/analysis/${fileId}/${index}`);
     // Example: router.push(`/next-step-url/${fileId}/${index}`);
     // Replace with your actual navigation logic.
   };

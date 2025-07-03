@@ -53,6 +53,8 @@ export default function Analysis() {
       ],
       wordCount: 2000,
       density: 50,
+      gaps: "These are some gaps 1",
+      opportunities: "These are some opportunities 1",
     },
     {
       intent: "This is some intent 2",
@@ -100,6 +102,8 @@ export default function Analysis() {
       ],
       wordCount: 2000,
       density: 50,
+      gaps: "These are some gaps",
+      opportunities: "These are some opportunities",
     },
     {
       intent: "This is some intent 3",
@@ -147,6 +151,8 @@ export default function Analysis() {
       ],
       wordCount: 2000,
       density: 50,
+      gaps: "These are some gaps",
+      opportunities: "These are some opportunities",
     },
   ];
 
@@ -171,6 +177,16 @@ export default function Analysis() {
     comp3: false,
   });
   const [editDensity, setEditDensity] = useState({
+    comp1: false,
+    comp2: false,
+    comp3: false,
+  });
+  const [editGaps, setEditGaps] = useState({
+    comp1: false,
+    comp2: false,
+    comp3: false,
+  });
+  const [editOpportunities, setEditOpportunities] = useState({
     comp1: false,
     comp2: false,
     comp3: false,
@@ -229,6 +245,28 @@ export default function Analysis() {
   };
   const handleCancelDensity = (item) => {
     setEditDensity({ ...editDensity, [`comp${item}`]: false });
+  };
+
+  //   !-------------------------------------
+  const handleEditGaps = (item) => {
+    setEditGaps({ ...editGaps, [`comp${item}`]: true });
+  };
+  const handleSaveGaps = () => {
+    //! save Gaps function call
+  };
+  const handleCancelGaps = (item) => {
+    setEditGaps({ ...editGaps, [`comp${item}`]: false });
+  };
+
+  //   !-------------------------------------
+  const handleEditOpportunities = (item) => {
+    setEditOpportunities({ ...editOpportunities, [`comp${item}`]: true });
+  };
+  const handleSaveOpportunities = () => {
+    //! save Opportunities function call
+  };
+  const handleCancelOpportunities = (item) => {
+    setEditOpportunities({ ...editOpportunities, [`comp${item}`]: false });
   };
 
   return (

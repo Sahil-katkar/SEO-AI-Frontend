@@ -7,17 +7,6 @@ const AppContext = createContext();
 export function AppProvider({ children }) {
   const pathName = usePathname();
 
-  const STEPS = [
-    { id: "step1", name: "Connect Google Drive", route: "/" },
-    { id: "step2", name: "Analysis", route: "/analysis" },
-    { id: "step3", name: "Rows", route: `${pathName === "/" ? "" : pathName}` },
-    {
-      id: "step4",
-      name: "Content Brief",
-      route: "/contentBrief/[file_id]/index",
-    }, // Updated route
-  ];
-
   const [projectData, setProjectData] = useState({
     projectName: "",
     gDriveFiles: [],
@@ -37,7 +26,42 @@ export function AppProvider({ children }) {
     isModalOpen: false,
     activeModalRowIndex: null,
     activeModalTab: "Intent",
+    selectedFileId: "",
+    selectedRowIndex: "",
   });
+
+  const STEPS = [
+    { id: "step1", name: "Connect Google Drive", route: "/" },
+    {
+      id: "step2",
+      name: "Keywords",
+      route: "keywords",
+      selectedFileId: projectData.selectedFileId,
+      selectedRowIndex: projectData.selectedRowIndex,
+    },
+    {
+      id: "step3",
+      name: "Mission Plan",
+      route: "mission-plan",
+      selectedFileId: projectData.selectedFileId,
+      selectedRowIndex: projectData.selectedRowIndex,
+    },
+    {
+      id: "step4",
+      name: "Analysis",
+      route: "analysis",
+      selectedFileId: projectData.selectedFileId,
+      selectedRowIndex: projectData.selectedRowIndex,
+    },
+    {
+      id: "step5",
+      name: "Content",
+      route: "content",
+      selectedFileId: projectData.selectedFileId,
+      selectedRowIndex: projectData.selectedRowIndex,
+      // route: `${pathName === "/" ? "" : pathName}`,
+    },
+  ];
 
   const updateProjectData = (newData) => {
     setProjectData((prevData) => ({ ...prevData, ...newData }));
