@@ -25,13 +25,21 @@ export default function FileRow() {
   const [articledata, setArticleData] = useState([]);
   const [articledataUpdated, setArticleDataUpdated] = useState([]);
   const [intentdata, setIntentData] = useState([]);
-  const [outlineData, setOutlineData] = useState([]);
+  const [citabledata, setCitableData] = useState([]);
+
+  const [outlineData, setOutlineData] = useState("");
   const [outlineDataUpdated, setOutlineDataUpdated] = useState([]);
   const [editIntent, setEditIntent] = useState(false);
+  const [editCitable, setEditCitable] = useState(false);
+
   const [parsedContentState, setParsedContentState] = useState([]);
   const [editedIntent, setEditedIntent] = useState("");
+  const [editedCitable, setEditedCitable] = useState("");
+
   const [editedExplanation, setEditedExplanation] = useState("");
   const [saveEditedIntent, setSaveEditedIntent] = useState(false);
+  const [saveEditedCitable, setSaveEditedCitable] = useState(false);
+
   const [logs, setLogs] = useState([]);
   const [saveStatus, setSaveStatus] = useState(false);
   const params = useParams();
@@ -42,6 +50,20 @@ export default function FileRow() {
   const router = useRouter();
   const supabase = createClientComponentClient();
   const row_id = `${fileId}_${row}`;
+  // ... after the intent state variables
+  // const [editIntent, setEditIntent] = useState(false);
+  // const [editedIntent, setEditedIntent] = useState("");
+  // const [saveEditedIntent, setSaveEditedIntent] = useState(false);
+
+  // --- ADD THESE NEW STATES FOR THE OUTLINE ---
+  const [editOutline, setEditOutline] = useState(false);
+  const [parsedOutline, setParsedOutline] = useState("");
+  const [editedOutline, setEditedOutline] = useState("");
+  const [saveEditedOutline, setSaveEditedOutline] = useState(false);
+  // --- END NEW STATES ---
+
+  // const [logs, setLogs] = useState([]);
+  // ... rest of the state
 
   useEffect(() => {
     const row_id = `${fileId}_${row}`;
@@ -65,20 +87,29 @@ export default function FileRow() {
 
         const { data: outline } = await supabase
           .from("outline")
-          .select("content")
+          .select("new_outline")
+          .eq("row_id", row_id);
+
+        const { data: citable } = await supabase
+          .from("outline")
+          .select("citable_answer")
           .eq("row_id", row_id);
 
         setArticleData(article || []);
         setIntentData(intent);
-        console.log("intentData", intentdata);
 
-        setOutlineData(outline || []);
-        setLogs(logData || "");
+        console.log("citable", citable);
 
-        console.log("intent", intent);
+        // setCitableData(citable);
+        console.log("Raw outline data from DB:", outline);
 
-        // const parsed = JSON.parse(intent?.[0]?.content || "{}");
-        // console.log("parsed", parsed);
+        const parsedValue = outline?.[0]?.new_outline || "";
+        const parsedCitable = citable?.[0]?.citable_answer || "";
+
+        setOutlineData(parsedValue);
+        setCitableData(parsedCitable);
+        console.log("Parsed outline string:", outlineData);
+
         const parsed = intent?.[0]?.intent || "";
 
         console.log("parsed:", parsed);
@@ -103,6 +134,67 @@ export default function FileRow() {
   {
     console.log("fileId", row_id);
   }
+
+  // ... after handleSaveEditedIntent ...
+
+  const handleCancelEditedOutline = () => {
+    setEditedOutline(outlineData); // Reset from the original state
+    setEditOutline(false); // Exit edit mode
+  };
+
+  const handleCancelEditedCitable = () => {
+    setEditedCitable(citabledata); // Reset from the original state
+    setEditCitable(false); // Exit edit mode
+  };
+
+  // const handleSaveEditedOutline = async () => {
+  //   setSaveEditedOutline(true); // Show loader, disable buttons
+
+  //   // The payload is similar, but the key is 'outline'
+  //   const payload = {
+  //     user_id: row_id,
+  //     Mainkeyword: keyword,
+  //     edit_content: {
+  //       outline: editedOutline,
+  //     },
+  //   };
+
+  //   console.log("Saving new outline payload:", payload);
+
+  //   try {
+  //     const res = await fetch("/api/contentEdit", {
+  //       method: "POST",
+  //       headers: {
+  //         "Content-Type": "application/json",
+  //       },
+  //       body: JSON.stringify(payload),
+  //     });
+
+  //     if (res.ok) {
+  //       toast.success("Updated Article generated successfully!", {
+  //         position: "bottom-right",
+  //       });
+  //       // Update the main display state with the new content
+  //       setParsedOutline(editedOutline);
+  //       setEditOutline(false); // Exit edit mode
+  //       setSaveStatus(true); // This will trigger fetchDataUpdated to get the new article
+  //     } else {
+  //       const errorRes = await res.json();
+  //       toast.error(
+  //         errorRes.message || "Failed to regenerate content from outline.",
+  //         {
+  //           position: "top-right",
+  //         }
+  //       );
+  //     }
+  //   } catch (err) {
+  //     toast.error("An error occurred while saving the outline.", {
+  //       position: "top-right",
+  //     });
+  //   } finally {
+  //     setSaveEditedOutline(false); // Hide loader
+  //   }
+  // };
 
   useEffect(() => {
     if (!saveStatus) return;
@@ -269,6 +361,110 @@ export default function FileRow() {
       setSaveEditedIntent(false);
     }
   };
+
+  const handleSaveEditedOutline = async () => {
+    setSaveEditedOutline(true);
+
+    try {
+      const { data: upsertedData, error: upsertError } = await supabase
+        .from("outline")
+        .upsert(
+          {
+            row_id: row_id,
+            new_outline: editedOutline,
+          },
+          { onConflict: "row_id" }
+        )
+        .select();
+
+      if (upsertError) {
+        throw upsertError;
+      }
+
+      console.log("Outline saved to database successfully:", upsertedData);
+      toast.success("Intent saved successfully", {
+        position: "bottom-right",
+      });
+
+      // const payload = {
+      //   user_id: row_id,
+      //   Mainkeyword: keyword,
+      //   edit_content: {
+      //     intent: editedIntent,
+      //   },
+      // };
+
+      // const res = await fetch("/api/contentEdit", {
+      //   method: "POST",
+      //   headers: {
+      //     "Content-Type": "application/json",
+      //   },
+      //   body: JSON.stringify(payload),
+      // });
+    } catch (err) {
+      console.error(
+        "An error occurred during the save/regeneration process:",
+        err
+      );
+      toast.error(err.message || "Something went wrong.", {
+        position: "top-right",
+      });
+    } finally {
+      setSaveEditedOutline(false);
+    }
+  };
+
+  const handleSaveEditedCitable = async () => {
+    setSaveEditedCitable(true);
+
+    try {
+      const { data: upsertedData, error: upsertError } = await supabase
+        .from("outline")
+        .upsert(
+          {
+            row_id: row_id,
+            citable_answer: editedCitable,
+          },
+          { onConflict: "row_id" }
+        )
+        .select();
+
+      if (upsertError) {
+        throw upsertError;
+      }
+
+      console.log("Citable saved to database successfully:", upsertedData);
+      toast.success("Citable saved successfully", {
+        position: "bottom-right",
+      });
+
+      // const payload = {
+      //   user_id: row_id,
+      //   Mainkeyword: keyword,
+      //   edit_content: {
+      //     intent: editedIntent,
+      //   },
+      // };
+
+      // const res = await fetch("/api/contentEdit", {
+      //   method: "POST",
+      //   headers: {
+      //     "Content-Type": "application/json",
+      //   },
+      //   body: JSON.stringify(payload),
+      // });
+    } catch (err) {
+      console.error(
+        "An error occurred during the save/regeneration process:",
+        err
+      );
+      toast.error(err.message || "Something went wrong.", {
+        position: "top-right",
+      });
+    } finally {
+      setSaveEditedCitable(false);
+    }
+  };
   return (
     <div className="container">
       <main className="main-content step-component">
@@ -397,341 +593,190 @@ export default function FileRow() {
                   ) : (
                     <p className="text-black-500">No intent data available.</p>
                   )}
+
+                  <button
+                    onClick={() => handleTabChange("Outline")}
+                    className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded flex items-center gap-2"
+                  >
+                    Next
+                    <span aria-hidden="true">→</span>
+                  </button>
                 </div>
               )}
 
-              {/* {projectData.activeModalTab === "Outline" && (
+              {projectData.activeModalTab === "Outline" && (
                 <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200">
-                  {[...outlineData, ...outlineDataUpdated].map(
-                    (item, index) => {
-                      const content =
-                        item.content || item.updated_content || "";
-                      let parsedOutline;
+                  {outlineData.length > 0 ? (
+                    <div className="mb-6">
+                      <div className="flex justify-between items-center mb-2">
+                        <h4 className="text-lg font-semibold text-black-700 mb-2">
+                          Outline
+                        </h4>
 
-                      try {
-                        parsedOutline =
-                          typeof content === "string"
-                            ? JSON.parse(content)
-                            : content;
-                      } catch {
-                        parsedOutline = content;
-                      }
-
-                      return (
-                        <div key={index} className="mb-6">
-                          <h4 className="text-lg font-semibold text-black-700 mb-2">
-                            {item.updated_content
-                              ? "Generated Outline Updated"
-                              : "Generated Outline"}
-                          </h4>
-                          {typeof parsedOutline === "string" ? (
-                            <p className="text-black-600 whitespace-pre-line">
-                              {parsedOutline}
-                            </p>
-                          ) : (
-                            <ul className="list-disc pl-6 text-black-600">
-                              {Object.entries(parsedOutline).map(
-                                ([key, value]) => (
-                                  <li key={key} className="mb-2">
-                                    <strong>{key}:</strong> {value}
-                                  </li>
-                                )
+                        <div className="ml-auto flex items-center gap-[30px]">
+                          {!editOutline && (
+                            <button
+                              onClick={() => {
+                                setEditOutline(true);
+                                setEditedOutline(outlineData);
+                              }}
+                            >
+                              Edit
+                            </button>
+                          )}
+                          {editOutline && (
+                            <>
+                              {saveEditedOutline && (
+                                <Loader className="loader-sm" />
                               )}
-                            </ul>
+                              <button
+                                disabled={saveEditedOutline}
+                                onClick={handleSaveEditedOutline}
+                              >
+                                Save
+                              </button>
+                              <button
+                                disabled={saveEditedOutline}
+                                onClick={handleCancelEditedOutline}
+                              >
+                                Cancel
+                              </button>
+                            </>
                           )}
                         </div>
-                      );
-                    }
-                  )}
-                </div>
-              )} */}
+                      </div>
 
-              {/* {projectData.activeModalTab === "Outline" && (
-                <div className="flex flex-col md:flex-row gap-6">
-                  <div className="w-full md:w-1/2 bg-gray-50 p-4 border border-gray-300 rounded-lg shadow-sm">
-                    <h4 className="text-lg font-semibold text-black-700 mb-2">
-                      Generated Outline
-                    </h4>
-                    {outlineData.length > 0 ? (
-                      outlineData.map((item, index) => {
-                        const content = item.content || "";
-                        let parsedOutline;
-
-                        try {
-                          parsedOutline =
-                            typeof content === "string"
-                              ? JSON.parse(content)
-                              : content;
-                        } catch {
-                          parsedOutline = content;
-                        }
-
-                        return (
-                          <div key={`original-${index}`} className="mb-4">
-                            {typeof parsedOutline === "string" ? (
-                              <p className="text-black-600 whitespace-pre-line">
-                                {parsedOutline}
-                              </p>
-                            ) : (
-                              <ul className="list-disc pl-6 text-black-600">
-                                {Object.entries(parsedOutline).map(
-                                  ([key, value]) => (
-                                    <li key={key} className="mb-2">
-                                      <strong>{key}:</strong> {value}
-                                    </li>
-                                  )
-                                )}
-                              </ul>
-                            )}
-                          </div>
-                        );
-                      })
-                    ) : (
-                      <p className="text-black-500">
-                        No original outline available.
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="w-full md:w-1/2 bg-blue-50 p-4 border border-blue-300 rounded-lg shadow-sm">
-                    <h4 className="text-lg font-semibold text-blue-700 mb-2">
-                      Updated Outline
-                    </h4>
-                    {outlineDataUpdated.length > 0 ? (
-                      outlineDataUpdated.map((item, index) => {
-                        const content = item.updated_content || "";
-
-                        console.log("content", content);
-
-                        let parsedOutline;
-
-                        try {
-                          parsedOutline =
-                            typeof content === "string"
-                              ? JSON.parse(content)
-                              : content;
-                        } catch {
-                          parsedOutline = content;
-                        }
-
-                        return (
-                          <div key={`updated-${index}`} className="mb-4">
-                            {typeof parsedOutline === "string" ? (
-                              <p className="text-black-600 whitespace-pre-line">
-                                {parsedOutline}
-                              </p>
-                            ) : (
-                              <ul className="list-disc pl-6 text-black-600">
-                                {Object.entries(parsedOutline).map(
-                                  ([key, value]) => (
-                                    <li key={key} className="mb-2">
-                                      <strong>{key}:</strong> {value}
-                                    </li>
-                                  )
-                                )}
-                              </ul>
-                            )}
-                          </div>
-                        );
-                      })
-                    ) : (
-                      <p className="text-black-500">
-                        No updated outline available.
-                      </p>
-                    )}
-                  </div>
-                </div>
-              )} */}
-
-              {projectData.activeModalTab === "Outline" && (
-                <div className="flex flex-col md:flex-row gap-6">
-                  {/* Original Outline Box */}
-                  <div
-                    className={`${
-                      outlineDataUpdated.length > 0 ? "md:w-1/2" : "w-full"
-                    } w-full bg-gray-50 p-4 border border-gray-300 rounded-lg shadow-sm`}
-                  >
-                    <h4 className="text-lg font-semibold text-black-700 mb-2">
-                      Generated Outline
-                    </h4>
-                    {outlineData.length > 0 ? (
-                      outlineData.map((item, index) => {
-                        const content = item.content || "";
-                        let parsedOutline;
-
-                        try {
-                          parsedOutline =
-                            typeof content === "string"
-                              ? JSON.parse(content)
-                              : content;
-                        } catch {
-                          parsedOutline = content;
-                        }
-
-                        return (
-                          <div key={`original-${index}`} className="mb-4">
-                            {typeof parsedOutline === "string" ? (
-                              <p className="text-black-600 whitespace-pre-line">
-                                {parsedOutline}
-                              </p>
-                            ) : (
-                              <ul className="list-disc pl-6 text-black-600">
-                                {Object.entries(parsedOutline).map(
-                                  ([key, value]) => (
-                                    <li key={key} className="mb-2">
-                                      <strong>{key}:</strong> {value}
-                                    </li>
-                                  )
-                                )}
-                              </ul>
-                            )}
-                          </div>
-                        );
-                      })
-                    ) : (
-                      <p className="text-black-500">
-                        No original outline available.
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Updated Outline Box */}
-                  {outlineDataUpdated.length > 0 && (
-                    <div className="w-full md:w-1/2 bg-blue-50 p-4 border border-blue-300 rounded-lg shadow-sm">
-                      <h4 className="text-lg font-semibold text-blue-700 mb-2">
-                        Updated Outline
-                      </h4>
-                      {outlineDataUpdated.map((item, index) => {
-                        const content = item.updated_content || "";
-                        let parsedOutline;
-
-                        try {
-                          parsedOutline =
-                            typeof content === "string"
-                              ? JSON.parse(content)
-                              : content;
-                        } catch {
-                          parsedOutline = content;
-                        }
-
-                        return (
-                          <div key={`updated-${index}`} className="mb-4">
-                            {typeof parsedOutline === "string" ? (
-                              <p className="text-black-600 whitespace-pre-line">
-                                {parsedOutline}
-                              </p>
-                            ) : (
-                              <ul className="list-disc pl-6 text-black-600">
-                                {Object.entries(parsedOutline).map(
-                                  ([key, value]) => (
-                                    <li key={key} className="mb-2">
-                                      <strong>{key}:</strong> {value}
-                                    </li>
-                                  )
-                                )}
-                              </ul>
-                            )}
-                          </div>
-                        );
-                      })}
+                      {editOutline ? (
+                        <>
+                          <textarea
+                            disabled={saveEditedOutline}
+                            value={editedOutline}
+                            onChange={(e) => setEditedOutline(e.target.value)}
+                          />
+                          {/* <h4 className="text-lg font-semibold text-black-700 mb-2">
+                            Explanation
+                          </h4>
+                          <textarea
+                            disabled={saveEditedIntent}
+                            value={editedExplanation}
+                            onChange={(e) =>
+                              setEditedExplanation(e.target.value)
+                            }
+                          /> */}
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-black-600 text-base mb-4">
+                            {outlineData}
+                          </p>
+                          {/* <h4 className="text-lg font-semibold text-black-700 mb-2">
+                            Explanation
+                          </h4>
+                          <p className="text-black-600 leading-relaxed">
+                            {parsedContentState?.explanation}
+                          </p> */}
+                        </>
+                      )}
                     </div>
+                  ) : (
+                    <p className="text-black-500">No outline data available.</p>
                   )}
+
+                  <button
+                    onClick={() => handleTabChange("Citable Summary")}
+                    className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded flex items-center gap-2"
+                  >
+                    Next
+                    <span aria-hidden="true">→</span>
+                  </button>
                 </div>
               )}
 
               {projectData.activeModalTab === "Citable Summary" && (
-                <div className="flex flex-col md:flex-row gap-6">
-                  {/* Original Outline Box */}
-                  <div
-                    className={`${
-                      outlineDataUpdated.length > 0 ? "md:w-1/2" : "w-full"
-                    } w-full bg-gray-50 p-4 border border-gray-300 rounded-lg shadow-sm`}
-                  >
-                    <h4 className="text-lg font-semibold text-black-700 mb-2">
-                      Generated Citable Summary
-                    </h4>
-                    {outlineData.length > 0 ? (
-                      outlineData.map((item, index) => {
-                        const content = item.content || "";
-                        let parsedOutline;
+                <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200">
+                  {outlineData.length > 0 ? (
+                    <div className="mb-6">
+                      <div className="flex justify-between items-center mb-2">
+                        <h4 className="text-lg font-semibold text-black-700 mb-2">
+                          Citable Summary
+                        </h4>
 
-                        try {
-                          parsedOutline =
-                            typeof content === "string"
-                              ? JSON.parse(content)
-                              : content;
-                        } catch {
-                          parsedOutline = content;
-                        }
+                        <div className="ml-auto flex items-center gap-[30px]">
+                          {!editCitable && (
+                            <button
+                              onClick={() => {
+                                setEditCitable(true);
+                                setEditedCitable(citabledata);
+                              }}
+                            >
+                              Edit
+                            </button>
+                          )}
+                          {editCitable && (
+                            <>
+                              {saveEditedCitable && (
+                                <Loader className="loader-sm" />
+                              )}
+                              <button
+                                disabled={saveEditedCitable}
+                                onClick={handleSaveEditedCitable}
+                              >
+                                Save
+                              </button>
+                              <button
+                                disabled={saveEditedCitable}
+                                onClick={handleCancelEditedCitable}
+                              >
+                                Cancel
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </div>
 
-                        return (
-                          <div key={`original-${index}`} className="mb-4">
-                            {typeof parsedOutline === "string" ? (
-                              <p className="text-black-600 whitespace-pre-line">
-                                {parsedOutline}
-                              </p>
-                            ) : (
-                              <ul className="list-disc pl-6 text-black-600">
-                                {Object.entries(parsedOutline).map(
-                                  ([key, value]) => (
-                                    <li key={key} className="mb-2">
-                                      <strong>{key}:</strong> {value}
-                                    </li>
-                                  )
-                                )}
-                              </ul>
-                            )}
-                          </div>
-                        );
-                      })
-                    ) : (
-                      <p className="text-black-500">
-                        No original Citable Summary available.
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Updated Outline Box */}
-                  {outlineDataUpdated.length > 0 && (
-                    <div className="w-full md:w-1/2 bg-blue-50 p-4 border border-blue-300 rounded-lg shadow-sm">
-                      <h4 className="text-lg font-semibold text-blue-700 mb-2">
-                        Updated Outline
-                      </h4>
-                      {outlineDataUpdated.map((item, index) => {
-                        const content = item.updated_content || "";
-                        let parsedOutline;
-
-                        try {
-                          parsedOutline =
-                            typeof content === "string"
-                              ? JSON.parse(content)
-                              : content;
-                        } catch {
-                          parsedOutline = content;
-                        }
-
-                        return (
-                          <div key={`updated-${index}`} className="mb-4">
-                            {typeof parsedOutline === "string" ? (
-                              <p className="text-black-600 whitespace-pre-line">
-                                {parsedOutline}
-                              </p>
-                            ) : (
-                              <ul className="list-disc pl-6 text-black-600">
-                                {Object.entries(parsedOutline).map(
-                                  ([key, value]) => (
-                                    <li key={key} className="mb-2">
-                                      <strong>{key}:</strong> {value}
-                                    </li>
-                                  )
-                                )}
-                              </ul>
-                            )}
-                          </div>
-                        );
-                      })}
+                      {editCitable ? (
+                        <>
+                          <textarea
+                            disabled={saveEditedCitable}
+                            value={editedCitable}
+                            onChange={(e) => setEditedCitable(e.target.value)}
+                          />
+                          {/* <h4 className="text-lg font-semibold text-black-700 mb-2">
+                            Explanation
+                          </h4>
+                          <textarea
+                            disabled={saveEditedIntent}
+                            value={editedExplanation}
+                            onChange={(e) =>
+                              setEditedExplanation(e.target.value)
+                            }
+                          /> */}
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-black-600 text-base mb-4">
+                            {citabledata}
+                          </p>
+                          {/* <h4 className="text-lg font-semibold text-black-700 mb-2">
+                            Explanation
+                          </h4>
+                          <p className="text-black-600 leading-relaxed">
+                            {parsedContentState?.explanation}
+                          </p> */}
+                        </>
+                      )}
                     </div>
+                  ) : (
+                    <p className="text-black-500">No Citable data available.</p>
                   )}
+
+                  <button
+                    onClick={() => handleTabChange("Content")}
+                    className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded flex items-center gap-2"
+                  >
+                    Next
+                    <span aria-hidden="true">→</span>
+                  </button>
                 </div>
               )}
 
