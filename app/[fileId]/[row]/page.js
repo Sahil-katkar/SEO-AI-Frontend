@@ -28,7 +28,7 @@ export default function FileRow() {
   const [outlineData, setOutlineData] = useState([]);
   const [outlineDataUpdated, setOutlineDataUpdated] = useState([]);
   const [editIntent, setEditIntent] = useState(false);
-  const [parsedContentState, setParsedContentState] = useState({});
+  const [parsedContentState, setParsedContentState] = useState([]);
   const [editedIntent, setEditedIntent] = useState("");
   const [editedExplanation, setEditedExplanation] = useState("");
   const [saveEditedIntent, setSaveEditedIntent] = useState(false);
@@ -59,8 +59,8 @@ export default function FileRow() {
           .eq("row_id", row_id);
 
         const { data: intent } = await supabase
-          .from("intent")
-          .select("content")
+          .from("row_details")
+          .select("intent")
           .eq("row_id", row_id);
 
         const { data: outline } = await supabase
@@ -69,13 +69,26 @@ export default function FileRow() {
           .eq("row_id", row_id);
 
         setArticleData(article || []);
-        setIntentData(intent || []);
+        setIntentData(intent);
+        console.log("intentData", intentdata);
+
         setOutlineData(outline || []);
         setLogs(logData || "");
 
-        const parsed = JSON.parse(intent?.[0]?.content || "{}");
+        console.log("intent", intent);
+
+        // const parsed = JSON.parse(intent?.[0]?.content || "{}");
+        // console.log("parsed", parsed);
+        const parsed = intent?.[0]?.intent || "";
+
+        console.log("parsed:", parsed);
+
         setParsedContentState(parsed);
-        setEditedIntent(parsed.intent || "");
+        console.log("parsedContentState", parsedContentState);
+
+        setEditedIntent(parsed);
+        console.log("edited intent", editIntent);
+
         setEditedExplanation(parsed.explanation || "");
       } catch (error) {
         setApiError(error.message || "Something went wrong");
@@ -85,9 +98,12 @@ export default function FileRow() {
     };
 
     fetchData();
-  }, [fileId, row, row_id]);
+  }, [row_id]);
 
-  // Fetch updated data when saveStatus changes
+  {
+    console.log("fileId", row_id);
+  }
+
   useEffect(() => {
     if (!saveStatus) return;
     fetchDataUpdated();
@@ -132,31 +148,108 @@ export default function FileRow() {
   };
 
   const handleCancelEditedIntent = () => {
-    setEditedIntent(parsedContentState.intent || "");
+    setEditedIntent(parsedContentState);
     setEditedExplanation(parsedContentState.explanation || "");
     setEditIntent(false);
   };
 
+  // const handleSaveEditedIntent = async () => {
+  //   const updatedContent = {
+  //     intent: editedIntent,
+  //   };
+
+  //   // Upsert API response to database
+  //   if (editedIntent) {
+  //     const { data: intent_Data } = await supabase.from("row_details").upsert(
+  //       {
+  //         row_id: row_id,
+  //         intent: intent_Data,
+  //       },
+  //       { onConflict: "row_id" }
+  //     );
+
+  //     if (upsertError) {
+  //       console.error("Supabase upsert error after API call:", upsertError);
+  //     }
+  //   }
+
+  //   // const stringifiedIntent = JSON.stringify(updatedContent, null, 4);
+
+  //   // const payload = {
+  //   //   user_id: `${fileId}_${row}`,
+  //   //   Mainkeyword: keyword,
+  //   //   edit_content: {
+  //   //     intent: stringifiedIntent,
+  //   //   },
+  //   // };
+
+  //   // console.log("payloadd", payload);
+
+  //   // setSaveEditedIntent(true);
+  //   // try {
+  //   //   const res = await fetch("/api/contentEdit", {
+  //   //     method: "POST",
+  //   //     headers: {
+  //   //       "Content-Type": "application/json",
+  //   //     },
+  //   //     body: JSON.stringify(payload),
+  //   //   });
+
+  //   //   if (res.ok) {
+  //   //     toast.success("Updated Outline and Article generated successfully!", {
+  //   //       position: "bottom-right",
+  //   //     });
+  //   //     setParsedContentState(updatedContent);
+  //   //     setEditIntent(false);
+  //   //     setSaveStatus(true);
+  //   //     await fetchDataUpdated();
+  //   //   } else {
+  //   //     const errorRes = await res.json();
+  //   //     toast.error(errorRes.message || "Something went wrong", {
+  //   //       position: "top-right",
+  //   //     });
+  //   //   }
+  //   // } catch (err) {
+  //   //   toast.error("An error occurred while saving intent", {
+  //   //     position: "top-right",
+  //   //   });
+  //   // } finally {
+  //   //   setSaveEditedIntent(false);
+  //   // }
+  // };
+
   const handleSaveEditedIntent = async () => {
-    const updatedContent = {
-      intent: editedIntent,
-      explanation: editedExplanation,
-    };
-
-    const stringifiedIntent = JSON.stringify(updatedContent, null, 4);
-
-    const payload = {
-      user_id: `${fileId}_${row}`,
-      Mainkeyword: keyword,
-      edit_content: {
-        intent: stringifiedIntent,
-      },
-    };
-
-    console.log("payloadd", payload);
-
     setSaveEditedIntent(true);
+
     try {
+      const { data: upsertedData, error: upsertError } = await supabase
+        .from("row_details")
+        .upsert(
+          {
+            row_id: row_id,
+            intent: editedIntent,
+          },
+          { onConflict: "row_id" }
+        )
+        .select();
+
+      if (upsertError) {
+        throw upsertError;
+      }
+
+      console.log("Intent saved to database successfully:", upsertedData);
+      toast.success("Intent saved successfully", {
+        position: "bottom-right",
+      });
+
+      const payload = {
+        user_id: row_id,
+        Mainkeyword: keyword,
+        edit_content: {
+          intent: editedIntent,
+        },
+      };
+
       const res = await fetch("/api/contentEdit", {
         method: "POST",
         headers: {
@@ -164,30 +257,18 @@ export default function FileRow() {
         },
         body: JSON.stringify(payload),
       });
-
-      if (res.ok) {
-        toast.success("Updated Outline and Article generated successfully!", {
-          position: "bottom-right",
-        });
-        setParsedContentState(updatedContent);
-        setEditIntent(false);
-        setSaveStatus(true);
-        await fetchDataUpdated();
-      } else {
-        const errorRes = await res.json();
-        toast.error(errorRes.message || "Something went wrong", {
-          position: "top-right",
-        });
-      }
     } catch (err) {
-      toast.error("An error occurred while saving intent", {
+      console.error(
+        "An error occurred during the save/regeneration process:",
+        err
+      );
+      toast.error(err.message || "Something went wrong.", {
         position: "top-right",
       });
     } finally {
       setSaveEditedIntent(false);
     }
   };
-
   return (
     <div className="container">
       <main className="main-content step-component">
@@ -288,7 +369,7 @@ export default function FileRow() {
                             value={editedIntent}
                             onChange={(e) => setEditedIntent(e.target.value)}
                           />
-                          <h4 className="text-lg font-semibold text-black-700 mb-2">
+                          {/* <h4 className="text-lg font-semibold text-black-700 mb-2">
                             Explanation
                           </h4>
                           <textarea
@@ -297,19 +378,19 @@ export default function FileRow() {
                             onChange={(e) =>
                               setEditedExplanation(e.target.value)
                             }
-                          />
+                          /> */}
                         </>
                       ) : (
                         <>
                           <p className="text-black-600 text-base mb-4">
-                            {parsedContentState?.intent}
+                            {parsedContentState}
                           </p>
-                          <h4 className="text-lg font-semibold text-black-700 mb-2">
+                          {/* <h4 className="text-lg font-semibold text-black-700 mb-2">
                             Explanation
                           </h4>
                           <p className="text-black-600 leading-relaxed">
                             {parsedContentState?.explanation}
-                          </p>
+                          </p> */}
                         </>
                       )}
                     </div>
