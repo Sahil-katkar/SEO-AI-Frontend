@@ -202,6 +202,8 @@ export default function Analysis() {
     comp3: false,
   });
 
+  const [editedLsiData, setEditedLsiData] = useState({});
+
   //   !-----------------------------------
   const handleEditIntent = (item) => {
     setEditIntent({ ...editIntent, [`comp${item}`]: true });
@@ -290,8 +292,32 @@ export default function Analysis() {
     console.log("Scraped data:", data);
     return data;
   };
-  const handleSaveLSI = () => {
-    //! save LSI function call
+  const handleSaveLSI = async (compIndex) => {
+    // Gather the edited LSI values for this competitor
+    const updatedLsi = lsiData.map((item, idx) => ({
+      ...item,
+      raw_text:
+        editedLsiData[`${compIndex - 1}_${item.url}`] !== undefined
+          ? editedLsiData[`${compIndex - 1}_${item.url}`]
+          : item.raw_text,
+    }));
+
+    // Save to Supabase
+    const { data: lsi_data, error } = await supabase.from("analysis").upsert(
+      {
+        row_id: row_id,
+        lsi_keywords: updatedLsi,
+      },
+      { onConflict: "row_id" }
+    );
+
+    if (error) {
+      console.error("Supabase upsert error after API call:", error);
+    } else {
+      console.log("LSI updated in db");
+      setLsiData(updatedLsi); // Update local state if needed
+      setEditLSI({ ...editLSI, [`comp${compIndex}`]: false });
+    }
   };
   const handleCancelLSI = (item) => {
     setEditLSI({ ...editLSI, [`comp${item}`]: false });
@@ -429,9 +455,17 @@ export default function Analysis() {
                             disabled={!editLSI[`comp${index + 1}`]}
                             className="focus:outline-[#1abc9c] focus:outline-2 w-full p-2 border rounded"
                             rows="8"
-                            // CORRECTED LINE:
-                            // Use the 'raw_text' from the 'item' for THIS specific loop iteration.
-                            defaultValue={item.raw_text}
+                            value={
+                              editedLsiData[`${index}_${item.url}`] !== undefined
+                                ? editedLsiData[`${index}_${item.url}`]
+                                : item.raw_text
+                            }
+                            onChange={(e) => {
+                              setEditedLsiData({
+                                ...editedLsiData,
+                                [`${index}_${item.url}`]: e.target.value,
+                              });
+                            }}
                           />
                         </div>
                       ))}
