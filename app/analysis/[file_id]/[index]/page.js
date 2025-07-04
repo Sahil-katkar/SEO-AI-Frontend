@@ -231,11 +231,21 @@ export default function Analysis() {
           const parsedData = JSON.parse(jsonString);
 
           const comp_contents = parsedData.map((item) => item.raw_text);
+          const url = parsedData.map((item) => item.url);
+
+          const competitorData = parsedData.map((item) => ({
+            raw_text: item.raw_text,
+            url: item.url,
+          }));
+
+          console.log("Data to send to API:", competitorData);
+
+          console.log("url", url);
 
           console.log("Extracted Raw Texts:", comp_contents);
 
           const payload = {
-            comp_contents: comp_contents,
+            comp_contents: competitorData,
           };
 
           const response = await fetch("/api/comp-analysis", {
