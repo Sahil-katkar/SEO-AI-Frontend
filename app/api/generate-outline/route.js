@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-const PYTHON_API_GENERATE_OUTLINE_URL = `http://127.0.0.1:8002/generate-outline/`;
+const PYTHON_API_GENERATE_OUTLINE_URL = `http://127.0.0.1:8000/generate-outline/`;
 
 export async function POST(request) {
   console.log(`Next.js API: Received GET request at /generate-outline`);
@@ -9,7 +9,7 @@ export async function POST(request) {
   );
 
   const body = await request.json();
-  // console.log("body", body);
+  console.log("body", body);
 
   let pythonResponse;
   try {
@@ -23,7 +23,7 @@ export async function POST(request) {
     });
 
     const data = await pythonResponse.json();
-    // console.log("data",data);
+    console.log("data",data);
     
     if (!pythonResponse.ok) {
       console.error(

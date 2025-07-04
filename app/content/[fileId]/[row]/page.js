@@ -62,6 +62,11 @@ export default function FileRow() {
   const [saveEditedOutline, setSaveEditedOutline] = useState(false);
   // --- END NEW STATES ---
 
+  const [articleSectionCount, setArticleSectionCount] = useState(0);
+  const [articleSectionGenerateCount, setArticleSectionGenerateCount] =
+    useState(1);
+  const [articleSections, setArticleSections] = useState([]);
+
   // const [logs, setLogs] = useState([]);
   // ... rest of the state
 
@@ -130,10 +135,6 @@ export default function FileRow() {
 
     fetchData();
   }, [row_id]);
-
-  {
-    console.log("fileId", row_id);
-  }
 
   // ... after handleSaveEditedIntent ...
 
@@ -465,6 +466,105 @@ export default function FileRow() {
       setSaveEditedCitable(false);
     }
   };
+
+  // # Contentful Explained: A Comprehensive Headless CMS Comparison Guide
+  const testoutline = `
+    * [Contentful Explained: A Comprehensive Headless CMS Comparison Guide](#contentful-explained-a-comprehensive-headless-cms-comparison-guide)
+    * [What is Contentful? Demystifying a Modern Content Platform](#what-is-contentful-demystifying-a-modern-content-platform)
+    * [Traditional vs. Headless: Understanding Core CMS Differences](#traditional-vs-headless-understanding-core-cms-differences)
+        * [The Architecture of a Traditional (Monolithic) CMS](#the-architecture-of-a-traditional-monolithic-cms)
+        * [The Rise of Headless CMS: Decoupled Content Delivery](#the-rise-of-headless-cms-decoupled-content-delivery)
+        * [Key Distinctions: Headless CMS vs. Traditional CMS (Image: Comparison Chart)](#key-distinctions-headless-cms-vs-traditional-cms-image-comparison-chart)
+    * [Why Choose a Headless CMS Like Contentful?](#why-choose-a-headless-cms-like-contentful)
+        * [Advantages of Adopting a Headless Architecture (Video: Explainer)](#advantages-of-adopting-a-headless-architecture-video-explainer)
+        * [How Contentful Works: Powering Digital Experiences](#how-contentful-works-powering-digital-experiences)
+    * [Key Features and Benefits of the Contentful Platform](#key-features-and-benefits-of-the-contentful-platform)
+        * [Contentful's Unique Capabilities for Developers and Marketers](#contentfuls-unique-capabilities-for-developers-and-marketers)
+        * [Delivering Omnichannel Experiences with Contentful](#delivering-omnichannel-experiences-with-contentful)
+    * [Who is Contentful Best For? Making the 'Better Option' Choice](#who-is-contentful-best-for-making-the-better-option-choice)
+        * [Use Cases for Contentful: From Marketing Sites to Headless Commerce (Image: Use Case Icons)](#use-cases-for-contentful-from-marketing-sites-to-headless-commerce-image-use-case-icons)
+        * [When is Contentful the Better Option for Your Business?](#when-is-contentful-the-better-option-for-your-business)
+    * [Contentful FAQs: Your Questions About Headless CMS Answered](#contentful-faqs-your-questions-about-headless-cms-answered)
+        * [Is Contentful truly a CMS, or something different?](#is-contentful-truly-a-cms-or-something-different)
+        * [What are the main advantages and disadvantages of traditional CMS platforms?](#what-are-the-main-advantages-and-disadvantages-of-traditional-cms-platforms)
+        * [Should I use a headless CMS or a traditional CMS for my next project?](#should-i-use-a-headless-cms-or-a-traditional-cms-for-my-next-project)
+    * [Conclusion: Is Contentful the Right CMS for You?](#conclusion-is-contentful-the-right-cms-for-you)
+`;
+
+  console.log("outlineData", outlineData);
+  console.log("outlineDataUpdated", outlineDataUpdated);
+
+  useEffect(() => {
+    function calculateSectionCount(outline) {
+      const lines = outline.split("\n");
+      // Match lines that start with 4 spaces and an asterisk, but not more
+      const count = lines.filter((line) => /^ {4}\*/.test(line)).length;
+      console.log("count", count);
+      setArticleSectionCount(count);
+      // return count;
+    }
+    calculateSectionCount(testoutline);
+  }, [testoutline]);
+
+  // function getSectionHeadings(toc, n) {
+  //   const lines = toc.split("\n");
+  //   // console.log("toc", toc);
+  //   let currentH2 = 0;
+  //   let collecting = false;
+  //   let result = [];
+
+  //   for (let line of lines) {
+  //     const trimmed = line.trimStart();
+  //     if (trimmed.startsWith("* [")) {
+  //       currentH2++;
+  //       if (currentH2 === n) {
+  //         collecting = true;
+  //         console.log("line 1", line);
+
+  //         result.push(line);
+  //       } else if (collecting) {
+  //         // Next h2 found, stop collecting
+  //         break;
+  //       }
+  //     } else if (collecting && trimmed.startsWith("*")) {
+  //       // Only collect h3/h4 (indented, but still start with '*')
+  //       console.log("line 2", line);
+
+  //       result.push(line);
+  //     } else if (collecting && trimmed.startsWith("")) {
+  //       // If it's an empty line, skip
+  //       continue;
+  //     }
+  //   }
+  //   return result.join("\n");
+  // }
+
+  // const section = getSectionHeadings(testoutline, 4);
+  // console.log("section", section);
+
+  const generateArticleSection = async (section) => {
+    console.log("section", section);
+
+    const payload = {
+      missionPlan,
+      gapsAndOpportunities,
+      lsi_keywords,
+      persona,
+      outline,
+      density,
+      section,
+    };
+
+    const response = await fetch(`/api/generate-article`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+    const data = await response.json();
+    console.log("dataaaaaaaaaaa", data);
+
+    // setArticleSections();
+  };
+
   return (
     <div className="container">
       <main className="main-content step-component">
@@ -480,7 +580,7 @@ export default function FileRow() {
             ←
           </span>
           <h3 className="text-xl font-semibold text-blue-500">
-            Processing Row data {params.row}
+            Processing Row for {params.row}
           </h3>
         </div>
 
@@ -490,7 +590,7 @@ export default function FileRow() {
         {!isLoading && (
           <div className="flex flex-col gap-[8px]">
             <div className="modal-tabs">
-              {["Logs", "Intent", "Outline", "Citable Summary", "Content"].map(
+              {["Logs", "Intent", "Outline", "Citable Summary", "Article"].map(
                 (tabName) => (
                   <button
                     key={tabName}
@@ -596,7 +696,7 @@ export default function FileRow() {
 
                   <button
                     onClick={() => handleTabChange("Outline")}
-                    className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded flex items-center gap-2"
+                    className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded flex ml-auto items-center gap-2"
                   >
                     Next
                     <span aria-hidden="true">→</span>
@@ -684,7 +784,7 @@ export default function FileRow() {
 
                   <button
                     onClick={() => handleTabChange("Citable Summary")}
-                    className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded flex items-center gap-2"
+                    className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded flex ml-auto items-center gap-2"
                   >
                     Next
                     <span aria-hidden="true">→</span>
@@ -772,7 +872,7 @@ export default function FileRow() {
 
                   <button
                     onClick={() => handleTabChange("Content")}
-                    className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded flex items-center gap-2"
+                    className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded flex ml-auto items-center gap-2"
                   >
                     Next
                     <span aria-hidden="true">→</span>
@@ -826,9 +926,8 @@ export default function FileRow() {
                 </div>
               )} */}
 
-              {projectData.activeModalTab === "Content" && (
-                <div className="flex flex-col md:flex-row gap-6">
-                  {/* Original Article Box */}
+              {projectData.activeModalTab === "Article" && (
+                <div className="flex flex-col md:flex-row gap-6 rb">
                   <div
                     className={`${
                       articledataUpdated.length > 0 ? "md:w-1/2" : "w-full"
@@ -837,49 +936,42 @@ export default function FileRow() {
                     <h4 className="text-lg font-semibold text-black-700 mb-4">
                       Generated Article
                     </h4>
-                    {articledata.length > 0 ? (
-                      articledata.map((item, index) => {
-                        const content = item.content || "";
-                        let parsedArticle;
 
-                        try {
-                          parsedArticle =
-                            typeof content === "string"
-                              ? JSON.parse(content)
-                              : content;
-                        } catch {
-                          parsedArticle = content;
-                        }
+                    <div className="rb">
+                      {articleSectionCount > 0 &&
+                        Array.from({ length: articleSectionCount }).map(
+                          (_, index) => {
+                            return (
+                              <div key={index} className="">
+                                <textarea
+                                  className=""
+                                  defaultValue={
+                                    articleSections
+                                  }
+                                />
 
-                        return (
-                          <div key={`original-${index}`} className="mb-6">
-                            {typeof parsedArticle === "string" ? (
-                              <p className="text-black-600 whitespace-pre-line">
-                                {parsedArticle}
-                              </p>
-                            ) : (
-                              <ul className="list-disc pl-6 text-black-600">
-                                {Object.entries(parsedArticle).map(
-                                  ([key, value]) => (
-                                    <li key={key} className="mb-2">
-                                      <strong>{key}:</strong> {value}
-                                    </li>
-                                  )
-                                )}
-                              </ul>
-                            )}
-                          </div>
-                        );
-                      })
-                    ) : (
-                      <p className="text-black-500">
-                        No article content available.
-                      </p>
-                    )}
+                                <button
+                                  onClick={() => {
+                                    generateArticleSection(index + 1);
+                                  }}
+                                >
+                                  Generate section {index + 1}
+                                </button>
+                              </div>
+                            );
+                          }
+                        )}
+                      {/* <button
+                        onClick={() => {
+                          generateArticleSection();
+                        }}
+                      >
+                        Generate section test
+                      </button> */}
+                    </div>
                   </div>
 
-                  {/* Updated Article Box */}
-                  {articledataUpdated.length > 0 && (
+                  {/* {articledataUpdated.length > 0 && (
                     <div className="w-full md:w-1/2 bg-blue-50 p-6 rounded-xl shadow-md border border-blue-300">
                       <h4 className="text-lg font-semibold text-blue-700 mb-4">
                         Updated Article
@@ -918,7 +1010,7 @@ export default function FileRow() {
                         );
                       })}
                     </div>
-                  )}
+                  )} */}
                 </div>
               )}
             </div>
@@ -929,4 +1021,46 @@ export default function FileRow() {
       <ToastContainer />
     </div>
   );
+}
+
+{
+  /* {articledata.length > 0 ? (
+                      articledata.map((item, index) => {
+                        const content = item.content || "";
+                        let parsedArticle;
+
+                        try {
+                          parsedArticle =
+                            typeof content === "string"
+                              ? JSON.parse(content)
+                              : content;
+                        } catch {
+                          parsedArticle = content;
+                        }
+
+                        return (
+                          <div key={`original-${index}`} className="mb-6">
+                            {typeof parsedArticle === "string" ? (
+                              <p className="text-black-600 whitespace-pre-line">
+                                {parsedArticle}
+                              </p>
+                            ) : (
+                              <ul className="list-disc pl-6 text-black-600">
+                                {Object.entries(parsedArticle).map(
+                                  ([key, value]) => (
+                                    <li key={key} className="mb-2">
+                                      <strong>{key}:</strong> {value}
+                                    </li>
+                                  )
+                                )}
+                              </ul>
+                            )}
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <p className="text-black-500">
+                        No article content available.
+                      </p>
+                    )} */
 }
