@@ -1,7 +1,7 @@
 "use client";
 
 import Loader from "@/components/common/Loader";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Pencil } from "lucide-react"; // <-- 1. Import the icon at the top of your file
 import { usePathname, useRouter, useParams } from "next/navigation";
 import { useAppContext } from "@/context/AppContext";
@@ -363,6 +363,45 @@ export default function Analysis() {
     setEditOpportunities({ ...editOpportunities, [`comp${item}`]: false });
   };
 
+  useEffect(() => {
+    const fetchAnalysisData = async () => {
+      if (!row_id) return;
+
+      // Fetch LSI and competitor analysis data from Supabase
+      const { data, error } = await supabase
+        .from("analysis")
+        .select("lsi_keywords, comp_analysis")
+        .eq("row_id", row_id)
+        .single();
+
+      if (error) {
+        console.error("Error fetching analysis data:", error);
+        return;
+      }
+
+      if (data) {
+        // Parse and set LSI data
+        if (data.lsi_keywords) {
+          try {
+            setLsiData(
+              typeof data.lsi_keywords === "string"
+                ? JSON.parse(data.lsi_keywords)
+                : data.lsi_keywords
+            );
+          } catch (e) {
+            setLsiData(data.lsi_keywords); // fallback if already parsed
+          }
+        }
+        // Set competitor analysis data
+        if (data.comp_analysis) {
+          setCompAnalysis(data.comp_analysis);
+        }
+      }
+    };
+
+    fetchAnalysisData();
+  }, [row_id]);
+
   return (
     <>
       <div className="container px-4 py-6">
@@ -522,7 +561,7 @@ export default function Analysis() {
                     <button
                       onClick={handleNext}
                       className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                      // disabled={isEditing} // Optional: disable "Next" while editing
+                    // disabled={isEditing} // Optional: disable "Next" while editing
                     >
                       Next
                     </button>
