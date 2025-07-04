@@ -2,9 +2,19 @@
 
 import Loader from "@/components/common/Loader";
 import React, { useState } from "react";
+import { Pencil } from "lucide-react"; // <-- 1. Import the icon at the top of your file
+import { usePathname, useRouter } from "next/navigation";
+import { useAppContext } from "@/context/AppContext";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 
 export default function Analysis() {
   const [isLoading, setIsLoading] = useState(false);
+  const [lsiData, setLsiData] = useState("");
+  // const projectData = useAppContext();
+  const row_id = "1B3w0VIoRh_cRb-Q9WGmOzgLyLrAjmCkmnmRJrT4KkDg_1";
+  const supabase = createClientComponentClient();
+
+  // console.log("selectedFileId", projectData.selected);
 
   const analysisArr = [
     {
@@ -218,6 +228,68 @@ export default function Analysis() {
   const handleEditLSI = (item) => {
     setEditLSI({ ...editLSI, [`comp${item}`]: true });
   };
+
+  const generateLsi = async () => {
+    if (!row_id) {
+      throw new Error("Invalid or missing row_id");
+    }
+
+    const { data: article, error } = await supabase
+      .from("row_details")
+      .select("comp_url")
+      .eq("row_id", row_id);
+
+    if (error) {
+      throw new Error(`Supabase error: ${error.message}`);
+    }
+
+    // Transform the article data into an array of URLs
+    const competitor_urls = article
+      .filter((item) => typeof item.comp_url === "string" && item.comp_url) // Ensure comp_url is a valid string
+      .flatMap((item) => item.comp_url.split("\n").map((url) => url.trim())) // Split by newline and trim whitespace
+      .filter((url) => url); // Remove any empty strings
+
+    if (competitor_urls.length === 0) {
+      throw new Error("No valid competitor URLs found");
+    }
+
+    console.log("Competitor URLs:", competitor_urls);
+
+    const backendPayload = {
+      competitor_urls,
+    };
+
+    console.log("backendPayload", backendPayload);
+
+    const response = await fetch("/api/lsi-keywords", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(backendPayload),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || `HTTP error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    setLsiData(data);
+    const { data: lsi_data } = await supabase.from("analysis").upsert(
+      {
+        row_id: row_id,
+        lsi_keywords: data,
+      },
+      { onConflict: "row_id" }
+    );
+
+    if (lsi_data) {
+      console.error("Supabase upsert error after API call:", upsertError);
+    } else {
+      console.log("added to db ");
+    }
+    console.log("Scraped data:", data);
+    return data;
+  };
   const handleSaveLSI = () => {
     //! save LSI function call
   };
@@ -286,6 +358,85 @@ export default function Analysis() {
                   key={index}
                   className="flex flex-col gap-[30px] rounded-[12px] border-[1px] border-gray-200 py-3 px-4 text-sm hover:bg-gray-50 transition"
                 >
+                  {/* lsi section */}
+                  <div>
+                    <div className="mb-[8px] flex justify-between items-center">
+                      <p className="font-bold mb-[8px]">LSI:</p>
+                      <div className="flex gap-[8px]">
+                        <button
+                          onClick={() => {
+                            generateLsi();
+                          }}
+                        >
+                          Generate LSI
+                        </button>
+                        {!editLSI[`comp${index + 1}`] && (
+                          <button
+                            onClick={() => {
+                              handleEditLSI(index + 1);
+                            }}
+                            // Optional: Add some padding for a better click area
+                            className="p-1 text-gray-600 hover:text-black"
+                          >
+                            <Pencil className="h-5 w-5" />{" "}
+                            {/* <-- 2. Use the icon component */}
+                          </button>
+                        )}
+                        {editLSI[`comp${index + 1}`] && (
+                          <button
+                            onClick={() => {
+                              handleSaveLSI(index + 1);
+                            }}
+                          >
+                            Save
+                          </button>
+                        )}
+                        {editLSI[`comp${index + 1}`] && (
+                          <button
+                            onClick={() => {
+                              handleCancelLSI(index + 1);
+                            }}
+                          >
+                            Cancel
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    {/* <textarea
+                      disabled={!editLSI[`comp${index + 1}`]}
+                      className="focus:outline-[#1abc9c] focus:outline-2"
+                      rows="4"
+                      defaultValue={lsiData}
+                    /> */}
+                    {lsiData &&
+                      lsiData.map((item, index) => (
+                        <div key={index} className="mb-4">
+                          {" "}
+                          {/* A key is required for lists in React */}
+                          <label className="block font-bold mb-1">
+                            Result {index + 1} (Source:{" "}
+                            <a
+                              href={item.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:underline"
+                            >
+                              {item.url}
+                            </a>
+                            )
+                          </label>
+                          <textarea
+                            disabled={!editLSI[`comp${index + 1}`]}
+                            className="focus:outline-[#1abc9c] focus:outline-2 w-full p-2 border rounded"
+                            rows="8"
+                            // CORRECTED LINE:
+                            // Use the 'raw_text' from the 'item' for THIS specific loop iteration.
+                            defaultValue={item.raw_text}
+                          />
+                        </div>
+                      ))}
+                  </div>
+                  {/* lsi section end*/}
                   <div>
                     <p className="font-bold text-[24px]">
                       Competitor {index + 1}
@@ -365,46 +516,7 @@ export default function Analysis() {
                       defaultValue={item.outline}
                     />
                   </div>
-                  <div>
-                    <div className="mb-[8px] flex justify-between items-center">
-                      <p className="font-bold mb-[8px]">LSI:</p>
-                      <div className="flex gap-[8px]">
-                        {!editLSI[`comp${index + 1}`] && (
-                          <button
-                            onClick={() => {
-                              handleEditLSI(index + 1);
-                            }}
-                          >
-                            Edit
-                          </button>
-                        )}
-                        {editLSI[`comp${index + 1}`] && (
-                          <button
-                            onClick={() => {
-                              handleSaveLSI(index + 1);
-                            }}
-                          >
-                            Save
-                          </button>
-                        )}
-                        {editLSI[`comp${index + 1}`] && (
-                          <button
-                            onClick={() => {
-                              handleCancelLSI(index + 1);
-                            }}
-                          >
-                            Cancel
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                    <textarea
-                      disabled={!editLSI[`comp${index + 1}`]}
-                      className="focus:outline-[#1abc9c] focus:outline-2"
-                      rows="4"
-                      defaultValue={item.LSI}
-                    />
-                  </div>
+
                   <div>
                     <div className="mb-[8px] flex justify-between items-center">
                       <p className="font-bold mb-[8px]">Word Count:</p>
