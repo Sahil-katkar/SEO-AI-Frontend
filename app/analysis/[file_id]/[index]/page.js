@@ -120,6 +120,9 @@ export default function Analysis() {
 
   const [editedLsiData, setEditedLsiData] = useState({});
 
+  const [editCompAnalysis, setEditCompAnalysis] = useState({ comp1: false, comp2: false, comp3: false });
+  const [editedCompAnalysis, setEditedCompAnalysis] = useState("");
+
   //   !-----------------------------------
   const handleEditIntent = (item) => {
     setEditIntent({ ...editIntent, [`comp${item}`]: true });
@@ -144,6 +147,12 @@ export default function Analysis() {
 
   //   !-----------------------------------
   const handleEditLSI = (item) => {
+    // Pre-fill editedLsiData with current values for all items
+    const initialData = {};
+    lsiData.forEach((lsi, idx) => {
+      initialData[`${idx}_${lsi.url}`] = lsi.lsi_keywords;
+    });
+    setEditedLsiData(initialData);
     setEditLSI({ ...editLSI, [`comp${item}`]: true });
   };
 
@@ -289,17 +298,17 @@ export default function Analysis() {
     }
   };
   const handleSaveLSI = async (compIndex) => {
-    // Gather the edited LSI values for this competitor
+    // If lsiData is an array of objects with .url and .lsi_keywords
     const updatedLsi = lsiData.map((item, idx) => ({
       ...item,
-      raw_text:
-        editedLsiData[`${compIndex - 1}_${item.url}`] !== undefined
-          ? editedLsiData[`${compIndex - 1}_${item.url}`]
-          : item.raw_text,
+      lsi_keywords:
+        editedLsiData[`${idx}_${item.url}`] !== undefined
+          ? editedLsiData[`${idx}_${item.url}`]
+          : item.lsi_keywords,
     }));
 
     // Save to Supabase
-    const { data: lsi_data, error } = await supabase.from("analysis").upsert(
+    const { error } = await supabase.from("analysis").upsert(
       {
         row_id: row_id,
         lsi_keywords: updatedLsi,
@@ -310,13 +319,13 @@ export default function Analysis() {
     if (error) {
       console.error("Supabase upsert error after API call:", error);
     } else {
-      console.log("LSI updated in db");
-      setLsiData(updatedLsi); // Update local state if needed
+      setLsiData(updatedLsi);
       setEditLSI({ ...editLSI, [`comp${compIndex}`]: false });
     }
   };
   const handleCancelLSI = (item) => {
     setEditLSI({ ...editLSI, [`comp${item}`]: false });
+    setEditedLsiData({});
   };
 
   //   !-------------------------------------
@@ -361,6 +370,34 @@ export default function Analysis() {
   };
   const handleCancelOpportunities = (item) => {
     setEditOpportunities({ ...editOpportunities, [`comp${item}`]: false });
+  };
+
+  const handleEditCompAnalysis = (item) => {
+    setEditCompAnalysis({ ...editCompAnalysis, [`comp${item}`]: true });
+    setEditedCompAnalysis(compAnalysis); // Load current value for editing
+  };
+
+  const handleSaveCompAnalysis = async (compIndex) => {
+    // Save to Supabase
+    const { error } = await supabase.from("analysis").upsert(
+      {
+        row_id: row_id,
+        comp_analysis: editedCompAnalysis,
+      },
+      { onConflict: "row_id" }
+    );
+
+    if (error) {
+      console.error("Supabase upsert error after API call:", error);
+    } else {
+      setCompAnalysis(editedCompAnalysis);
+      setEditCompAnalysis({ ...editCompAnalysis, [`comp${compIndex}`]: false });
+    }
+  };
+
+  const handleCancelCompAnalysis = (item) => {
+    setEditCompAnalysis({ ...editCompAnalysis, [`comp${item}`]: false });
+    setEditedCompAnalysis(compAnalysis); // Reset to original
   };
 
   useEffect(() => {
@@ -470,12 +507,10 @@ export default function Analysis() {
                       defaultValue={lsiData}
                     /> */}
                     {lsiData &&
-                      lsiData.map((item, index) => (
-                        <div key={index} className="mb-4">
-                          {" "}
-                          {/* A key is required for lists in React */}
+                      lsiData.map((item, idx) => (
+                        <div key={idx} className="mb-4">
                           <label className="block font-bold mb-1">
-                            Result {index + 1} (Source:{" "}
+                            Result {idx + 1} (Source:{" "}
                             <a
                               href={item.url}
                               target="_blank"
@@ -491,16 +526,16 @@ export default function Analysis() {
                             className="focus:outline-[#1abc9c] focus:outline-2 w-full p-2 border rounded"
                             rows="8"
                             value={
-                              // editedLsiData[`${index}_${item.url}`] !==
-                              // undefined
-                              //   ? editedLsiData[`${index}_${item.url}`]
-                              //   : item.raw_text
-                              `${item.lsi_keywords}`
+                              editLSI[`comp${index + 1}`]
+                                ? editedLsiData[`${idx}_${item.url}`] !== undefined
+                                  ? editedLsiData[`${idx}_${item.url}`]
+                                  : item.lsi_keywords
+                                : item.lsi_keywords
                             }
                             onChange={(e) => {
                               setEditedLsiData({
                                 ...editedLsiData,
-                                [`${index}_${item.url}`]: e.target.value,
+                                [`${idx}_${item.url}`]: e.target.value,
                               });
                             }}
                           />
@@ -526,35 +561,29 @@ export default function Analysis() {
                         >
                           Generate Analysis
                         </button>
-                        {!editIntent[`comp${index + 1}`] && (
+                        {!editCompAnalysis[`comp${index + 1}`] && (
                           <button
                             onClick={() => {
-                              handleEditIntent(index + 1);
+                              handleEditCompAnalysis(index + 1);
                             }}
                           >
-                            <Pencil className="h-5 w-5" />{" "}
-                            {/* <-- 2. Use the icon component */}
+                            <Pencil className="h-5 w-5" />
                           </button>
                         )}
-                        {editIntent[`comp${index + 1}`] && (
-                          <button onClick={handleSaveIntent}>Save</button>
-                        )}
-                        {editIntent[`comp${index + 1}`] && (
-                          <button
-                            onClick={() => {
-                              handleCancelIntent(index + 1);
-                            }}
-                          >
-                            Cancel
-                          </button>
+                        {editCompAnalysis[`comp${index + 1}`] && (
+                          <>
+                            <button onClick={() => handleSaveCompAnalysis(index + 1)}>Save</button>
+                            <button onClick={() => handleCancelCompAnalysis(index + 1)}>Cancel</button>
+                          </>
                         )}
                       </div>
                     </div>
                     <textarea
-                      disabled={!editIntent[`comp${index + 1}`]}
+                      disabled={!editCompAnalysis[`comp${index + 1}`]}
                       className="focus:outline-[#1abc9c] focus:outline-2"
                       rows="2"
-                      defaultValue={compAnalysis}
+                      value={editCompAnalysis[`comp${index + 1}`] ? editedCompAnalysis : compAnalysis}
+                      onChange={(e) => setEditedCompAnalysis(e.target.value)}
                     />
                   </div>
                   <div className="mt-6 flex justify-end">
