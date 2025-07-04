@@ -465,6 +465,94 @@ export default function FileRow() {
       setSaveEditedCitable(false);
     }
   };
+  // In your React Component
+
+  useEffect(() => {
+    // Only call when switching to the Outline tab
+    if (projectData.activeModalTab === "Outline") {
+      // Optionally, set a loading state here, e.g., setLoading(true);
+
+      const callGenerateOutline = async () => {
+        try {
+          // 1. Fetch all required data from Supabase efficiently.
+          // Use .single() to get one object directly instead of an array.
+          const { data: rowDetails, error: rowDetailsError } = await supabase
+            .from("row_details")
+            .select("keyword, intent, persona, questions, faq, outline_format")
+            .eq("row_id", row_id)
+            .single();
+
+          const { data: analysis, error: analysisError } = await supabase
+            .from("analysis")
+            .select("lsi_keywords")
+            .eq("row_id", row_id)
+            .single();
+
+          // Abort if there were any database errors
+          if (rowDetailsError) throw rowDetailsError;
+          if (analysisError) throw analysisError;
+          if (!rowDetails) throw new Error("Details not found for this entry.");
+
+          // 2. Safely parse and extract LSI keywords.
+          let allExtractedKeywords = [];
+          if (analysis?.lsi_keywords) {
+            try {
+              const parsedData = JSON.parse(analysis.lsi_keywords);
+              allExtractedKeywords = parsedData
+                .map(
+                  (item) =>
+                    item?.lsi_keywords?.lsi_keyword || item?.lsi_keywords
+                )
+                .filter(Boolean); // filter(Boolean) removes null/undefined values
+            } catch (error) {
+              console.error("Failed to parse lsi_keywords JSON:", error);
+              // Decide how to handle malformed JSON - here we proceed with no LSI keywords.
+            }
+          }
+
+          // 3. Construct the payload with the correct structure.
+          const payload = {
+            primary_keyword: rowDetails.keyword,
+            lsi_keywords: allExtractedKeywords,
+            intent: rowDetails.intent,
+            persona: rowDetails.persona,
+            questions: rowDetails.questions,
+            faq: rowDetails.faq,
+            standard_outline_format: rowDetails.outline_format,
+          };
+
+          const res = await fetch("/api/generate-outline", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(payload), // Corrected line
+          });
+
+          if (!res.ok) {
+            const errorData = await res.json();
+            throw new Error(
+              errorData.error || `Server responded with ${res.status}`
+            );
+          }
+
+          const data = await res.json();
+          console.log("Outline generated successfully:", data);
+
+          setOutlineData(data);
+        } catch (err) {
+          console.error("Error generating outline:", err);
+          toast.error(err.message || "An unexpected error occurred.");
+        } finally {
+          // Unset loading state here, e.g., setLoading(false);
+        }
+      };
+
+      callGenerateOutline();
+    }
+    // 5. Use a stable dependency array. `row` and `keyword` are likely derived from `row_id`.
+  }, [projectData.activeModalTab, row_id]); // Make sure `row_id` and `supabase` are available in scope.
+
   return (
     <div className="container">
       <main className="main-content step-component">
@@ -666,9 +754,14 @@ export default function FileRow() {
                         </>
                       ) : (
                         <>
-                          <p className="text-black-600 text-base mb-4">
+                          {/* <p className="text-black-600 text-base mb-4">
                             {outlineData}
-                          </p>
+                          </p> */}
+                          <textarea
+                            disabled={saveEditedOutline}
+                            value={outlineData}
+                            onChange={(e) => setEditedOutline(e.target.value)}
+                          />
                           {/* <h4 className="text-lg font-semibold text-black-700 mb-2">
                             Explanation
                           </h4>

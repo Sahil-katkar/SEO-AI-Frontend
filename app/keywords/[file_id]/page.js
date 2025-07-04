@@ -40,6 +40,8 @@ export default function FileId() {
   };
 
   const contentbrief = (file_id, keyword, index) => {
+    console.log(" ", file_id, index);
+
     router.push(`/mission-plan/${file_id}/${index + 1}`);
   };
 
