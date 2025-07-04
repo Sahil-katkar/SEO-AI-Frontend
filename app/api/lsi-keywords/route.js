@@ -5,27 +5,32 @@ const FASTAPI_BACKEND_URL =
 
 export async function POST(request) {
   try {
-    const { competitor_urls } = await request.json();
+    const { urls } = await request.json();
 
-    if (!Array.isArray(competitor_urls) || competitor_urls.length === 0) {
+    console.log("urls", urls);
+
+    if (!Array.isArray(urls) || urls.length === 0) {
       return NextResponse.json(
         { error: "competitor_urls must be a non-empty array of strings" },
         { status: 400 }
       );
     }
     const backendPayload = {
-      competitor_urls,
+      urls,
     };
 
     console.log("backendPayload", backendPayload);
 
-    const apiResponse = await fetch(`${FASTAPI_BACKEND_URL}/lsi_keywords/`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(backendPayload),
-    });
+    const apiResponse = await fetch(
+      `${FASTAPI_BACKEND_URL}/get_topic_modeling_keywords/`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(backendPayload),
+      }
+    );
 
     const data = await apiResponse.json();
     console.log("FastAPI response:", data);

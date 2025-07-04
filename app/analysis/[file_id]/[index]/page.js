@@ -246,19 +246,19 @@ export default function Analysis() {
     }
 
     // Transform the article data into an array of URLs
-    const competitor_urls = article
+    const urls = article
       .filter((item) => typeof item.comp_url === "string" && item.comp_url) // Ensure comp_url is a valid string
       .flatMap((item) => item.comp_url.split("\n").map((url) => url.trim())) // Split by newline and trim whitespace
       .filter((url) => url); // Remove any empty strings
 
-    if (competitor_urls.length === 0) {
+    if (urls.length === 0) {
       throw new Error("No valid competitor URLs found");
     }
 
-    console.log("Competitor URLs:", competitor_urls);
+    console.log("Competitor URLs:", urls);
 
     const backendPayload = {
-      competitor_urls,
+      urls,
     };
 
     console.log("backendPayload", backendPayload);
@@ -456,9 +456,11 @@ export default function Analysis() {
                             className="focus:outline-[#1abc9c] focus:outline-2 w-full p-2 border rounded"
                             rows="8"
                             value={
-                              editedLsiData[`${index}_${item.url}`] !== undefined
-                                ? editedLsiData[`${index}_${item.url}`]
-                                : item.raw_text
+                              // editedLsiData[`${index}_${item.url}`] !==
+                              // undefined
+                              //   ? editedLsiData[`${index}_${item.url}`]
+                              //   : item.raw_text
+                              `${item.lsi_keywords}`
                             }
                             onChange={(e) => {
                               setEditedLsiData({
