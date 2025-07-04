@@ -120,7 +120,11 @@ export default function Analysis() {
 
   const [editedLsiData, setEditedLsiData] = useState({});
 
-  const [editCompAnalysis, setEditCompAnalysis] = useState({ comp1: false, comp2: false, comp3: false });
+  const [editCompAnalysis, setEditCompAnalysis] = useState({
+    comp1: false,
+    comp2: false,
+    comp3: false,
+  });
   const [editedCompAnalysis, setEditedCompAnalysis] = useState("");
 
   const [isGeneratingLSI, setIsGeneratingLSI] = useState(false);
@@ -476,7 +480,11 @@ export default function Analysis() {
                           onClick={generateLsi}
                           disabled={isGeneratingLSI}
                         >
-                          {isGeneratingLSI ? <Loader size={20} /> : "Generate LSI"}
+                          {isGeneratingLSI ? (
+                            <Loader size={20} />
+                          ) : (
+                            "Generate LSI"
+                          )}
                         </button>
                         {!editLSI[`comp${index + 1}`] && (
                           <button
@@ -537,7 +545,8 @@ export default function Analysis() {
                             rows="8"
                             value={
                               editLSI[`comp${index + 1}`]
-                                ? editedLsiData[`${idx}_${item.url}`] !== undefined
+                                ? editedLsiData[`${idx}_${item.url}`] !==
+                                  undefined
                                   ? editedLsiData[`${idx}_${item.url}`]
                                   : item.lsi_keywords
                                 : item.lsi_keywords
@@ -568,7 +577,11 @@ export default function Analysis() {
                           onClick={generateAnalysis}
                           disabled={isGeneratingAnalysis}
                         >
-                          {isGeneratingAnalysis ? <Loader size={20} /> : "Generate Analysis"}
+                          {isGeneratingAnalysis ? (
+                            <Loader size={20} />
+                          ) : (
+                            "Generate Analysis"
+                          )}
                         </button>
                         {!editCompAnalysis[`comp${index + 1}`] && (
                           <button
@@ -581,8 +594,18 @@ export default function Analysis() {
                         )}
                         {editCompAnalysis[`comp${index + 1}`] && (
                           <>
-                            <button onClick={() => handleSaveCompAnalysis(index + 1)}>Save</button>
-                            <button onClick={() => handleCancelCompAnalysis(index + 1)}>Cancel</button>
+                            <button
+                              onClick={() => handleSaveCompAnalysis(index + 1)}
+                            >
+                              Save
+                            </button>
+                            <button
+                              onClick={() =>
+                                handleCancelCompAnalysis(index + 1)
+                              }
+                            >
+                              Cancel
+                            </button>
                           </>
                         )}
                       </div>
@@ -591,7 +614,11 @@ export default function Analysis() {
                       disabled={!editCompAnalysis[`comp${index + 1}`]}
                       className="focus:outline-[#1abc9c] focus:outline-2"
                       rows="2"
-                      value={editCompAnalysis[`comp${index + 1}`] ? editedCompAnalysis : compAnalysis}
+                      value={
+                        editCompAnalysis[`comp${index + 1}`]
+                          ? editedCompAnalysis
+                          : compAnalysis
+                      }
                       onChange={(e) => setEditedCompAnalysis(e.target.value)}
                     />
                   </div>
@@ -599,7 +626,7 @@ export default function Analysis() {
                     <button
                       onClick={handleNext}
                       className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                    // disabled={isEditing} // Optional: disable "Next" while editing
+                      // disabled={isEditing} // Optional: disable "Next" while editing
                     >
                       Next
                     </button>
