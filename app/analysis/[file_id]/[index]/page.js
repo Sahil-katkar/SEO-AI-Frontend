@@ -123,6 +123,9 @@ export default function Analysis() {
   const [editCompAnalysis, setEditCompAnalysis] = useState({ comp1: false, comp2: false, comp3: false });
   const [editedCompAnalysis, setEditedCompAnalysis] = useState("");
 
+  const [isGeneratingLSI, setIsGeneratingLSI] = useState(false);
+  const [isGeneratingAnalysis, setIsGeneratingAnalysis] = useState(false);
+
   //   !-----------------------------------
   const handleEditIntent = (item) => {
     setEditIntent({ ...editIntent, [`comp${item}`]: true });
@@ -157,68 +160,75 @@ export default function Analysis() {
   };
 
   const generateLsi = async () => {
-    if (!row_id) {
-      throw new Error("Invalid or missing row_id");
+    setIsGeneratingLSI(true);
+    try {
+      if (!row_id) {
+        throw new Error("Invalid or missing row_id");
+      }
+
+      const { data: article, error } = await supabase
+        .from("row_details")
+        .select("comp_url")
+        .eq("row_id", row_id);
+
+      if (error) {
+        throw new Error(`Supabase error: ${error.message}`);
+      }
+
+      // Transform the article data into an array of URLs
+      const urls = article
+        .filter((item) => typeof item.comp_url === "string" && item.comp_url) // Ensure comp_url is a valid string
+        .flatMap((item) => item.comp_url.split("\n").map((url) => url.trim())) // Split by newline and trim whitespace
+        .filter((url) => url); // Remove any empty strings
+
+      if (urls.length === 0) {
+        throw new Error("No valid competitor URLs found");
+      }
+
+      console.log("Competitor URLs:", urls);
+
+      const backendPayload = {
+        urls,
+      };
+
+      console.log("backendPayload", backendPayload);
+
+      const response = await fetch("/api/lsi-keywords", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(backendPayload),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `HTTP error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      setLsiData(data);
+      const { data: lsi_data } = await supabase.from("analysis").upsert(
+        {
+          row_id: row_id,
+          lsi_keywords: data,
+        },
+        { onConflict: "row_id" }
+      );
+
+      if (lsi_data) {
+        console.error("Supabase upsert error after API call:", upsertError);
+      } else {
+        console.log("added to db ");
+      }
+      console.log("Scraped data:", data);
+    } catch (error) {
+      console.error("Error generating LSI:", error);
+    } finally {
+      setIsGeneratingLSI(false);
     }
-
-    const { data: article, error } = await supabase
-      .from("row_details")
-      .select("comp_url")
-      .eq("row_id", row_id);
-
-    if (error) {
-      throw new Error(`Supabase error: ${error.message}`);
-    }
-
-    // Transform the article data into an array of URLs
-    const urls = article
-      .filter((item) => typeof item.comp_url === "string" && item.comp_url) // Ensure comp_url is a valid string
-      .flatMap((item) => item.comp_url.split("\n").map((url) => url.trim())) // Split by newline and trim whitespace
-      .filter((url) => url); // Remove any empty strings
-
-    if (urls.length === 0) {
-      throw new Error("No valid competitor URLs found");
-    }
-
-    console.log("Competitor URLs:", urls);
-
-    const backendPayload = {
-      urls,
-    };
-
-    console.log("backendPayload", backendPayload);
-
-    const response = await fetch("/api/lsi-keywords", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(backendPayload),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || `HTTP error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    setLsiData(data);
-    const { data: lsi_data } = await supabase.from("analysis").upsert(
-      {
-        row_id: row_id,
-        lsi_keywords: data,
-      },
-      { onConflict: "row_id" }
-    );
-
-    if (lsi_data) {
-      console.error("Supabase upsert error after API call:", upsertError);
-    } else {
-      console.log("added to db ");
-    }
-    console.log("Scraped data:", data);
-    return data;
   };
 
   const generateAnalysis = async () => {
+    setIsGeneratingAnalysis(true);
     if (!row_id) {
       throw new Error("Invalid or missing row_id");
     }
@@ -296,6 +306,7 @@ export default function Analysis() {
         }
       }
     }
+    setIsGeneratingAnalysis(false);
   };
   const handleSaveLSI = async (compIndex) => {
     // If lsiData is an array of objects with .url and .lsi_keywords
@@ -462,11 +473,10 @@ export default function Analysis() {
                       <p className="font-bold text-[24px] ">LSI:</p>
                       <div className="flex gap-[8px]">
                         <button
-                          onClick={() => {
-                            generateLsi();
-                          }}
+                          onClick={generateLsi}
+                          disabled={isGeneratingLSI}
                         >
-                          Generate LSI
+                          {isGeneratingLSI ? <Loader size={20} /> : "Generate LSI"}
                         </button>
                         {!editLSI[`comp${index + 1}`] && (
                           <button
@@ -555,11 +565,10 @@ export default function Analysis() {
                       </p>
                       <div className="flex gap-[8px]">
                         <button
-                          onClick={() => {
-                            generateAnalysis();
-                          }}
+                          onClick={generateAnalysis}
+                          disabled={isGeneratingAnalysis}
                         >
-                          Generate Analysis
+                          {isGeneratingAnalysis ? <Loader size={20} /> : "Generate Analysis"}
                         </button>
                         {!editCompAnalysis[`comp${index + 1}`] && (
                           <button
