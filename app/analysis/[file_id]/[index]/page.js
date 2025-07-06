@@ -312,6 +312,102 @@ export default function Analysis() {
     }
     setIsGeneratingAnalysis(false);
   };
+
+  const generateValueAdd = async () => {
+    // IMPROVEMENT: Wrap the entire logic in a try/catch/finally block.
+    // This ensures the loading state is always turned off, even if an error occurs.
+    setIsGeneratingAnalysis(true);
+    try {
+      if (!row_id) {
+        // It's better to notify the user or log this, but throwing is fine too.
+        throw new Error("Invalid or missing row_id");
+      }
+
+      // Fetch both pieces of data in parallel for better performance
+      const [analysisResult, rowDetailsResult] = await Promise.all([
+        supabase
+          .from("analysis")
+          .select("comp_analysis")
+          .eq("row_id", row_id)
+          .single(),
+        supabase
+          .from("row_details")
+          .select("mission_plan")
+          .eq("row_id", row_id)
+          .single(),
+      ]);
+
+      const { data: analysisData, error: errorAnalysis } = analysisResult;
+      const { data: rowDetailsData, error: errorMission } = rowDetailsResult;
+
+      // FIX: Correctly check for and combine error messages.
+      if (errorAnalysis || errorMission) {
+        const errorMessage = [errorAnalysis?.message, errorMission?.message]
+          .filter(Boolean)
+          .join("; ");
+        throw new Error(`Supabase error: ${errorMessage}`);
+      }
+
+      // FIX: Add checks to ensure data exists before trying to access properties.
+      // This prevents "Cannot read properties of undefined" errors.
+      if (!analysisData || !rowDetailsData) {
+        throw new Error("Required data not found for the given row_id.");
+      }
+
+      // FIX: Use new variable names to avoid "Identifier has already been declared" error.
+      const competitive_analysis_report = analysisData.comp_analysis;
+      const mission_plan_context = rowDetailsData.mission_plan;
+
+      const payload = {
+        mission_plan_context, // Shorthand for mission_plan_context: mission_plan_context
+        competitive_analysis_report,
+      };
+
+      const response = await fetch("/api/value_add", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        // Provide a more graceful error message from the API.
+        const errorData = await response.json();
+        throw new Error(errorData.error || `API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log("Successfully generated value add:", data);
+
+      // You can now use the 'data' to update state or perform the upsert.
+      // For example: setCompAnalysis(data);
+
+      // The commented-out upsert logic can now be safely used.
+      /*
+      const { error: upsertError } = await supabase
+        .from("analysis")
+        .upsert(
+          {
+            row_id: row_id,
+            value_add_analysis: data, // Assuming this is the target column
+          },
+          { onConflict: "row_id" }
+        );
+
+      if (upsertError) {
+        throw new Error(`Failed to save analysis: ${upsertError.message}`);
+      } else {
+        console.log("Analysis saved successfully.");
+      }
+      */
+    } catch (error) {
+      console.error("Failed to generate value add:", error);
+      // Here you would typically show a notification to the user
+      // e.g., toast.error(error.message);
+    } finally {
+      // FIX: This ensures the loading spinner is turned off regardless of success or failure.
+      setIsGeneratingAnalysis(false);
+    }
+  };
   const handleSaveLSI = async (compIndex) => {
     // If lsiData is an array of objects with .url and .lsi_keywords
     const updatedLsi = lsiData.map((item, idx) => ({
@@ -567,6 +663,63 @@ export default function Analysis() {
                       Competitor {index + 1}
                     </p>
                   </div> */}
+
+                  {/* value_add */}
+                  <div>
+                    <div className="mb-[8px] flex justify-between items-center">
+                      <p className="font-bold text-[24px] ">Value Add</p>
+                      <div className="flex gap-[8px]">
+                        <button
+                          onClick={generateValueAdd}
+                          disabled={isGeneratingAnalysis}
+                        >
+                          {isGeneratingAnalysis ? (
+                            <Loader size={20} />
+                          ) : (
+                            "Generate Analysis"
+                          )}
+                        </button>
+                        {!editCompAnalysis[`comp${index + 1}`] && (
+                          <button
+                            onClick={() => {
+                              handleEditCompAnalysis(index + 1);
+                            }}
+                          >
+                            <Pencil className="h-5 w-5" />
+                          </button>
+                        )}
+                        {editCompAnalysis[`comp${index + 1}`] && (
+                          <>
+                            <button
+                              onClick={() => handleSaveCompAnalysis(index + 1)}
+                            >
+                              Save
+                            </button>
+                            <button
+                              onClick={() =>
+                                handleCancelCompAnalysis(index + 1)
+                              }
+                            >
+                              Cancel
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                    <textarea
+                      disabled={!editCompAnalysis[`comp${index + 1}`]}
+                      className="focus:outline-[#1abc9c] focus:outline-2"
+                      rows="2"
+                      value={
+                        editCompAnalysis[`comp${index + 1}`]
+                          ? editedCompAnalysis
+                          : compAnalysis
+                      }
+                      onChange={(e) => setEditedCompAnalysis(e.target.value)}
+                    />
+                  </div>
+
+                  {/* value_add_end */}
                   <div>
                     <div className="mb-[8px] flex justify-between items-center">
                       <p className="font-bold text-[24px] ">
