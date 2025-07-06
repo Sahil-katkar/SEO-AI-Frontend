@@ -138,7 +138,7 @@ export default function Analysis() {
 
   const [isGeneratingLSI, setIsGeneratingLSI] = useState(false);
   const [isGeneratingAnalysis, setIsGeneratingAnalysis] = useState(false);
-  const [isGeneratingValue, setIsGeneratingValue] = useState(false);
+  const [isGeneratingValueAdd, setIsGeneratingValueAdd] = useState(false);
 
   //   !-----------------------------------
   const handleEditIntent = (item) => {
@@ -324,9 +324,7 @@ export default function Analysis() {
   };
 
   const generateValueAdd = async () => {
-    // IMPROVEMENT: Wrap the entire logic in a try/catch/finally block.
-    // This ensures the loading state is always turned off, even if an error occurs.
-    setIsGeneratingAnalysis(true);
+    setIsGeneratingValueAdd(true);
     try {
       if (!row_id) {
         // It's better to notify the user or log this, but throwing is fine too.
@@ -414,7 +412,7 @@ export default function Analysis() {
       // e.g., toast.error(error.message);
     } finally {
       // FIX: This ensures the loading spinner is turned off regardless of success or failure.
-      setIsGeneratingAnalysis(false);
+      setIsGeneratingValueAdd(false);
     }
   };
   const handleSaveLSI = async (compIndex) => {
@@ -541,6 +539,11 @@ export default function Analysis() {
   const handleCancelCompAnalysis = (item) => {
     setEditCompAnalysis({ ...editCompAnalysis, [`comp${item}`]: false });
     setEditedCompAnalysis(compAnalysis); // Reset to original
+  };
+
+  const handleCancelValueAdd = (item) => {
+    setEditValueAdd({ ...editValueAdd, [`comp${item}`]: false });
+    setEditedValueAdd(valueAdd); // Reset to the original value
   };
 
   useEffect(() => {
@@ -703,9 +706,9 @@ export default function Analysis() {
                       <div className="flex gap-[8px]">
                         <button
                           onClick={generateValueAdd}
-                          disabled={isGeneratingAnalysis}
+                          disabled={isGeneratingValueAdd}
                         >
-                          {isGeneratingAnalysis ? (
+                          {isGeneratingValueAdd ? (
                             <Loader size={20} />
                           ) : (
                             "Generate Value Add"
@@ -728,9 +731,7 @@ export default function Analysis() {
                               Save
                             </button>
                             <button
-                              onClick={() =>
-                                handleCancelCompAnalysis(index + 1)
-                              }
+                              onClick={() => handleCancelValueAdd(index + 1)}
                             >
                               Cancel
                             </button>
