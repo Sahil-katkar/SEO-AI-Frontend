@@ -567,14 +567,9 @@ export default function FileRow() {
   // In your React Component
 
   useEffect(() => {
-    // Only call when switching to the Outline tab
     if (projectData.activeModalTab === "Outline") {
-      // Optionally, set a loading state here, e.g., setLoading(true);
-
       const callGenerateOutline = async () => {
         try {
-          // 1. Fetch all required data from Supabase efficiently.
-          // Use .single() to get one object directly instead of an array.
           const { data: rowDetails, error: rowDetailsError } = await supabase
             .from("row_details")
             .select("keyword, intent, persona, questions, faq, outline_format")
@@ -587,12 +582,10 @@ export default function FileRow() {
             .eq("row_id", row_id)
             .single();
 
-          // Abort if there were any database errors
           if (rowDetailsError) throw rowDetailsError;
           if (analysisError) throw analysisError;
           if (!rowDetails) throw new Error("Details not found for this entry.");
 
-          // 2. Safely parse and extract LSI keywords.
           let allExtractedKeywords = [];
           if (analysis?.lsi_keywords) {
             try {
@@ -602,14 +595,12 @@ export default function FileRow() {
                   (item) =>
                     item?.lsi_keywords?.lsi_keyword || item?.lsi_keywords
                 )
-                .filter(Boolean); // filter(Boolean) removes null/undefined values
+                .filter(Boolean);
             } catch (error) {
               console.error("Failed to parse lsi_keywords JSON:", error);
-              // Decide how to handle malformed JSON - here we proceed with no LSI keywords.
             }
           }
 
-          // 3. Construct the payload with the correct structure.
           const payload = {
             primary_keyword: rowDetails.keyword,
             lsi_keywords: allExtractedKeywords,
@@ -649,8 +640,73 @@ export default function FileRow() {
 
       callGenerateOutline();
     }
-    // 5. Use a stable dependency array. `row` and `keyword` are likely derived from `row_id`.
-  }, [projectData.activeModalTab, row_id]); // Make sure `row_id` and `supabase` are available in scope.
+  }, [projectData.activeModalTab, row_id]);
+  useEffect(() => {
+    if (projectData.activeModalTab === "Citable Summary") {
+      const callCitableSummary = async () => {
+        // Consider adding a loading state here, e.g., setLoading(true);
+        try {
+          // 1. Combine into a single, more efficient query.
+          // Also, use .single() to get a single object instead of an array.
+          // .single() will throw an error if no row or multiple rows are found,
+          // which is often the desired behavior for fetching by a unique ID.
+          const { data: rowDetails, error } = await supabase
+            .from("row_details")
+            .select("mission_plan, outline_format")
+            .eq("row_id", row_id)
+            .single(); // Use .single() to get one object directly
+
+          // 2. Proper error handling for the database query.
+          if (error) {
+            throw new Error(
+              error.message || "Failed to fetch project details."
+            );
+          }
+
+          if (!rowDetails) {
+            throw new Error("No details found for this project.");
+          }
+
+          // 3. Construct the payload with the correct values from the fetched data.
+          const payload = {
+            mission_plan: rowDetails.mission_plan,
+            initial_draft_index: rowDetails.outline_format,
+          };
+
+          const res = await fetch("/api/citable-summary", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(payload),
+          });
+
+          if (!res.ok) {
+            const errorData = await res.json();
+            throw new Error(
+              errorData.error || `Server responded with ${res.status}`
+            );
+          }
+
+          const data = await res.json();
+          console.log("Citable summary generated successfully:", data);
+
+          setCitableData(data);
+
+          // Assuming you have a state setter like setCitableSummaryData
+          setOutlineData(data); // Or a more specific state setter
+        } catch (err) {
+          console.error("Error generating citable summary:", err);
+          toast.error(err.message || "An unexpected error occurred.");
+        } finally {
+          // 4. Always unset the loading state.
+          // e.g., setLoading(false);
+        }
+      };
+
+      callCitableSummary();
+    }
+  }, [projectData.activeModalTab, row_id]);
 
   return (
     <div className="container">
@@ -946,9 +1002,14 @@ export default function FileRow() {
                         </>
                       ) : (
                         <>
-                          <p className="text-black-600 text-base mb-4">
+                          {/* <p className="text-black-600 text-base mb-4">
                             {citabledata}
-                          </p>
+                          </p> */}
+                          <textarea
+                            disabled={saveEditedCitable}
+                            value={citabledata}
+                            onChange={(e) => setEditedCitable(e.target.value)}
+                          />
                           {/* <h4 className="text-lg font-semibold text-black-700 mb-2">
                             Explanation
                           </h4>
