@@ -127,11 +127,18 @@ export default function Analysis() {
     comp2: false,
     comp3: false,
   });
+
+  const [editValueAdd, setEditValueAdd] = useState({
+    comp1: false,
+    comp2: false,
+    comp3: false,
+  });
   const [editedCompAnalysis, setEditedCompAnalysis] = useState("");
   const [editedValueAdd, setEditedValueAdd] = useState("");
 
   const [isGeneratingLSI, setIsGeneratingLSI] = useState(false);
   const [isGeneratingAnalysis, setIsGeneratingAnalysis] = useState(false);
+  const [isGeneratingValue, setIsGeneratingValue] = useState(false);
 
   //   !-----------------------------------
   const handleEditIntent = (item) => {
@@ -491,8 +498,8 @@ export default function Analysis() {
   };
 
   const handleEditValueAdd = (item) => {
-    setEditCompAnalysis({ ...editCompAnalysis, [`comp${item}`]: true });
-    setEditedCompAnalysis(compAnalysis); // Load current value for editing
+    setEditValueAdd({ ...editValueAdd, [`comp${item}`]: true });
+    setEditedValueAdd(valueAdd); // Load current value for editing
   };
 
   const handleSaveCompAnalysis = async (compIndex) => {
@@ -510,6 +517,24 @@ export default function Analysis() {
     } else {
       setCompAnalysis(editedCompAnalysis);
       setEditCompAnalysis({ ...editCompAnalysis, [`comp${compIndex}`]: false });
+    }
+  };
+
+  const handleSaveValueAdd = async (compIndex) => {
+    // Save to Supabase
+    const { error } = await supabase.from("analysis").upsert(
+      {
+        row_id: row_id,
+        value_add: editedValueAdd,
+      },
+      { onConflict: "row_id" }
+    );
+
+    if (error) {
+      console.error("Supabase upsert error after API call:", error);
+    } else {
+      setValueAdd(editedValueAdd);
+      setEditValueAdd({ ...editValueAdd, [`comp${compIndex}`]: false });
     }
   };
 
@@ -686,19 +711,19 @@ export default function Analysis() {
                             "Generate Value Add"
                           )}
                         </button>
-                        {!editCompAnalysis[`comp${index + 1}`] && (
+                        {!editValueAdd[`comp${index + 1}`] && (
                           <button
                             onClick={() => {
-                              handleEditCompAnalysis(index + 1);
+                              handleEditValueAdd(index + 1);
                             }}
                           >
                             <Pencil className="h-5 w-5" />
                           </button>
                         )}
-                        {editCompAnalysis[`comp${index + 1}`] && (
+                        {editValueAdd[`comp${index + 1}`] && (
                           <>
                             <button
-                              onClick={() => handleSaveCompAnalysis(index + 1)}
+                              onClick={() => handleSaveValueAdd(index + 1)}
                             >
                               Save
                             </button>
@@ -714,15 +739,15 @@ export default function Analysis() {
                       </div>
                     </div>
                     <textarea
-                      disabled={!editCompAnalysis[`comp${index + 1}`]}
+                      disabled={!editValueAdd[`comp${index + 1}`]}
                       className="focus:outline-[#1abc9c] focus:outline-2"
                       rows="2"
                       value={
-                        editCompAnalysis[`comp${index + 1}`]
-                          ? editedCompAnalysis
+                        editValueAdd[`comp${index + 1}`]
+                          ? editedValueAdd
                           : valueAdd
                       }
-                      onChange={(e) => setEditedCompAnalysis(e.target.value)}
+                      onChange={(e) => setEditedValueAdd(e.target.value)}
                     />
                   </div>
 
@@ -786,7 +811,7 @@ export default function Analysis() {
                     <button
                       onClick={handleNext}
                       className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                      // disabled={isEditing} // Optional: disable "Next" while editing
+                    // disabled={isEditing} // Optional: disable "Next" while editing
                     >
                       Next
                     </button>
