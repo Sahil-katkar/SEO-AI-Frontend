@@ -24,7 +24,6 @@ export default function ContentBriefPage() {
   const fileId = params.file_id; // From /contentBrief/[file_id]/index route
   const index = params.index;
 
-  // Fetch content brief from database or API
   const fetchContentBrief = async () => {
     setIsLoading(true);
     setError(null);
@@ -45,17 +44,17 @@ export default function ContentBriefPage() {
         .eq("row_id", file__Id)
         .single();
 
-      const { data: dataInput, error: dberror } = await supabase
+      const { data: dataInput, error: inputError } = await supabase
         .from("row_details")
         .select(
-          "keyword, BUSINESS_GOAL, target_audience,intent,article_outcome,pillar,cluster"
+          "keyword, BUSINESS_GOAL, target_audience, intent, article_outcome, pillar, cluster"
         )
-        .eq("row_id", file__Id);
+        .eq("row_id", file__Id)
+        .single(); // Use .single() to ensure one row is returned
 
-      if (error) {
-        console.error("Error fetching row details:", error);
-      } else {
-        console.log("keyword:", dataInput);
+      if (inputError) {
+        console.error("Error fetching row details:", inputError);
+        throw new Error(`Failed to fetch input data: ${inputError.message}`);
       }
 
       if (dbError && dbError.code !== "PGRST116") {
@@ -66,30 +65,30 @@ export default function ContentBriefPage() {
       // If mission_plan exists and is not empty, use it from the database
       if (dbData?.mission_plan) {
         console.log("Found mission plan in database:", dbData.mission_plan);
-        const data = { generated_mission_plan: dbData.mission_plan };
-        setResponseData(data);
-        setMissionPlanValue(data.generated_mission_plan);
+        setResponseData({ generated_mission_plan: dbData.mission_plan });
+        setMissionPlanValue(dbData.mission_plan);
+        setIsLoading(false);
         return; // Exit early if data is found
       }
 
       // If no mission plan in database, call API
+      const keyword = dataInput?.keyword || "";
+      const BUSINESS_GOAL = dataInput?.BUSINESS_GOAL || "";
+      const target_audience = dataInput?.target_audience || "";
+      const intent = dataInput?.intent || "";
+      const article_outcome = dataInput?.article_outcome || "";
+      const pillar = dataInput?.pillar || "";
+      const cluster = dataInput?.cluster || "";
 
-      console.log("keyword:", dataInput?.[0].keyword || "");
-      console.log("BUSINESS_GOAL:", dataInput?.[0].BUSINESS_GOAL || "");
-      console.log("target_audience:", dataInput?.[0].target_audience || "");
-      console.log("intent:", dataInput?.[0].intent || "");
-      console.log("article_outcome:", dataInput?.[0].article_outcome || "");
-
-      console.log("pillar:", dataInput?.[0].pillar || "");
-      console.log("cluster:", dataInput?.[0].cluster || "");
-
-      const keyword = dataInput?.[0].keyword || "";
-      const BUSINESS_GOAL = dataInput?.[0].BUSINESS_GOAL || "";
-      const target_audience = dataInput?.[0].target_audience || "";
-      const intent = dataInput?.[0].intent || "";
-      const article_outcome = dataInput?.[0].article_outcome || "";
-      const pillar = dataInput?.[0].pillar || "";
-      const cluster = dataInput?.[0].cluster || "";
+      console.log("Input data for API:", {
+        keyword,
+        BUSINESS_GOAL,
+        target_audience,
+        intent,
+        article_outcome,
+        pillar,
+        cluster,
+      });
 
       console.log("No mission plan in database, calling API...");
       const response = await fetch("/api/contentBrief", {
@@ -97,10 +96,10 @@ export default function ContentBriefPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           fileId: file__Id,
-          pillar: pillar,
-          cluster: cluster,
+          pillar,
+          cluster,
           business_goal: BUSINESS_GOAL,
-          target_audience: target_audience,
+          target_audience,
           the_one_thing: article_outcome,
           user_intent: intent,
           primary_keyword: keyword,
@@ -115,44 +114,37 @@ export default function ContentBriefPage() {
       const data = await response.json();
       console.log("API Response:", data);
 
-      const { data: updateData, error: updateError } = await supabase
-        .from("row_details") // Your table name
-        .update({ mission_plan: data }) // The column to update and the data to insert
-        .eq("row_id", file__Id) // The 'WHERE' clause: find the row where row_id matches
-        .select(); // Optional: .select() returns the updated row data
-
-      // 3. Handle any errors from the Supabase operation
-      if (updateError) {
-        console.error("Supabase update error:", updateError);
-        throw new Error(`Failed to save to Supabase: ${updateError.message}`);
+      // Ensure we extract the mission plan string correctly
+      const missionPlan =
+        data.generated_mission_plan ||
+        data.mission_plan ||
+        (typeof data === "string" ? data : "");
+      if (!missionPlan) {
+        throw new Error("No mission plan found in API response");
       }
 
-      // 4. Log success
-      console.log("Successfully saved to Supabase:", updateData);
-
-      setResponseData(data);
+      // Update state with the mission plan
+      setResponseData({ generated_mission_plan: missionPlan });
+      setMissionPlanValue(missionPlan);
 
       // Upsert API response to database
-      if (data.generated_mission_plan) {
-        const { error: upsertError } = await supabase
-          .from("row_details")
-          .upsert(
-            {
-              row_id: file__Id,
-              mission_plan: data.generated_mission_plan,
-            },
-            { onConflict: "row_id" }
-          );
+      const { error: upsertError } = await supabase.from("row_details").upsert(
+        {
+          row_id: file__Id,
+          mission_plan: missionPlan, // Store only the mission plan string
+        },
+        { onConflict: "row_id" }
+      );
 
-        if (upsertError) {
-          // Log this error but don't block the UI, as the data is still available from the API
-          console.error("Supabase upsert error after API call:", upsertError);
-        }
+      if (upsertError) {
+        console.error("Supabase upsert error:", upsertError);
+        // Log error but don't throw, as UI already has the data
+      } else {
+        console.log(
+          "Successfully saved mission plan to Supabase:",
+          missionPlan
+        );
       }
-
-      console.log("dssss", data.generated_mission_plan);
-
-      setMissionPlanValue(data.generated_mission_plan || "");
     } catch (error) {
       console.error("Fetch Error:", {
         message: error.message,
