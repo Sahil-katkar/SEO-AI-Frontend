@@ -11,6 +11,8 @@ export default function Analysis() {
   const [isLoading, setIsLoading] = useState(false);
   const [lsiData, setLsiData] = useState("");
   const [compAnalysis, setCompAnalysis] = useState("");
+  const [valueAdd, setValueAdd] = useState("");
+
   const router = useRouter();
   const params = useParams();
   const fileId = params.file_id; // From /contentBrief/[file_id]/index route
@@ -126,6 +128,7 @@ export default function Analysis() {
     comp3: false,
   });
   const [editedCompAnalysis, setEditedCompAnalysis] = useState("");
+  const [editedValueAdd, setEditedValueAdd] = useState("");
 
   const [isGeneratingLSI, setIsGeneratingLSI] = useState(false);
   const [isGeneratingAnalysis, setIsGeneratingAnalysis] = useState(false);
@@ -378,27 +381,26 @@ export default function Analysis() {
       const data = await response.json();
       console.log("Successfully generated value add:", data);
 
+      setValueAdd(data);
+
       // You can now use the 'data' to update state or perform the upsert.
       // For example: setCompAnalysis(data);
 
       // The commented-out upsert logic can now be safely used.
-      /*
-      const { error: upsertError } = await supabase
-        .from("analysis")
-        .upsert(
-          {
-            row_id: row_id,
-            value_add_analysis: data, // Assuming this is the target column
-          },
-          { onConflict: "row_id" }
-        );
+
+      const { error: upsertError } = await supabase.from("analysis").upsert(
+        {
+          row_id: row_id, // <-- Add this line
+          value_add: data,
+        },
+        { onConflict: "row_id" }
+      );
 
       if (upsertError) {
         throw new Error(`Failed to save analysis: ${upsertError.message}`);
       } else {
         console.log("Analysis saved successfully.");
       }
-      */
     } catch (error) {
       console.error("Failed to generate value add:", error);
       // Here you would typically show a notification to the user
@@ -484,6 +486,11 @@ export default function Analysis() {
   };
 
   const handleEditCompAnalysis = (item) => {
+    setEditCompAnalysis({ ...editCompAnalysis, [`comp${item}`]: true });
+    setEditedCompAnalysis(compAnalysis); // Load current value for editing
+  };
+
+  const handleEditValueAdd = (item) => {
     setEditCompAnalysis({ ...editCompAnalysis, [`comp${item}`]: true });
     setEditedCompAnalysis(compAnalysis); // Load current value for editing
   };
@@ -676,7 +683,7 @@ export default function Analysis() {
                           {isGeneratingAnalysis ? (
                             <Loader size={20} />
                           ) : (
-                            "Generate Analysis"
+                            "Generate Value Add"
                           )}
                         </button>
                         {!editCompAnalysis[`comp${index + 1}`] && (
@@ -713,7 +720,7 @@ export default function Analysis() {
                       value={
                         editCompAnalysis[`comp${index + 1}`]
                           ? editedCompAnalysis
-                          : compAnalysis
+                          : valueAdd
                       }
                       onChange={(e) => setEditedCompAnalysis(e.target.value)}
                     />
