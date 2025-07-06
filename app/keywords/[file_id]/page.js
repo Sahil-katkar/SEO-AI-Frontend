@@ -29,7 +29,18 @@ export default function FileId() {
 
       if (error) throw new Error(`Supabase fetch error: ${error.message}`);
 
-      const fetchedKeywords = rowData.map((row) => row.keyword).filter(Boolean);
+      // Sort by the index after the last underscore in row_id
+      const sortedRows = rowData
+        .slice() // copy to avoid mutating original
+        .sort((a, b) => {
+          const aIndex = parseInt(a.row_id.split("_").pop(), 10);
+          const bIndex = parseInt(b.row_id.split("_").pop(), 10);
+          return aIndex - bIndex;
+        });
+
+      const fetchedKeywords = sortedRows
+        .map((row) => row.keyword)
+        .filter(Boolean);
       setKeywords(fetchedKeywords);
       setRowStatuses(new Array(fetchedKeywords.length).fill("idle"));
     } catch (error) {

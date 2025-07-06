@@ -611,6 +611,8 @@ export default function FileRow() {
             standard_outline_format: rowDetails.outline_format,
           };
 
+          console.log("payload", payload);
+
           const res = await fetch("/api/generate-outline", {
             method: "POST",
             headers: {
@@ -1098,9 +1100,7 @@ export default function FileRow() {
                               <div key={index} className="">
                                 <textarea
                                   className=""
-                                  defaultValue={
-                                    articleSections
-                                  }
+                                  defaultValue={articleSections}
                                 />
 
                                 <button

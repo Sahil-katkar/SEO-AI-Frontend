@@ -43,7 +43,7 @@ export async function POST(request) {
       persona,
       questions: questionsArray, // Use the new array
       faq: faqArray, // Use the new array
-      standard_outline_format,
+      standard_outline_format: standard_outline_format,
     };
 
     console.log("Sending CLEANED payload to FastAPI:", backendPayload);
