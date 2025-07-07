@@ -194,7 +194,7 @@ export default function FileId() {
         </div>
 
         {/* Stat Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           <div className="bg-white rounded-xl shadow-md p-5">
             <p className="text-sm font-medium text-gray-500">Total Keywords</p>
             <h2 className="text-3xl font-bold text-blue-500">
@@ -219,7 +219,7 @@ export default function FileId() {
             <h2 className="text-3xl font-bold text-indigo-500">0%</h2>
             <p className="text-sm text-gray-400 mt-1">📈 Analysis accuracy</p>
           </div>
-        </div>
+        </div> */}
 
         {/* Search + Filter */}
         {/* <div className="flex flex-col md:flex-row items-center justify-between gap-4">
@@ -289,7 +289,7 @@ export default function FileId() {
                     </button> */}
                     <button
                       disabled={rowStatuses[index] === "loading"}
-                      className="px-5 py-2 text-sm font-semibold rounded-xl text-white bg-green-600 hover:bg-green-700 disabled:opacity-50 transition"
+                      className="px-5 py-2 text-sm font-semibold rounded-xl text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 transition"
                       onClick={() =>
                         lsiKeyowrds(file_id, keyword, index, url[index] || "")
                       }
@@ -299,7 +299,8 @@ export default function FileId() {
 
                     <button
                       disabled={rowStatuses[index] === "loading"}
-                      className="px-5 py-2 text-sm font-semibold rounded-xl text-white bg-green-600 hover:bg-green-700 disabled:opacity-50 transition"
+                      className="px-5 py-2 text-sm font-semibold rounded-xl text-white  hover:bg-amber-600 disabled:opacity-50 transition"
+                      style={{ backgroundColor: "#1397cb" }}
                       onClick={() =>
                         contentbrief(file_id, keyword, index, url[index] || "")
                       }
@@ -314,7 +315,7 @@ export default function FileId() {
         )}
 
         {/* Footer Stats */}
-        <div className="flex justify-center gap-6 mt-12 text-sm font-medium text-gray-700">
+        {/* <div className="flex justify-center gap-6 mt-12 text-sm font-medium text-gray-700">
           <span className="flex items-center gap-2 text-green-600">
             ● {keywords.filter((_, i) => rowStatuses[i] === "completed").length}{" "}
             Completed
@@ -326,7 +327,7 @@ export default function FileId() {
           <span className="flex items-center gap-2 text-gray-400">
             ● {keywords.filter((_, i) => !rowStatuses[i]).length} Pending
           </span>
-        </div>
+        </div> */}
       </main>
     </div>
   );
