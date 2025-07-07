@@ -1,11 +1,11 @@
 "use client";
 
-import { usePathname } from "next/navigation";
+// import { usePathname } from "next/navigation"; // <-- REMOVE THIS LINE
 import React, { createContext, useState, useContext } from "react";
 const AppContext = createContext();
 
 export function AppProvider({ children }) {
-  const pathName = usePathname();
+  // const pathName = usePathname(); // <-- REMOVE THIS LINE
 
   const [projectData, setProjectData] = useState({
     projectName: "",
@@ -26,18 +26,18 @@ export function AppProvider({ children }) {
     isModalOpen: false,
     activeModalRowIndex: null,
     activeModalTab: "Intent",
-    selectedFileId: "",
-    selectedRowIndex: "",
+    selectedFileId: "", // These values are derived from updates, not initial path
+    selectedRowIndex: "", // These values are derived from updates, not initial path
   });
 
   const STEPS = [
     { id: "step1", name: "Connect Google Drive", route: "/" },
     {
       id: "step2",
-      name: "Density",
+      name: "LSI Keywords",
       route: "lsi-keywords",
-      selectedFileId: projectData.selectedFileId,
-      selectedRowIndex: projectData.selectedRowIndex,
+      selectedFileId: projectData.selectedFileId, // These are based on projectData state
+      selectedRowIndex: projectData.selectedRowIndex, // and are updated via updateProjectData
     },
     {
       id: "step3",
@@ -66,7 +66,6 @@ export function AppProvider({ children }) {
       route: "content",
       selectedFileId: projectData.selectedFileId,
       selectedRowIndex: projectData.selectedRowIndex,
-      // route: `${pathName === "/" ? "" : pathName}`,
     },
   ];
 
