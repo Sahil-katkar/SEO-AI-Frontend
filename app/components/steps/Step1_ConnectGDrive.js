@@ -135,14 +135,16 @@ export default function Step1_ConnectGDrive() {
         intent: row.INTENT || "",
         faq: row["FAQs"] || "",
         comp_url: row.COMPETITORS || "",
-        questions: row.MUST_ANSWER || "",
-        lsi_keywords: row.LSI_TERMS || "",
-        ai_mode: row.AI_MODE_ANSWER || "",
-        persona: row.PERSONA || "",
-        BUSINESS_GOAL: row.BUSINESS_GOAL || "",
+        questions: row["MUST-ANSWER QUESTIONS (within content)"] || "",
+        lsi_keywords: row["LSI TERMS"] || "",
+        ai_mode: row["AI OVERVIEW / AI MODE ANSWER"] || "",
+        persona: row["AUTHOR/PERSONA"] || "",
+        BUSINESS_GOAL: row["BUSINESS GOAL"] || "",
         cluster: row.CLUSTER || "",
         pillar: row.PILLAR || "",
-        article_outcome: row.article_outcome || "",
+        article_outcome: row["ARTICLE OUTCOME FOR READER"] || "",
+        outline_format: row["OUTLINE"] || "",
+        target_audience: row["TARGET AUDIENCE"] || "",
 
         // This row_id will be used to check for conflicts
         row_id: `${fileId}_${index + 1}`,
@@ -223,10 +225,11 @@ export default function Step1_ConnectGDrive() {
             disabled={!folderNameInput || isLoading}
             onClick={handleListFiles}
             className={`px-6 py-3 w-full sm:w-auto flex items-center justify-center gap-2 text-white font-semibold rounded-xl transition 
-              ${""
-              // folderNameInput && !isLoading
-              //   ? "bg-gradient-to-r from-blue-500 to-cyan-500 hover:scale-[1.02]"
-              //   : "bg-gray-300 cursor-not-allowed"
+              ${
+                ""
+                // folderNameInput && !isLoading
+                //   ? "bg-gradient-to-r from-blue-500 to-cyan-500 hover:scale-[1.02]"
+                //   : "bg-gray-300 cursor-not-allowed"
               }
             `}
           >

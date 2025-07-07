@@ -39,6 +39,7 @@ export default function FileRow() {
   const [editedExplanation, setEditedExplanation] = useState("");
   const [saveEditedIntent, setSaveEditedIntent] = useState(false);
   const [saveEditedCitable, setSaveEditedCitable] = useState(false);
+  const [parsedMissionPlan, setParsedMissionPlan] = useState("");
 
   const [logs, setLogs] = useState([]);
   const [saveStatus, setSaveStatus] = useState(false);
@@ -71,7 +72,7 @@ export default function FileRow() {
   // ... rest of the state
 
   useEffect(() => {
-    const row_id = `${fileId}_${row}`;
+    // const row_id = `${fileId}_${row}`;
 
     const fetchData = async () => {
       try {
@@ -100,6 +101,11 @@ export default function FileRow() {
           .select("citable_answer")
           .eq("row_id", row_id);
 
+        const { data: missionPlan } = await supabase
+          .from("row_details")
+          .select("mission_plan")
+          .eq("row_id", row_id);
+
         setArticleData(article || []);
         setIntentData(intent);
 
@@ -126,6 +132,7 @@ export default function FileRow() {
         console.log("edited intent", editIntent);
 
         setEditedExplanation(parsed.explanation || "");
+        setParsedMissionPlan(missionPlan?.[0]?.mission_plan || "");
       } catch (error) {
         setApiError(error.message || "Something went wrong");
       } finally {
@@ -468,43 +475,54 @@ export default function FileRow() {
   };
 
   // # Contentful Explained: A Comprehensive Headless CMS Comparison Guide
-  const testoutline = `
-    * [Contentful Explained: A Comprehensive Headless CMS Comparison Guide](#contentful-explained-a-comprehensive-headless-cms-comparison-guide)
-    * [What is Contentful? Demystifying a Modern Content Platform](#what-is-contentful-demystifying-a-modern-content-platform)
-    * [Traditional vs. Headless: Understanding Core CMS Differences](#traditional-vs-headless-understanding-core-cms-differences)
-        * [The Architecture of a Traditional (Monolithic) CMS](#the-architecture-of-a-traditional-monolithic-cms)
-        * [The Rise of Headless CMS: Decoupled Content Delivery](#the-rise-of-headless-cms-decoupled-content-delivery)
-        * [Key Distinctions: Headless CMS vs. Traditional CMS (Image: Comparison Chart)](#key-distinctions-headless-cms-vs-traditional-cms-image-comparison-chart)
-    * [Why Choose a Headless CMS Like Contentful?](#why-choose-a-headless-cms-like-contentful)
-        * [Advantages of Adopting a Headless Architecture (Video: Explainer)](#advantages-of-adopting-a-headless-architecture-video-explainer)
-        * [How Contentful Works: Powering Digital Experiences](#how-contentful-works-powering-digital-experiences)
-    * [Key Features and Benefits of the Contentful Platform](#key-features-and-benefits-of-the-contentful-platform)
-        * [Contentful's Unique Capabilities for Developers and Marketers](#contentfuls-unique-capabilities-for-developers-and-marketers)
-        * [Delivering Omnichannel Experiences with Contentful](#delivering-omnichannel-experiences-with-contentful)
-    * [Who is Contentful Best For? Making the 'Better Option' Choice](#who-is-contentful-best-for-making-the-better-option-choice)
-        * [Use Cases for Contentful: From Marketing Sites to Headless Commerce (Image: Use Case Icons)](#use-cases-for-contentful-from-marketing-sites-to-headless-commerce-image-use-case-icons)
-        * [When is Contentful the Better Option for Your Business?](#when-is-contentful-the-better-option-for-your-business)
-    * [Contentful FAQs: Your Questions About Headless CMS Answered](#contentful-faqs-your-questions-about-headless-cms-answered)
-        * [Is Contentful truly a CMS, or something different?](#is-contentful-truly-a-cms-or-something-different)
-        * [What are the main advantages and disadvantages of traditional CMS platforms?](#what-are-the-main-advantages-and-disadvantages-of-traditional-cms-platforms)
-        * [Should I use a headless CMS or a traditional CMS for my next project?](#should-i-use-a-headless-cms-or-a-traditional-cms-for-my-next-project)
-    * [Conclusion: Is Contentful the Right CMS for You?](#conclusion-is-contentful-the-right-cms-for-you)
-`;
+  //   const testoutline = `
+  //     * [Contentful Explained: A Comprehensive Headless CMS Comparison Guide](#contentful-explained-a-comprehensive-headless-cms-comparison-guide)
+  //     * [What is Contentful? Demystifying a Modern Content Platform](#what-is-contentful-demystifying-a-modern-content-platform)
+  //     * [Traditional vs. Headless: Understanding Core CMS Differences](#traditional-vs-headless-understanding-core-cms-differences)
+  //         * [The Architecture of a Traditional (Monolithic) CMS](#the-architecture-of-a-traditional-monolithic-cms)
+  //         * [The Rise of Headless CMS: Decoupled Content Delivery](#the-rise-of-headless-cms-decoupled-content-delivery)
+  //         * [Key Distinctions: Headless CMS vs. Traditional CMS (Image: Comparison Chart)](#key-distinctions-headless-cms-vs-traditional-cms-image-comparison-chart)
+  //     * [Why Choose a Headless CMS Like Contentful?](#why-choose-a-headless-cms-like-contentful)
+  //         * [Advantages of Adopting a Headless Architecture (Video: Explainer)](#advantages-of-adopting-a-headless-architecture-video-explainer)
+  //         * [How Contentful Works: Powering Digital Experiences](#how-contentful-works-powering-digital-experiences)
+  //     * [Key Features and Benefits of the Contentful Platform](#key-features-and-benefits-of-the-contentful-platform)
+  //         * [Contentful's Unique Capabilities for Developers and Marketers](#contentfuls-unique-capabilities-for-developers-and-marketers)
+  //         * [Delivering Omnichannel Experiences with Contentful](#delivering-omnichannel-experiences-with-contentful)
+  //     * [Who is Contentful Best For? Making the 'Better Option' Choice](#who-is-contentful-best-for-making-the-better-option-choice)
+  //         * [Use Cases for Contentful: From Marketing Sites to Headless Commerce (Image: Use Case Icons)](#use-cases-for-contentful-from-marketing-sites-to-headless-commerce-image-use-case-icons)
+  //         * [When is Contentful the Better Option for Your Business?](#when-is-contentful-the-better-option-for-your-business)
+  //     * [Contentful FAQs: Your Questions About Headless CMS Answered](#contentful-faqs-your-questions-about-headless-cms-answered)
+  //         * [Is Contentful truly a CMS, or something different?](#is-contentful-truly-a-cms-or-something-different)
+  //         * [What are the main advantages and disadvantages of traditional CMS platforms?](#what-are-the-main-advantages-and-disadvantages-of-traditional-cms-platforms)
+  //         * [Should I use a headless CMS or a traditional CMS for my next project?](#should-i-use-a-headless-cms-or-a-traditional-cms-for-my-next-project)
+  //     * [Conclusion: Is Contentful the Right CMS for You?](#conclusion-is-contentful-the-right-cms-for-you)
+  // `;
 
-  console.log("outlineData", outlineData);
-  console.log("outlineDataUpdated", outlineDataUpdated);
+  // console.log("outlineData", outlineData);
+  // console.log("outlineDataUpdated", outlineDataUpdated);
 
-  useEffect(() => {
-    function calculateSectionCount(outline) {
-      const lines = outline.split("\n");
-      // Match lines that start with 4 spaces and an asterisk, but not more
-      const count = lines.filter((line) => /^ {4}\*/.test(line)).length;
-      console.log("count", count);
-      setArticleSectionCount(count);
-      // return count;
-    }
-    calculateSectionCount(testoutline);
-  }, [testoutline]);
+  // const getOutline = async () => {
+  //   const { data: outline } = await supabase
+  //     .from("outline")
+  //     .select("new_outline")
+  //     .eq("row_id", row_id);
+
+  //   return outline;
+  // };
+
+  // const outline = getOutline();
+
+  // useEffect(() => {
+  //   const calculateSectionCount = async (outline) => {
+  //     const lines = outline.split("\n");
+  //     // Match lines that start with 4 spaces and an asterisk, but not more
+  //     const count = lines.filter((line) => /^ {4}\*/.test(line)).length;
+  //     console.log("count", count);
+  //     setArticleSectionCount(count);
+  //     // return count;
+  //   };
+  //   calculateSectionCount(outline);
+  // }, [outline]);
 
   // function getSectionHeadings(toc, n) {
   //   const lines = toc.split("\n");
@@ -542,18 +560,48 @@ export default function FileRow() {
   // const section = getSectionHeadings(testoutline, 4);
   // console.log("section", section);
 
+  const articleArr = [];
+
   const generateArticleSection = async (section) => {
     console.log("section", section);
 
+    const { data: row_details } = await supabase
+      .from("row_details")
+      .select("mission_plan,lsi_keywords,persona")
+      .eq("row_id", row_id);
+
+    console.log("row id", row_id);
+
+    const { data: valueAdd } = await supabase
+      .from("analysis")
+      .select("value_add")
+      .eq("row_id", row_id);
+
+    const { data: outline } = await supabase
+      .from("outline")
+      .select("new_outline")
+      .eq("row_id", row_id);
+
     const payload = {
-      missionPlan,
-      gapsAndOpportunities,
-      lsi_keywords,
-      persona,
-      outline,
-      density,
+      missionPlan: row_details[0].mission_plan,
+      gapsAndOpportunities: valueAdd,
+      lsi_keywords: row_details[0].lsi_keywords,
+      persona: row_details[0].persona,
+      outline: outline,
       section,
     };
+
+    // const calculateSectionCount = async (outline) => {
+    //   const lines = outline.split("\n");
+    //   // Match lines that start with 4 spaces and an asterisk, but not more
+    //   const count = lines.filter((line) => /^ {4}\*/.test(line)).length;
+    //   console.log("count", count);
+    //   setArticleSectionCount(count);
+    //   // return count;
+    // };
+    // calculateSectionCount(outline.new_outline);
+
+    console.log("payload", payload);
 
     const response = await fetch(`/api/generate-article`, {
       method: "POST",
@@ -562,14 +610,22 @@ export default function FileRow() {
     const data = await response.json();
     console.log("dataaaaaaaaaaa", data);
 
+    articleArr.push(data);
+    setArticleSectionGenerateCount(articleSectionGenerateCount + 1);
+
     // setArticleSections();
   };
   // In your React Component
 
   useEffect(() => {
+    // Only call when switching to the Outline tab
     if (projectData.activeModalTab === "Outline") {
+      // Optionally, set a loading state here, e.g., setLoading(true);
+
       const callGenerateOutline = async () => {
         try {
+          // 1. Fetch all required data from Supabase efficiently.
+          // Use .single() to get one object directly instead of an array.
           const { data: rowDetails, error: rowDetailsError } = await supabase
             .from("row_details")
             .select("keyword, intent, persona, questions, faq, outline_format")
@@ -582,10 +638,12 @@ export default function FileRow() {
             .eq("row_id", row_id)
             .single();
 
+          // Abort if there were any database errors
           if (rowDetailsError) throw rowDetailsError;
           if (analysisError) throw analysisError;
           if (!rowDetails) throw new Error("Details not found for this entry.");
 
+          // 2. Safely parse and extract LSI keywords.
           let allExtractedKeywords = [];
           if (analysis?.lsi_keywords) {
             try {
@@ -595,12 +653,14 @@ export default function FileRow() {
                   (item) =>
                     item?.lsi_keywords?.lsi_keyword || item?.lsi_keywords
                 )
-                .filter(Boolean);
+                .filter(Boolean); // filter(Boolean) removes null/undefined values
             } catch (error) {
               console.error("Failed to parse lsi_keywords JSON:", error);
+              // Decide how to handle malformed JSON - here we proceed with no LSI keywords.
             }
           }
 
+          // 3. Construct the payload with the correct structure.
           const payload = {
             primary_keyword: rowDetails.keyword,
             lsi_keywords: allExtractedKeywords,
@@ -610,8 +670,6 @@ export default function FileRow() {
             faq: rowDetails.faq,
             standard_outline_format: rowDetails.outline_format,
           };
-
-          console.log("payload", payload);
 
           const res = await fetch("/api/generate-outline", {
             method: "POST",
@@ -656,7 +714,9 @@ export default function FileRow() {
 
       callGenerateOutline();
     }
-  }, [projectData.activeModalTab, row_id]);
+    // 5. Use a stable dependency array. `row` and `keyword` are likely derived from `row_id`.
+  }, [projectData.activeModalTab, row_id]); // Make sure `row_id` and `supabase` are available in scope.
+
   useEffect(() => {
     if (projectData.activeModalTab === "Citable Summary") {
       const callCitableSummary = async () => {
@@ -723,6 +783,20 @@ export default function FileRow() {
 
           setCitableData(data);
 
+          const { error: upsertError } = await supabase.from("outline").upsert(
+            {
+              row_id: row_id, // <-- Add this line
+              citable_answer: data,
+            },
+            { onConflict: "row_id" }
+          );
+
+          if (upsertError) {
+            throw new Error(`Failed to save analysis: ${upsertError.message}`);
+          } else {
+            console.log("outline saved successfully.");
+          }
+
           // Assuming you have a state setter like setCitableSummaryData
           setOutlineData(data); // Or a more specific state setter
         } catch (err) {
@@ -737,7 +811,6 @@ export default function FileRow() {
       callCitableSummary();
     }
   }, [projectData.activeModalTab, row_id]);
-
   return (
     <div className="container">
       <main className="main-content step-component">
@@ -1032,14 +1105,9 @@ export default function FileRow() {
                         </>
                       ) : (
                         <>
-                          {/* <p className="text-black-600 text-base mb-4">
+                          <p className="text-black-600 text-base mb-4">
                             {citabledata}
-                          </p> */}
-                          <textarea
-                            disabled={saveEditedCitable}
-                            value={citabledata}
-                            onChange={(e) => setEditedCitable(e.target.value)}
-                          />
+                          </p>
                           {/* <h4 className="text-lg font-semibold text-black-700 mb-2">
                             Explanation
                           </h4>
@@ -1054,7 +1122,7 @@ export default function FileRow() {
                   )}
 
                   <button
-                    onClick={() => handleTabChange("Content")}
+                    onClick={() => handleTabChange("Article")}
                     className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded flex ml-auto items-center gap-2"
                   >
                     Next
@@ -1121,7 +1189,7 @@ export default function FileRow() {
                     </h4>
 
                     <div className="rb">
-                      {articleSectionCount > 0 &&
+                      {/* {articleSectionCount > 0 &&
                         Array.from({ length: articleSectionCount }).map(
                           (_, index) => {
                             return (
@@ -1141,14 +1209,21 @@ export default function FileRow() {
                               </div>
                             );
                           }
-                        )}
-                      {/* <button
+                        )} */}
+
+                      <textarea className="" defaultValue={articleArr} />
+
+                      <button
                         onClick={() => {
-                          generateArticleSection();
+                          generateArticleSection(articleSectionGenerateCount);
+                          console.log(
+                            "articleSectionGenerateCount",
+                            articleSectionGenerateCount
+                          );
                         }}
                       >
                         Generate section test
-                      </button> */}
+                      </button>
                     </div>
                   </div>
 

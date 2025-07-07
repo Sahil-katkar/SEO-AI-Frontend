@@ -47,7 +47,7 @@ export default function ContentBriefPage() {
       const { data: dataInput, error: inputError } = await supabase
         .from("row_details")
         .select(
-          "keyword, BUSINESS_GOAL, target_audience, intent, article_outcome, pillar, cluster"
+          "keyword, BUSINESS_GOAL, target_audience, intent, article_outcome, pillar, cluster,questions,faq,lsi_keywords,ai_mode,persona, outline_format"
         )
         .eq("row_id", file__Id)
         .single(); // Use .single() to ensure one row is returned
@@ -79,6 +79,12 @@ export default function ContentBriefPage() {
       const article_outcome = dataInput?.article_outcome || "";
       const pillar = dataInput?.pillar || "";
       const cluster = dataInput?.cluster || "";
+      const questions = dataInput?.questions || "";
+      const faq = dataInput?.faq || "";
+      const lsi_keywords = dataInput?.lsi_keywords || "";
+      const ai_mode = dataInput?.ai_mode || "";
+      const persona = dataInput?.persona || "";
+      const outline = dataInput?.outline_format || "";
 
       console.log("Input data for API:", {
         keyword,
@@ -95,14 +101,19 @@ export default function ContentBriefPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          fileId: file__Id,
-          pillar,
-          cluster,
           business_goal: BUSINESS_GOAL,
-          target_audience,
-          the_one_thing: article_outcome,
-          user_intent: intent,
+          target_audience: target_audience,
           primary_keyword: keyword,
+          user_intent: intent,
+          pillar: pillar,
+          cluster: cluster,
+          Must_Answer_Questions: questions,
+          FAQs: faq,
+          lsi_terms: lsi_keywords,
+          ai_overview: ai_mode,
+          author_persona: persona,
+          article_outcome: article_outcome,
+          outline: outline,
         }),
       });
 

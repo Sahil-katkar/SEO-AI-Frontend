@@ -7,25 +7,40 @@ export async function POST(request) {
   try {
     // 1. Destructure all the fields from the incoming request body
     const {
-      fileId,
-      pillar,
-      cluster,
       business_goal,
       target_audience,
-      the_one_thing,
-      user_intent,
       primary_keyword,
+      user_intent,
+      pillar,
+      cluster,
+      Must_Answer_Questions,
+      FAQs,
+      lsi_terms,
+      ai_overview,
+      author_persona,
+      article_outcome,
+      outline,
     } = await request.json();
 
     // Log the entire received payload for easier debugging
-    console.log("Received request body:", {
-      fileId,
+    console.log("Received request body content_brief:", {
+      business_goal,
+      target_audience,
+      primary_keyword,
+      user_intent,
       pillar,
-      cluster /* ...and so on */,
+      cluster,
+      Must_Answer_Questions,
+      FAQs,
+      lsi_terms,
+      ai_overview,
+      author_persona,
+      article_outcome,
+      outline,
     });
 
     // 2. Validate that essential fields are present
-    if (!fileId || !primary_keyword) {
+    if (!primary_keyword) {
       return NextResponse.json(
         { error: "fileId and primary_keyword are required" },
         { status: 400 }
@@ -37,14 +52,19 @@ export async function POST(request) {
     //      a common practice when calling Python backends.
     //    - The other keys are passed as-is since they already match a common snake_case format.
     const backendPayload = {
-      // file_id: fileId,
-      pillar,
-      cluster,
       business_goal,
       target_audience,
-      the_one_thing,
-      user_intent,
       primary_keyword,
+      user_intent,
+      pillar,
+      cluster,
+      Must_Answer_Questions,
+      FAQs,
+      lsi_terms,
+      ai_overview,
+      author_persona,
+      article_outcome,
+      outline,
     };
 
     // 4. Forward the complete payload to your FastAPI backend

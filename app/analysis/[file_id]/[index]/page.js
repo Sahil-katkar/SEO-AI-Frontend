@@ -19,7 +19,7 @@ export default function Analysis() {
   const index = params.index;
 
   // const projectData = useAppContext();
-  const row_id = "1B3w0VIoRh_cRb-Q9WGmOzgLyLrAjmCkmnmRJrT4KkDg_1";
+  const row_id = `${fileId}_${index}`;
   const supabase = createClientComponentClient();
 
   // console.log("selectedFileId", projectData.selected);
@@ -174,6 +174,7 @@ export default function Analysis() {
   };
 
   const generateLsi = async () => {
+    console.log("generateLsi called");
     setIsGeneratingLSI(true);
     try {
       if (!row_id) {
@@ -371,6 +372,9 @@ export default function Analysis() {
         competitive_analysis_report,
       };
 
+      console.log("payload",payload);
+      
+
       const response = await fetch("/api/value_add", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -557,10 +561,10 @@ export default function Analysis() {
         .eq("row_id", row_id)
         .single();
 
-      if (error) {
-        console.error("Error fetching analysis data:", error);
-        return;
-      }
+      // if (error) {
+      //   console.error("Error fetching analysis data:", error);
+      //   return;
+      // }
 
       if (data) {
         // Parse and set LSI data
@@ -608,7 +612,9 @@ export default function Analysis() {
                       <p className="font-bold text-[24px] ">LSI:</p>
                       <div className="flex gap-[8px]">
                         <button
-                          onClick={generateLsi}
+                          onClick={async () => {
+                            await generateLsi();
+                          }}
                           disabled={isGeneratingLSI}
                         >
                           {isGeneratingLSI ? (
@@ -812,7 +818,7 @@ export default function Analysis() {
                     <button
                       onClick={handleNext}
                       className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                    // disabled={isEditing} // Optional: disable "Next" while editing
+                      // disabled={isEditing} // Optional: disable "Next" while editing
                     >
                       Next
                     </button>

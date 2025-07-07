@@ -10,7 +10,7 @@ export async function POST(request) {
       await request.json();
 
     // IMPROVEMENT: Directly use the destructured variables. No need for a new object.
-    const payload = {
+    const payload = { 
       mission_plan_context,
       competitive_analysis_report,
     };

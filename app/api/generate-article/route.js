@@ -12,9 +12,20 @@ export async function POST(request) {
       lsi_keywords,
       persona,
       outline,
-      density,
       section,
     } = await request.json();
+
+    const payload={
+        missionPlan,
+        gapsAndOpportunities,
+        lsi_keywords,
+        persona,
+        outline,
+        section,
+    }
+
+    console.log("payload",payload);
+    
 
     if (
       !missionPlan ||
@@ -22,7 +33,6 @@ export async function POST(request) {
       !lsi_keywords ||
       !persona ||
       !outline ||
-      !density ||
       !section
     ) {
       return NextResponse.json(
@@ -38,10 +48,10 @@ export async function POST(request) {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(
-          { density: "123" }
+        body: 
+         JSON.stringify(payload)
           // { file_id: fileId }
-        ),
+        ,
       }
     );
 
