@@ -32,19 +32,20 @@ export function AppProvider({ children }) {
 
   const STEPS = [
     { id: "step1", name: "Connect Google Drive", route: "/" },
+    ,
     {
       id: "step2",
-      name: "LSI Keywords",
-      route: "lsi-keywords",
-      selectedFileId: projectData.selectedFileId, // These are based on projectData state
-      selectedRowIndex: projectData.selectedRowIndex, // and are updated via updateProjectData
-    },
-    {
-      id: "step3",
       name: "Keywords",
       route: "keywords",
       selectedFileId: projectData.selectedFileId,
       selectedRowIndex: projectData.selectedRowIndex,
+    },
+    {
+      id: "step3",
+      name: "LSI Keywords",
+      route: "lsi-keywords",
+      selectedFileId: projectData.selectedFileId, // These are based on projectData state
+      selectedRowIndex: projectData.selectedRowIndex, // and are updated via updateProjectData
     },
     {
       id: "step4",
