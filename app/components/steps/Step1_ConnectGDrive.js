@@ -165,7 +165,7 @@ export default function Step1_ConnectGDrive() {
         throw error;
       } else {
         console.log("Upsert success:", upsertedData);
-        toast.success("File processed and data saved successfully!");
+        toast.success("Files listed and started reading!");
       }
       // --- MODIFICATION END ---
 

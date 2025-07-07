@@ -56,6 +56,11 @@ export default function FileId() {
     router.push(`/mission-plan/${file_id}/${index + 1}`);
   };
 
+  const lsiKeyowrds = (file_id, keyword, index) => {
+    console.log(" ", file_id, index);
+
+    router.push(`/lsi-keywords/${file_id}/${index + 1}`);
+  };
   // const callMainAgent = async (userId, keyword, index, currentUrl) => {
   //   try {
   // const { error: insertError } = await supabase
@@ -267,7 +272,7 @@ export default function FileId() {
                     <div>{statusBadge(rowStatuses[index])}</div>
                   </div>
                   <div className="flex flex-wrap gap-3 md:justify-end">
-                    <button
+                    {/* <button
                       disabled={rowStatuses[index] === "loading"}
                       className="px-5 py-2 text-sm font-semibold rounded-xl text-blue-700 border border-blue-300 bg-blue-50 hover:bg-blue-100 disabled:opacity-50 transition"
                       onClick={() => {
@@ -278,7 +283,17 @@ export default function FileId() {
                       }}
                     >
                       🔍 View Logs
+                    </button> */}
+                    <button
+                      disabled={rowStatuses[index] === "loading"}
+                      className="px-5 py-2 text-sm font-semibold rounded-xl text-white bg-green-600 hover:bg-green-700 disabled:opacity-50 transition"
+                      onClick={() =>
+                        lsiKeyowrds(file_id, keyword, index, url[index] || "")
+                      }
+                    >
+                      ⚙ SEO
                     </button>
+
                     <button
                       disabled={rowStatuses[index] === "loading"}
                       className="px-5 py-2 text-sm font-semibold rounded-xl text-white bg-green-600 hover:bg-green-700 disabled:opacity-50 transition"

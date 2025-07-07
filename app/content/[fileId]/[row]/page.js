@@ -53,8 +53,8 @@ export default function FileRow() {
   const supabase = createClientComponentClient();
   const [outlineLoading, setOutlineLoading] = useState(false);
 
-
   const row_id = `${fileId}_${row}`;
+
   // ... after the intent state variables
   // const [editIntent, setEditIntent] = useState(false);
   // const [editedIntent, setEditedIntent] = useState("");
@@ -628,8 +628,7 @@ export default function FileRow() {
   };
   // In your React Component
 
-
- useEffect(() => {
+  useEffect(() => {
     // Only call when switching to the Outline tab
     if (projectData.activeModalTab === "Outline") {
       // Optionally, set a loading state here, e.g., setLoading(true);
@@ -885,8 +884,7 @@ export default function FileRow() {
                 </div>
               )}
 
-            
-  {projectData.activeModalTab === "Outline" && (
+              {projectData.activeModalTab === "Outline" && (
                 <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200">
                   {outlineLoading ? (
                     // --- LOADER UI ---
@@ -983,7 +981,6 @@ export default function FileRow() {
                   )}
                 </div>
               )}
-
 
               {projectData.activeModalTab === "Citable Summary" && (
                 <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200">

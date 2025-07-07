@@ -593,7 +593,7 @@ export default function Analysis() {
       <div className="container px-4 py-6">
         <main className="main-content step-component">
           <h3 className="text-xl font-semibold mb-6 text-blue-600">
-            2. Analysis
+            2.LSI Keywords
           </h3>
 
           {isLoading && <Loader />}
@@ -606,7 +606,97 @@ export default function Analysis() {
                   className="flex flex-col gap-[30px] rounded-[12px] border-[1px] border-gray-200 py-3 px-4 text-sm hover:bg-gray-50 transition"
                 >
                   {/* lsi section */}
-
+                  <div>
+                    <div className="mb-[8px] flex justify-between items-center">
+                      <p className="font-bold text-[24px] ">LSI:</p>
+                      <div className="flex gap-[8px]">
+                        <button
+                          onClick={async () => {
+                            await generateLsi();
+                          }}
+                          disabled={isGeneratingLSI}
+                        >
+                          {isGeneratingLSI ? (
+                            <Loader size={20} />
+                          ) : (
+                            "Generate LSI"
+                          )}
+                        </button>
+                        {!editLSI[`comp${index + 1}`] && (
+                          <button
+                            onClick={() => {
+                              handleEditLSI(index + 1);
+                            }}
+                            // Optional: Add some padding for a better click area
+                            className="p-1 text-gray-600 hover:text-black"
+                          >
+                            <Pencil className="h-5 w-5" />{" "}
+                            {/* <-- 2. Use the icon component */}
+                          </button>
+                        )}
+                        {editLSI[`comp${index + 1}`] && (
+                          <button
+                            onClick={() => {
+                              handleSaveLSI(index + 1);
+                            }}
+                          >
+                            Save
+                          </button>
+                        )}
+                        {editLSI[`comp${index + 1}`] && (
+                          <button
+                            onClick={() => {
+                              handleCancelLSI(index + 1);
+                            }}
+                          >
+                            Cancel
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    {/* <textarea
+                      disabled={!editLSI[`comp${index + 1}`]}
+                      className="focus:outline-[#1abc9c] focus:outline-2"
+                      rows="4"
+                      defaultValue={lsiData}
+                    /> */}
+                    {lsiData &&
+                      lsiData.map((item, idx) => (
+                        <div key={idx} className="mb-4">
+                          <label className="block font-bold mb-1">
+                            Result {idx + 1} (Source:{" "}
+                            <a
+                              href={item.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:underline"
+                            >
+                              {item.url}
+                            </a>
+                            )
+                          </label>
+                          <textarea
+                            disabled={!editLSI[`comp${index + 1}`]}
+                            className="focus:outline-[#1abc9c] focus:outline-2 w-full p-2 border rounded"
+                            rows="8"
+                            value={
+                              editLSI[`comp${index + 1}`]
+                                ? editedLsiData[`${idx}_${item.url}`] !==
+                                  undefined
+                                  ? editedLsiData[`${idx}_${item.url}`]
+                                  : item.lsi_keywords
+                                : item.lsi_keywords
+                            }
+                            onChange={(e) => {
+                              setEditedLsiData({
+                                ...editedLsiData,
+                                [`${idx}_${item.url}`]: e.target.value,
+                              });
+                            }}
+                          />
+                        </div>
+                      ))}
+                  </div>
                   {/* lsi section end*/}
                   {/* <div>
                     <p className="font-bold text-[24px]">
@@ -614,115 +704,6 @@ export default function Analysis() {
                     </p>
                   </div> */}
 
-                  {/* value_add */}
-                  <div>
-                    <div className="mb-[8px] flex justify-between items-center">
-                      <p className="font-bold text-[24px] ">Value Add</p>
-                      <div className="flex gap-[8px]">
-                        <button
-                          onClick={generateValueAdd}
-                          disabled={isGeneratingValueAdd}
-                        >
-                          {isGeneratingValueAdd ? (
-                            <Loader size={20} />
-                          ) : (
-                            "Generate Value Add"
-                          )}
-                        </button>
-                        {!editValueAdd[`comp${index + 1}`] && (
-                          <button
-                            onClick={() => {
-                              handleEditValueAdd(index + 1);
-                            }}
-                          >
-                            <Pencil className="h-5 w-5" />
-                          </button>
-                        )}
-                        {editValueAdd[`comp${index + 1}`] && (
-                          <>
-                            <button
-                              onClick={() => handleSaveValueAdd(index + 1)}
-                            >
-                              Save
-                            </button>
-                            <button
-                              onClick={() => handleCancelValueAdd(index + 1)}
-                            >
-                              Cancel
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                    <textarea
-                      disabled={!editValueAdd[`comp${index + 1}`]}
-                      className="focus:outline-[#1abc9c] focus:outline-2"
-                      rows="2"
-                      value={
-                        editValueAdd[`comp${index + 1}`]
-                          ? editedValueAdd
-                          : valueAdd
-                      }
-                      onChange={(e) => setEditedValueAdd(e.target.value)}
-                    />
-                  </div>
-
-                  {/* value_add_end */}
-                  <div>
-                    <div className="mb-[8px] flex justify-between items-center">
-                      <p className="font-bold text-[24px] ">
-                        Competitor Analysis
-                      </p>
-                      <div className="flex gap-[8px]">
-                        <button
-                          onClick={generateAnalysis}
-                          disabled={isGeneratingAnalysis}
-                        >
-                          {isGeneratingAnalysis ? (
-                            <Loader size={20} />
-                          ) : (
-                            "Generate Analysis"
-                          )}
-                        </button>
-                        {!editCompAnalysis[`comp${index + 1}`] && (
-                          <button
-                            onClick={() => {
-                              handleEditCompAnalysis(index + 1);
-                            }}
-                          >
-                            <Pencil className="h-5 w-5" />
-                          </button>
-                        )}
-                        {editCompAnalysis[`comp${index + 1}`] && (
-                          <>
-                            <button
-                              onClick={() => handleSaveCompAnalysis(index + 1)}
-                            >
-                              Save
-                            </button>
-                            <button
-                              onClick={() =>
-                                handleCancelCompAnalysis(index + 1)
-                              }
-                            >
-                              Cancel
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                    <textarea
-                      disabled={!editCompAnalysis[`comp${index + 1}`]}
-                      className="focus:outline-[#1abc9c] focus:outline-2"
-                      rows="2"
-                      value={
-                        editCompAnalysis[`comp${index + 1}`]
-                          ? editedCompAnalysis
-                          : compAnalysis
-                      }
-                      onChange={(e) => setEditedCompAnalysis(e.target.value)}
-                    />
-                  </div>
                   <div className="mt-6 flex justify-end">
                     <button
                       onClick={handleNext}
