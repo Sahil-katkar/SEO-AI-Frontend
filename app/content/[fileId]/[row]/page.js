@@ -20,7 +20,8 @@ export default function FileRow() {
     primaryKeyword,
   } = useAppContext();
 
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+
   const [apiError, setApiError] = useState(null);
   const [articledata, setArticleData] = useState([]);
   const [articledataUpdated, setArticleDataUpdated] = useState([]);
@@ -50,6 +51,9 @@ export default function FileRow() {
   const row = params.row;
   const router = useRouter();
   const supabase = createClientComponentClient();
+  const [outlineLoading, setOutlineLoading] = useState(false);
+
+
   const row_id = `${fileId}_${row}`;
   // ... after the intent state variables
   // const [editIntent, setEditIntent] = useState(false);
@@ -66,7 +70,8 @@ export default function FileRow() {
   const [articleSectionCount, setArticleSectionCount] = useState(0);
   const [articleSectionGenerateCount, setArticleSectionGenerateCount] =
     useState(1);
-  const [articleSections, setArticleSections] = useState([]);
+  const [articleSections, setArticleSections] = useState();
+  const [sectionIsGenerating, setSectionIsGenerating] = useState(false);
 
   // const [logs, setLogs] = useState([]);
   // ... rest of the state
@@ -560,11 +565,11 @@ export default function FileRow() {
   // const section = getSectionHeadings(testoutline, 4);
   // console.log("section", section);
 
-  const articleArr = [];
+  // const articleArr = [];
 
   const generateArticleSection = async (section) => {
+    setSectionIsGenerating(true);
     console.log("section", section);
-
     const { data: row_details } = await supabase
       .from("row_details")
       .select("mission_plan,lsi_keywords,persona")
@@ -593,15 +598,16 @@ export default function FileRow() {
       section: String(section), // ensure string
     };
 
-    // const calculateSectionCount = async (outline) => {
-    //   const lines = outline.split("\n");
-    //   // Match lines that start with 4 spaces and an asterisk, but not more
-    //   const count = lines.filter((line) => /^ {4}\*/.test(line)).length;
-    //   console.log("count", count);
-    //   setArticleSectionCount(count);
-    //   // return count;
-    // };
-    // calculateSectionCount(outline.new_outline);
+    const calculateSectionCount = async (outline) => {
+      const lines = outline.split("\n");
+      // Match lines that start with 4 spaces and an asterisk, but not more
+      // const count = lines.filter((line) => /^ {4}\*/.test(line)).length;
+      const count = lines.filter((line) => /^\s*-- H2:/.test(line)).length;
+      console.log("count", count);
+      setArticleSectionCount(count);
+      // return count;
+    };
+    calculateSectionCount(payload?.outline);
 
     console.log("payload", payload);
 
@@ -612,20 +618,26 @@ export default function FileRow() {
     const data = await response.json();
     console.log("dataaaaaaaaaaa", data);
 
-    articleArr.push(data);
+    setArticleSections((prev) =>
+      Array.isArray(prev) ? [...prev, data] : [data]
+    );
+    // articleArr.push(data);
     setArticleSectionGenerateCount(articleSectionGenerateCount + 1);
-
+    setSectionIsGenerating(false);
     // setArticleSections();
   };
   // In your React Component
 
-  useEffect(() => {
+
+ useEffect(() => {
     // Only call when switching to the Outline tab
     if (projectData.activeModalTab === "Outline") {
       // Optionally, set a loading state here, e.g., setLoading(true);
 
       const callGenerateOutline = async () => {
         try {
+          setOutlineLoading(true); // Start the loader
+
           // 1. Fetch all required data from Supabase efficiently.
           // Use .single() to get one object directly instead of an array.
           const { data: rowDetails, error: rowDetailsError } = await supabase
@@ -711,6 +723,7 @@ export default function FileRow() {
           toast.error(err.message || "An unexpected error occurred.");
         } finally {
           // Unset loading state here, e.g., setLoading(false);
+          setOutlineLoading(false); // Start the loader
         }
       };
 
@@ -799,6 +812,23 @@ export default function FileRow() {
       callCitableSummary();
     }
   }, [projectData.activeModalTab, row_id]);
+
+  const handleSaveArticle = async (savedArticle) => {
+    setSectionIsGenerating(true);
+    const { data: article, error } = await supabase.from("article").upsert(
+      {
+        row_id: row_id,
+        updated_article: savedArticle,
+      },
+      { onConflict: "row_id" }
+    );
+
+    if (error) {
+      console.log("added succesfully", error);
+    }
+    setSectionIsGenerating(false);
+  };
+
   return (
     <div className="container">
       <main className="main-content step-component">
@@ -824,7 +854,7 @@ export default function FileRow() {
         {!isLoading && (
           <div className="flex flex-col gap-[8px]">
             <div className="modal-tabs">
-              {["Logs", "Intent", "Outline", "Citable Summary", "Article"].map(
+              {["Logs", "Outline", "Citable Summary", "Article"].map(
                 (tabName) => (
                   <button
                     key={tabName}
@@ -855,181 +885,105 @@ export default function FileRow() {
                 </div>
               )}
 
-              {projectData.activeModalTab === "Intent" && (
+            
+  {projectData.activeModalTab === "Outline" && (
                 <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200">
-                  {intentdata.length > 0 ? (
-                    <div className="mb-6">
-                      <div className="flex justify-between items-center mb-2">
-                        <h4 className="text-lg font-semibold text-black-700 mb-2">
-                          Intent
-                        </h4>
-
-                        <div className="ml-auto flex items-center gap-[30px]">
-                          {!editIntent && (
-                            <button onClick={() => setEditIntent(true)}>
-                              Edit
-                            </button>
-                          )}
-                          {editIntent && (
-                            <>
-                              {saveEditedIntent && (
-                                <Loader className="loader-sm" />
-                              )}
-                              <button
-                                disabled={saveEditedIntent}
-                                onClick={handleSaveEditedIntent}
-                              >
-                                Save
-                              </button>
-                              <button
-                                disabled={saveEditedIntent}
-                                onClick={handleCancelEditedIntent}
-                              >
-                                Cancel
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </div>
-
-                      {editIntent ? (
-                        <>
-                          <textarea
-                            disabled={saveEditedIntent}
-                            value={editedIntent}
-                            onChange={(e) => setEditedIntent(e.target.value)}
-                          />
-                          {/* <h4 className="text-lg font-semibold text-black-700 mb-2">
-                            Explanation
-                          </h4>
-                          <textarea
-                            disabled={saveEditedIntent}
-                            value={editedExplanation}
-                            onChange={(e) =>
-                              setEditedExplanation(e.target.value)
-                            }
-                          /> */}
-                        </>
-                      ) : (
-                        <>
-                          <p className="text-black-600 text-base mb-4">
-                            {parsedContentState}
-                          </p>
-                          {/* <h4 className="text-lg font-semibold text-black-700 mb-2">
-                            Explanation
-                          </h4>
-                          <p className="text-black-600 leading-relaxed">
-                            {parsedContentState?.explanation}
-                          </p> */}
-                        </>
-                      )}
+                  {outlineLoading ? (
+                    // --- LOADER UI ---
+                    // This part is shown while the outline is being generated
+                    <div className="flex flex-col items-center justify-center min-h-[250px]">
+                      <Loader />
+                      <p className="mt-4 text-gray-600 font-semibold">
+                        Generating Outline...
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        This may take a moment.
+                      </p>
                     </div>
-                  ) : (
-                    <p className="text-black-500">No intent data available.</p>
-                  )}
+                  ) : outlineData.length > 0 ? (
+                    // --- DATA DISPLAY UI ---
+                    // This part is shown after loading is complete and data is available
+                    <>
+                      <div className="mb-6">
+                        <div className="flex justify-between items-center mb-2">
+                          <h4 className="text-lg font-semibold text-black-700 mb-2">
+                            Outline
+                          </h4>
 
-                  <button
-                    onClick={() => handleTabChange("Outline")}
-                    className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded flex ml-auto items-center gap-2"
-                  >
-                    Next
-                    <span aria-hidden="true">→</span>
-                  </button>
-                </div>
-              )}
-
-              {projectData.activeModalTab === "Outline" && (
-                <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200">
-                  {outlineData.length > 0 ? (
-                    <div className="mb-6">
-                      <div className="flex justify-between items-center mb-2">
-                        <h4 className="text-lg font-semibold text-black-700 mb-2">
-                          Outline
-                        </h4>
-
-                        <div className="ml-auto flex items-center gap-[30px]">
-                          {!editOutline && (
-                            <button
-                              onClick={() => {
-                                setEditOutline(true);
-                                setEditedOutline(outlineData);
-                              }}
-                            >
-                              Edit
-                            </button>
-                          )}
-                          {editOutline && (
-                            <>
-                              {saveEditedOutline && (
-                                <Loader className="loader-sm" />
-                              )}
+                          {/* --- EDIT / SAVE / CANCEL BUTTONS --- */}
+                          <div className="ml-auto flex items-center gap-[30px]">
+                            {!editOutline && (
                               <button
-                                disabled={saveEditedOutline}
-                                onClick={handleSaveEditedOutline}
+                                onClick={() => {
+                                  setEditOutline(true);
+                                  setEditedOutline(outlineData);
+                                }}
+                                className="text-blue-500 hover:text-blue-700 font-semibold"
                               >
-                                Save
+                                Edit
                               </button>
-                              <button
-                                disabled={saveEditedOutline}
-                                onClick={handleCancelEditedOutline}
-                              >
-                                Cancel
-                              </button>
-                            </>
-                          )}
+                            )}
+                            {editOutline && (
+                              <>
+                                {saveEditedOutline && (
+                                  <Loader className="loader-sm" />
+                                )}
+                                <button
+                                  disabled={saveEditedOutline}
+                                  onClick={handleSaveEditedOutline}
+                                  className="text-green-500 hover:text-green-700 font-semibold disabled:opacity-50"
+                                >
+                                  Save
+                                </button>
+                                <button
+                                  disabled={saveEditedOutline}
+                                  onClick={handleCancelEditedOutline}
+                                  className="text-red-500 hover:text-red-700 font-semibold disabled:opacity-50"
+                                >
+                                  Cancel
+                                </button>
+                              </>
+                            )}
+                          </div>
                         </div>
-                      </div>
 
-                      {editOutline ? (
-                        <>
+                        {/* --- TEXTAREA FOR VIEWING OR EDITING --- */}
+                        {editOutline ? (
                           <textarea
+                            className="w-full p-3 border border-blue-300 rounded-md shadow-inner focus:ring-2 focus:ring-blue-500 min-h-[400px]"
                             disabled={saveEditedOutline}
                             value={editedOutline}
                             onChange={(e) => setEditedOutline(e.target.value)}
                           />
-                          {/* <h4 className="text-lg font-semibold text-black-700 mb-2">
-                            Explanation
-                          </h4>
+                        ) : (
                           <textarea
-                            disabled={saveEditedIntent}
-                            value={editedExplanation}
-                            onChange={(e) =>
-                              setEditedExplanation(e.target.value)
-                            }
-                          /> */}
-                        </>
-                      ) : (
-                        <>
-                          {/* <p className="text-black-600 text-base mb-4">
-                            {outlineData}
-                          </p> */}
-                          <textarea
-                            disabled={saveEditedOutline}
+                            readOnly
+                            className="w-full p-3 border border-gray-200 rounded-md bg-gray-50 min-h-[400px]"
                             value={outlineData}
-                            onChange={(e) => setEditedOutline(e.target.value)}
                           />
-                          {/* <h4 className="text-lg font-semibold text-black-700 mb-2">
-                            Explanation
-                          </h4>
-                          <p className="text-black-600 leading-relaxed">
-                            {parsedContentState?.explanation}
-                          </p> */}
-                        </>
-                      )}
-                    </div>
-                  ) : (
-                    <p className="text-black-500">No outline data available.</p>
-                  )}
+                        )}
+                      </div>
 
-                  <button
-                    onClick={() => handleTabChange("Citable Summary")}
-                    className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded flex ml-auto items-center gap-2"
-                  >
-                    Next
-                    <span aria-hidden="true">→</span>
-                  </button>
+                      {/* --- NEXT BUTTON --- */}
+                      <button
+                        onClick={() => handleTabChange("Citable Summary")}
+                        className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded flex ml-auto items-center gap-2"
+                      >
+                        Next
+                        <span aria-hidden="true">→</span>
+                      </button>
+                    </>
+                  ) : (
+                    // --- NO DATA UI ---
+                    // This part is shown if loading is complete but no data was found
+                    <p className="text-black-500 text-center py-10">
+                      No outline data available. It might be generating for the
+                      first time.
+                    </p>
+                  )}
                 </div>
               )}
+
 
               {projectData.activeModalTab === "Citable Summary" && (
                 <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200">
@@ -1166,7 +1120,7 @@ export default function FileRow() {
               )} */}
 
               {projectData.activeModalTab === "Article" && (
-                <div className="flex flex-col md:flex-row gap-6 rb">
+                <div className="flex flex-col md:flex-row gap-6">
                   <div
                     className={`${
                       articledataUpdated.length > 0 ? "md:w-1/2" : "w-full"
@@ -1176,7 +1130,7 @@ export default function FileRow() {
                       Generated Article
                     </h4>
 
-                    <div className="rb">
+                    <div className="grid ">
                       {/* {articleSectionCount > 0 &&
                         Array.from({ length: articleSectionCount }).map(
                           (_, index) => {
@@ -1198,20 +1152,47 @@ export default function FileRow() {
                             );
                           }
                         )} */}
+                      <textarea
+                        rows={20}
+                        disabled={sectionIsGenerating}
+                        className=""
+                        defaultValue={
+                          Array.isArray(articleSections)
+                            ? articleSections.join("\n")
+                            : articleSections || ""
+                        }
+                      />
 
-                      <textarea className="" defaultValue={articleArr} />
+                      <div className="flex gap-[30px]">
+                        <button
+                          className="ml-auto "
+                          disabled={sectionIsGenerating}
+                          onClick={() => {
+                            generateArticleSection(articleSectionGenerateCount);
+                            console.log(
+                              "articleSectionGenerateCount",
+                              articleSectionGenerateCount
+                            );
+                          }}
+                        >
+                          Generate section test
+                        </button>
 
-                      <button
-                        onClick={() => {
-                          generateArticleSection(articleSectionGenerateCount);
-                          console.log(
-                            "articleSectionGenerateCount",
-                            articleSectionGenerateCount
-                          );
-                        }}
-                      >
-                        Generate section test
-                      </button>
+                        <button
+                          disabled={sectionIsGenerating}
+                          className=""
+                          onClick={() => {
+                            handleSaveArticle(
+                              Array.isArray(articleSections)
+                                ? articleSections.join("\n")
+                                : articleSections || ""
+                            );
+                          }}
+                        >
+                          Save
+                        </button>
+                      </div>
+                      {sectionIsGenerating && <Loader />}
                     </div>
                   </div>
 

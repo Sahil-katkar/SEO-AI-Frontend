@@ -197,12 +197,11 @@ export default function Step1_ConnectGDrive() {
           </div> */}
 
           <h1 className="text-xl sm:text-4xl font-bold text-gray-800">
-            📂Google Drive Manager
+            📂Google Drive
           </h1>
         </div>
         <p className="text-gray-600 text-md sm:text-lg">
-          Connect to your Google Drive and manage your files with ease. Search
-          through folders and process your documents seamlessly.
+          Connect to your Google Drive and manage your files.
         </p>
       </div>
 
