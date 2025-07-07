@@ -584,11 +584,13 @@ export default function FileRow() {
 
     const payload = {
       missionPlan: row_details[0].mission_plan,
-      gapsAndOpportunities: valueAdd,
-      lsi_keywords: row_details[0].lsi_keywords,
+      gapsAndOpportunities: valueAdd?.[0]?.value_add || "", // extract string
+      lsi_keywords: Array.isArray(row_details[0].lsi_keywords)
+        ? row_details[0].lsi_keywords
+        : [], // ensure array
       persona: row_details[0].persona,
-      outline: outline,
-      section,
+      outline: outline?.[0]?.new_outline || "", // extract string
+      section: String(section), // ensure string
     };
 
     // const calculateSectionCount = async (outline) => {
@@ -766,20 +768,6 @@ export default function FileRow() {
 
           const data = await res.json();
           console.log("Citable summary generated successfully:", data);
-
-          const { error: upsertError } = await supabase.from("outline").upsert(
-            {
-              row_id: row_id, // <-- Add this line
-              citable_answer: data,
-            },
-            { onConflict: "row_id" }
-          );
-
-          if (upsertError) {
-            throw new Error(`Failed to save analysis: ${upsertError.message}`);
-          } else {
-            console.log("outline saved successfully.");
-          }
 
           setCitableData(data);
 
