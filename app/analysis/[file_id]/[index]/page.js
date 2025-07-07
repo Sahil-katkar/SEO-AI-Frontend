@@ -140,6 +140,8 @@ export default function Analysis() {
   const [isGeneratingAnalysis, setIsGeneratingAnalysis] = useState(false);
   const [isGeneratingValueAdd, setIsGeneratingValueAdd] = useState(false);
 
+  const [isAnalysisGenerated, setIsAnalysisGenerated] = useState(false);
+
   //   !-----------------------------------
   const handleEditIntent = (item) => {
     setEditIntent({ ...editIntent, [`comp${item}`]: true });
@@ -322,6 +324,7 @@ export default function Analysis() {
       }
     }
     setIsGeneratingAnalysis(false);
+    setIsAnalysisGenerated(true);
   };
 
   const generateValueAdd = async () => {
@@ -614,60 +617,6 @@ export default function Analysis() {
                     </p>
                   </div> */}
 
-                  {/* value_add */}
-                  <div>
-                    <div className="mb-[8px] flex justify-between items-center">
-                      <p className="font-bold text-[24px] ">Value Add</p>
-                      <div className="flex gap-[8px]">
-                        <button
-                          onClick={generateValueAdd}
-                          disabled={isGeneratingValueAdd}
-                        >
-                          {isGeneratingValueAdd ? (
-                            <Loader size={20} />
-                          ) : (
-                            "Generate Value Add"
-                          )}
-                        </button>
-                        {!editValueAdd[`comp${index + 1}`] && (
-                          <button
-                            onClick={() => {
-                              handleEditValueAdd(index + 1);
-                            }}
-                          >
-                            <Pencil className="h-5 w-5" />
-                          </button>
-                        )}
-                        {editValueAdd[`comp${index + 1}`] && (
-                          <>
-                            <button
-                              onClick={() => handleSaveValueAdd(index + 1)}
-                            >
-                              Save
-                            </button>
-                            <button
-                              onClick={() => handleCancelValueAdd(index + 1)}
-                            >
-                              Cancel
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                    <textarea
-                      disabled={!editValueAdd[`comp${index + 1}`]}
-                      className="focus:outline-[#1abc9c] focus:outline-2"
-                      rows="2"
-                      value={
-                        editValueAdd[`comp${index + 1}`]
-                          ? editedValueAdd
-                          : valueAdd
-                      }
-                      onChange={(e) => setEditedValueAdd(e.target.value)}
-                    />
-                  </div>
-
-                  {/* value_add_end */}
                   <div>
                     <div className="mb-[8px] flex justify-between items-center">
                       <p className="font-bold text-[24px] ">
@@ -723,11 +672,68 @@ export default function Analysis() {
                       onChange={(e) => setEditedCompAnalysis(e.target.value)}
                     />
                   </div>
+
+                  {/* value_add */}
+                  <div>
+                    <div className="mb-[8px] flex justify-between items-center">
+                      <p className="font-bold text-[24px] ">Value Add</p>
+                      <div className="flex gap-[8px]">
+                        <button
+                          onClick={generateValueAdd}
+                          disabled={!isAnalysisGenerated}
+                        >
+                          {isGeneratingValueAdd ? (
+                            <Loader size={20} />
+                          ) : (
+                            "Generate Value Add"
+                          )}
+                        </button>
+                        {!editValueAdd[`comp${index + 1}`] && (
+                          <button
+                            onClick={() => {
+                              handleEditValueAdd(index + 1);
+                            }}
+                            disabled={!isAnalysisGenerated}
+                          >
+                            <Pencil className="h-5 w-5" />
+                          </button>
+                        )}
+                        {editValueAdd[`comp${index + 1}`] && (
+                          <>
+                            <button
+                              onClick={() => handleSaveValueAdd(index + 1)}
+                            >
+                              Save
+                            </button>
+                            <button
+                              onClick={() => handleCancelValueAdd(index + 1)}
+                            >
+                              Cancel
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                    <textarea
+                      disabled={!editValueAdd[`comp${index + 1}`]}
+                      className="focus:outline-[#1abc9c] focus:outline-2"
+                      rows="2"
+                      value={
+                        editValueAdd[`comp${index + 1}`]
+                          ? editedValueAdd
+                          : valueAdd
+                      }
+                      onChange={(e) => setEditedValueAdd(e.target.value)}
+                    />
+                  </div>
+
+                  {/* value_add_end */}
+
                   <div className="mt-6 flex justify-end">
                     <button
                       onClick={handleNext}
                       className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                      // disabled={isEditing} // Optional: disable "Next" while editing
+                    // disabled={isEditing} // Optional: disable "Next" while editing
                     >
                       Next
                     </button>
