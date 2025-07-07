@@ -767,20 +767,6 @@ export default function FileRow() {
           const data = await res.json();
           console.log("Citable summary generated successfully:", data);
 
-          const { error: upsertError } = await supabase.from("outline").upsert(
-            {
-              row_id: row_id, // <-- Add this line
-              citable_answer: data,
-            },
-            { onConflict: "row_id" }
-          );
-
-          if (upsertError) {
-            throw new Error(`Failed to save analysis: ${upsertError.message}`);
-          } else {
-            console.log("outline saved successfully.");
-          }
-
           setCitableData(data);
 
           const { error: upsertError } = await supabase.from("outline").upsert(
