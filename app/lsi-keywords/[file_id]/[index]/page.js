@@ -6,6 +6,7 @@ import { Pencil } from "lucide-react"; // <-- 1. Import the icon at the top of y
 import { usePathname, useRouter, useParams } from "next/navigation";
 import { useAppContext } from "@/context/AppContext";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { toast, ToastContainer } from "react-toastify";
 
 export default function Analysis() {
   const [isLoading, setIsLoading] = useState(false);
@@ -30,6 +31,65 @@ export default function Analysis() {
     router.push(`/content/${fileId}/${index}`);
     // Example: router.push(`/next-step-url/${fileId}/${index}`);
     // Replace with your actual navigation logic.
+  };
+
+  // Assume 'supabase' client is initialized and accessible,
+  // and 'row_id' is a variable holding the current row's ID.
+  // For example, if this is within a React component:
+  // const { row_id, supabase } = props; // Or from useContext, etc.
+  // const [isLoading, setIsLoading] = useState(false);
+  // const [error, setError] = useState(null);
+  // const [successMessage, setSuccessMessage] = useState(null);
+
+  const handleApprove = async () => {
+    try {
+      const { data: upsertedData, error: upsertError } = await supabase
+        .from("analysis")
+        .upsert(
+          {
+            row_id: row_id,
+            status: "Approved", // Using "Approved" as the string literal for status
+          },
+          { onConflict: "row_id" } // Ensure 'row_id' is your primary key or unique constraint
+        )
+        .select(); // .select() is good practice to get the updated row data back
+
+      if (upsertError) {
+        // If there's an error from Supabase, throw it to jump to the catch block
+        throw upsertError;
+      } else {
+        toast.success("LSI keywords approved successfully!", {
+          position: "bottom-right", // You can change this position as needed
+        });
+      }
+
+      // --- SUCCESS TOAST ---
+      // Display a success toast notification.
+      // 'position: "top-right"' is an option here, but if you've already
+      // configured your <Toaster /> component with a default position,
+      // you might not need to specify it here.
+
+      console.log("Analysis approved successfully:", upsertedData);
+      // Optional: After successful approval, you might want to:
+      // 1. Update the local state of the item (e.g., change its status to "Approved").
+      // 2. Re-fetch the data to ensure the UI is in sync with the database.
+      // 3. Close a modal or redirect the user.
+    } catch (error) {
+      // Catch any errors that occurred during the process (either from Supabase or thrown)
+      console.error("Error approving analysis:", error.message || error);
+      // --- ERROR TOAST (Highly Recommended for user feedback) ---
+      // Display an error toast to inform the user about the failure.
+      toast.error(
+        `Failed to approve LSI keywords: ${error.message || "Unknown error"}`,
+        {
+          position: "top-right",
+        }
+      );
+    } finally {
+      // Optional: This block will always execute, regardless of success or failure.
+      // It's a good place to hide loading indicators.
+      // setIsLoading(false);
+    }
   };
 
   const analysisArr = [
@@ -94,11 +154,7 @@ export default function Analysis() {
     comp2: false,
     comp3: false,
   });
-  const [editLSI, setEditLSI] = useState({
-    comp1: false,
-    comp2: false,
-    comp3: false,
-  });
+  const [editLSI, setEditLSI] = useState(false);
   const [editWordCount, setEditWordCount] = useState({
     comp1: false,
     comp2: false,
@@ -164,13 +220,24 @@ export default function Analysis() {
 
   //   !-----------------------------------
   const handleEditLSI = (item) => {
-    // Pre-fill editedLsiData with current values for all items
-    const initialData = {};
+    // item is 1-based index (comp1, comp2, ...)
+    // For each lsiData entry, initialize editedLsiData as an array of {keyword, value}
+    const newEditedLsiData = { ...editedLsiData };
     lsiData.forEach((lsi, idx) => {
-      initialData[`${idx}_${lsi.url}`] = lsi.lsi_keywords;
+      const baseKeywords = String(lsi.lsi_keywords || "");
+      const parts = baseKeywords.split(",");
+      const pairs = [];
+      for (let i = 0; i < parts.length; i += 2) {
+        const keyword = parts[i] ? parts[i].trim() : "";
+        const value = parts[i + 1] ? parts[i + 1].trim() : "";
+        if (keyword) {
+          pairs.push({ keyword, value });
+        }
+      }
+      newEditedLsiData[`${idx}_${lsi.url}`] = pairs;
     });
-    setEditedLsiData(initialData);
-    setEditLSI({ ...editLSI, [`comp${item}`]: true });
+    setEditedLsiData(newEditedLsiData);
+    setEditLSI(true);
   };
 
   const generateLsi = async () => {
@@ -419,14 +486,22 @@ export default function Analysis() {
     }
   };
   const handleSaveLSI = async (compIndex) => {
-    // If lsiData is an array of objects with .url and .lsi_keywords
-    const updatedLsi = lsiData.map((item, idx) => ({
-      ...item,
-      lsi_keywords:
-        editedLsiData[`${idx}_${item.url}`] !== undefined
-          ? editedLsiData[`${idx}_${item.url}`]
-          : item.lsi_keywords,
-    }));
+    const updatedLsi = lsiData.map((item, idx) => {
+      const tableEditKey = `${idx}_${item.url}`;
+      let lsi_keywords = item.lsi_keywords;
+
+      if (editedLsiData[tableEditKey]) {
+        // Reconstruct as comma-separated string: keyword1,value1,keyword2,value2,...
+        lsi_keywords = editedLsiData[tableEditKey]
+          .map((pair) => `${pair.keyword},${pair.value}`)
+          .join(",");
+      }
+
+      return {
+        ...item,
+        lsi_keywords,
+      };
+    });
 
     // Save to Supabase
     const { error } = await supabase.from("analysis").upsert(
@@ -441,11 +516,11 @@ export default function Analysis() {
       console.error("Supabase upsert error after API call:", error);
     } else {
       setLsiData(updatedLsi);
-      setEditLSI({ ...editLSI, [`comp${compIndex}`]: false });
+      setEditLSI(false);
     }
   };
   const handleCancelLSI = (item) => {
-    setEditLSI({ ...editLSI, [`comp${item}`]: false });
+    setEditLSI(false);
     setEditedLsiData({});
   };
 
@@ -622,7 +697,7 @@ export default function Analysis() {
                             "Generate LSI"
                           )}
                         </button>
-                        {!editLSI[`comp${index + 1}`] && (
+                        {!editLSI && (
                           <button
                             onClick={() => {
                               handleEditLSI(index + 1);
@@ -634,7 +709,7 @@ export default function Analysis() {
                             {/* <-- 2. Use the icon component */}
                           </button>
                         )}
-                        {editLSI[`comp${index + 1}`] && (
+                        {editLSI && (
                           <button
                             onClick={() => {
                               handleSaveLSI(index + 1);
@@ -643,7 +718,7 @@ export default function Analysis() {
                             Save
                           </button>
                         )}
-                        {editLSI[`comp${index + 1}`] && (
+                        {editLSI && (
                           <button
                             onClick={() => {
                               handleCancelLSI(index + 1);
@@ -654,13 +729,8 @@ export default function Analysis() {
                         )}
                       </div>
                     </div>
-                    {/* <textarea
-                      disabled={!editLSI[`comp${index + 1}`]}
-                      className="focus:outline-[#1abc9c] focus:outline-2"
-                      rows="4"
-                      defaultValue={lsiData}
-                    /> */}
-                    {lsiData &&
+
+                    {/* {lsiData &&
                       lsiData.map((item, idx) => (
                         <div key={idx} className="mb-4">
                           <label className="block font-bold mb-1">
@@ -695,24 +765,168 @@ export default function Analysis() {
                             }}
                           />
                         </div>
-                      ))}
+                      ))} */}
+
+                    {lsiData &&
+                      lsiData.map((item, idx) => {
+                        const baseKeywords = String(item.lsi_keywords || "");
+
+                        const transformedKeywordsForTextarea = baseKeywords
+                          .split(",") // Split by comma
+                          .map((s) => s.trim()) // Trim whitespace from each part
+                          .filter((s) => s) // Remove any empty strings (e.g., from "a,,b")
+                          .join("\n"); // Join with newlines for textarea display
+
+                        // 3. Prepare data for the TABLE DISPLAY (parsing into keyword/value pairs)
+                        const keywordValuePairs = [];
+                        const parts = baseKeywords.split(","); // Split the original string by comma
+                        for (let i = 0; i < parts.length; i += 2) {
+                          // Each pair consists of a keyword (at index i) and a value (at index i+1)
+                          const keyword = parts[i] ? parts[i].trim() : "";
+                          const value = parts[i + 1]
+                            ? parseFloat(parts[i + 1].trim())
+                            : null; // Parse the float value
+
+                          // Only add to pairs if a keyword part exists
+                          if (keyword) {
+                            keywordValuePairs.push({
+                              keyword,
+                              value: isNaN(value) ? null : value, // Handle cases where parsing might result in NaN
+                            });
+                          }
+                        }
+
+                        // Determine if this specific item is in edit mode.
+                        // Assuming 'index' from your original code refers to 'idx' from the map loop.
+                        const isEditing = editLSI;
+
+                        // Prepare editable data structure
+                        const tableEditKey = `${idx}_${item.url}`;
+                        const editedPairs =
+                          editedLsiData[tableEditKey] ||
+                          keywordValuePairs.map((pair) => ({ ...pair }));
+
+                        return (
+                          <div
+                            key={idx}
+                            className="mb-4 p-4 border border-gray-200 rounded-md"
+                          >
+                            {" "}
+                            {/* Added some styling for better separation */}
+                            <label className="block font-bold mb-2">
+                              Result {idx + 1} (Source:{" "}
+                              <a
+                                href={item.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-600 hover:underline"
+                              >
+                                {item.url}
+                              </a>
+                              )
+                            </label>
+                            <div className="overflow-x-auto mt-2">
+                              <table className="min-w-full table-auto border-collapse border border-gray-300 text-sm">
+                                <thead className="bg-gray-50">
+                                  <tr>
+                                    <th className="px-3 py-1 text-left border border-gray-300">
+                                      Keyword
+                                    </th>
+                                    <th className="px-3 py-1 text-left border border-gray-300">
+                                      Value
+                                    </th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {editedPairs.length > 0 ? (
+                                    editedPairs.map((pair, pairIdx) => (
+                                      <tr
+                                        key={pairIdx}
+                                        className="border-b border-gray-200 last:border-0"
+                                      >
+                                        <td className="px-3 py-1 border border-gray-300">
+                                          {isEditing ? (
+                                            <input
+                                              type="text"
+                                              value={pair.keyword}
+                                              onChange={(e) => {
+                                                const newPairs = [
+                                                  ...editedPairs,
+                                                ];
+                                                newPairs[pairIdx].keyword =
+                                                  e.target.value;
+                                                setEditedLsiData({
+                                                  ...editedLsiData,
+                                                  [tableEditKey]: newPairs,
+                                                });
+                                              }}
+                                              className="w-full border rounded px-1"
+                                            />
+                                          ) : (
+                                            pair.keyword
+                                          )}
+                                        </td>
+                                        <td className="px-3 py-1 border border-gray-300">
+                                          {isEditing ? (
+                                            <input
+                                              type="number"
+                                              value={pair.value ?? ""}
+                                              onChange={(e) => {
+                                                const newPairs = [
+                                                  ...editedPairs,
+                                                ];
+                                                newPairs[pairIdx].value =
+                                                  e.target.value;
+                                                setEditedLsiData({
+                                                  ...editedLsiData,
+                                                  [tableEditKey]: newPairs,
+                                                });
+                                              }}
+                                              className="w-full border rounded px-1"
+                                            />
+                                          ) : !isNaN(Number(pair.value)) &&
+                                            pair.value !== "" ? (
+                                            Number(pair.value).toFixed(10)
+                                          ) : (
+                                            pair.value || "N/A"
+                                          )}
+                                        </td>
+                                      </tr>
+                                    ))
+                                  ) : (
+                                    <tr>
+                                      <td
+                                        colSpan="2"
+                                        className="px-3 py-1 text-center text-gray-500 border border-gray-300"
+                                      >
+                                        No keywords found.
+                                      </td>
+                                    </tr>
+                                  )}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        );
+                      })}
                   </div>
-                  {/* lsi section end*/}
-                  {/* <div>
-                    <p className="font-bold text-[24px]">
-                      Competitor {index + 1}
-                    </p>
-                  </div> */}
 
                   <div className="mt-6 flex justify-end">
                     <button
                       onClick={handleNext}
                       className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                      // disabled={isEditing} // Optional: disable "Next" while editing
                     >
                       Next
                     </button>
+
+                    <button
+                      onClick={handleApprove}
+                      className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                    >
+                      Approve
+                    </button>
                   </div>
+
                   {/* <div>
                     <div className="mb-[8px] flex justify-between items-center">
                       <p className="font-bold mb-[8px]">Outline:</p>
