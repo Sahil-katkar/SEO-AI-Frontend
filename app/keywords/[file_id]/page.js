@@ -52,7 +52,10 @@ export default function FileId() {
 
   const contentbrief = (file_id, keyword, index) => {
     console.log(" ", file_id, index);
-
+    updateProjectData({
+      selectedFileId: file_id, // Set selectedFileId to the file_id passed to the function
+      selectedRowIndex: index + 1, // Set selectedRowIndex to the index + 1
+    });
     router.push(`/mission-plan/${file_id}/${index + 1}`);
   };
 
