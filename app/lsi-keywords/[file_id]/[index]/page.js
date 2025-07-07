@@ -912,12 +912,12 @@ export default function Analysis() {
                   </div>
 
                   <div className="mt-6 flex justify-end">
-                    <button
+                    {/* <button
                       onClick={handleNext}
                       className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                     >
                       Next
-                    </button>
+                    </button> */}
 
                     <button
                       onClick={handleApprove}
