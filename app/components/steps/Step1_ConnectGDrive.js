@@ -9,36 +9,53 @@ import { Search, Folder } from "lucide-react";
 
 export default function Step1_ConnectGDrive() {
   const { projectData, updateProjectData } = useAppContext();
-  const [folderNameInput, setFolderNameInput] = useState("");
+  const [input, setInput] = useState("");
   const [files, setFiles] = useState(projectData?.gDriveFiles || []);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState(null);
   const router = useRouter();
   const supabase = createClientComponentClient();
 
   useEffect(() => {
-    document.getElementById("folder-input")?.focus();
+    document.getElementById("gdrive-input")?.focus();
   }, []);
 
-  const handleListFiles = async () => {
+  // Helper to extract Google Sheet file ID from URL or direct input
+  function extractFileIdOrFolder(input) {
+    if (!input) return { type: null, value: null };
+    // Google Sheet URL
+    const sheetMatch = input.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
+    if (sheetMatch && sheetMatch[1]) {
+      return { type: "file_id", value: sheetMatch[1] };
+    }
+    // Looks like a file ID (basic validation: length and chars)
+    if (/^[a-zA-Z0-9_-]{20,}$/.test(input)) {
+      return { type: "file_id", value: input };
+    }
+    // Otherwise, treat as folder name
+    return { type: "folder_name", value: input };
+  }
+
+  // Unified search handler
+  const handleSearch = async () => {
     setError(null);
-    setIsLoading(true);
+    setIsSearching(true);
+    setFiles([]);
+    const { type, value } = extractFileIdOrFolder(input.trim());
+    if (!type || !value) {
+      setError("Please enter a folder name, file ID, or Google Sheet URL.");
+      setIsSearching(false);
+      toast.error("❌ Please enter a folder name, file ID, or Google Sheet URL.");
+      return;
+    }
     try {
       const queryParams = new URLSearchParams();
-      console.log("queryParams", queryParams);
-
-      if (folderNameInput) queryParams.append("folder_name", folderNameInput);
-
+      queryParams.append(type, value);
       const response = await fetch(`/api/list-files?${queryParams.toString()}`);
       const data = await response.json();
-
-      if (!response.ok)
-        throw new Error(data.detail || `Error: ${response.status}`);
-
-      if (!Array.isArray(data)) {
-        throw new Error("API did not return a list of files.");
-      }
-
+      if (!response.ok) throw new Error(data.detail || `Error: ${response.status}`);
+      if (!Array.isArray(data)) throw new Error("API did not return a list of files.");
       setFiles(data);
       updateProjectData({ isGDriveConnected: true, gDriveFiles: data || [] });
       toast.success("Files listed successfully!");
@@ -47,159 +64,24 @@ export default function Step1_ConnectGDrive() {
       setError(e.message || "Something went wrong.");
       toast.error(`❌ ${e.message}`);
     } finally {
-      setIsLoading(false);
+      setIsSearching(false);
     }
   };
 
-  const handleListFilesFileID = async () => {
-    setError(null);
-    setIsLoading(true);
-
-    // Assuming 'folderNameInput' actually holds the URL or the direct ID from user input
-    const rawUserInput = folderNameInput; // Get the user's input
-
-    let fileIdToFetch = null;
-
-    // Regular expression to extract the ID from a Google Sheets URL
-    // It looks for '/d/' followed by a sequence of alphanumeric characters, hyphens, or underscores,
-    // until the next '/'
-    const googleSheetUrlRegex = /\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/;
-    const match = rawUserInput.match(googleSheetUrlRegex);
-
-    if (match && match[1]) {
-      // If a match is found, use the captured group (the ID)
-      fileIdToFetch = match[1];
-      console.log("Extracted Google Sheet ID from URL:", fileIdToFetch);
-    } else if (rawUserInput) {
-      // If it's not a URL, assume the user directly entered the ID
-      fileIdToFetch = rawUserInput;
-      console.log("Assuming input is a direct File ID:", fileIdToFetch);
-      // You might want to add some basic validation here to check if it looks like a valid ID format
-    } else {
-      // No input provided
-      setError("Please provide a Google Sheet URL or File ID.");
-      setIsLoading(false);
-      toast.error("❌ Please provide a Google Sheet URL or File ID.");
-      return; // Exit the function
-    }
-
-    try {
-      const queryParams = new URLSearchParams();
-
-      // Now, always append the extracted/assumed file ID
-      if (fileIdToFetch) {
-        queryParams.append("file_id", fileIdToFetch);
-      } else {
-        // This case should ideally be caught by the earlier 'if (!rawUserInput)' block,
-        // but as a fallback.
-        throw new Error("No valid File ID could be determined from the input.");
-      }
-
-      console.log("queryParams", queryParams.toString()); // Will now show "file_id=<extracted_id>"
-
-      const response = await fetch(`/api/list-files?${queryParams.toString()}`);
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.detail || `Error: ${response.status}`);
-      }
-
-      if (!Array.isArray(data)) {
-        throw new Error("API did not return a list of files.");
-      }
-
-      setFiles(data);
-      updateProjectData({ isGDriveConnected: true, gDriveFiles: data || [] });
-      toast.success("Files listed successfully!");
-    } catch (e) {
-      setFiles([]);
-      setError(e.message || "Something went wrong.");
-      toast.error(`❌ ${e.message}`);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // const handleReadSpreadsheet = async (fileId) => {
-  //   setError(null);
-  //   setIsLoading(true);
-  //   try {
-  //     const response = await fetch("/api/read-spreadsheet", {
-  //       method: "POST",
-  //       headers: {
-  //         "Content-Type": "application/json",
-  //       },
-  //       body: JSON.stringify({ fileId }),
-  //     });
-
-  //     const data = await response.json();
-  //     if (!response.ok)
-  //       throw new Error(data.error || `Error: ${response.status}`);
-
-  //     const rows = data.full_content?.Sheet1;
-
-  //     if (!Array.isArray(rows)) {
-  //       throw new Error("Invalid data format: Sheet1 is not an array.");
-  //     }
-
-  //     // Prepare the rows for insertion
-  //     const formattedRows = rows.map((row, index) => ({
-  //       keyword: row.KEYWORD || "",
-  //       intent: row.INTENT || "",
-  //       faq: row["FAQs"] || "",
-  //       comp_url: row.COMPETITORS || "",
-  //       questions: row.MUST_ANSWER || "",
-  //       lsi_keywords: row.LSI_TERMS || "",
-  //       ai_mode: row.AI_MODE_ANSWER || "",
-  //       persona: row.PERSONA || "",
-  //       BUSINESS_GOAL: row.BUSINESS_GOAL || "",
-  //       row_id: `${fileId}_${index + 1}`,
-  //     }));
-
-  //     const { data: inserted, error } = await supabase
-  //       .from("row_details")
-  //       .insert(formattedRows);
-
-  //     if (error) {
-  //       console.error("Insert error:", error.message);
-  //     } else {
-  //       console.log("Insert success:", inserted);
-  //       toast.success("File processed and data inserted!");
-  //     }
-
-  //     console.log("Processed data:", data);
-  //   } catch (e) {
-  //     setError(e.message || "Something went wrong.");
-  //     toast.error(`❌ ${e.message}`);
-  //   } finally {
-  //     setIsLoading(false);
-  //   }
-  // };
-
+  // File processing handler
   const handleReadSpreadsheet = async (fileId) => {
     setError(null);
-    setIsLoading(true);
+    setIsProcessing(true);
     try {
       const response = await fetch("/api/read-spreadsheet", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ fileId }),
       });
-
       const data = await response.json();
-      if (!response.ok)
-        throw new Error(data.error || `Error: ${response.status}`);
-
+      if (!response.ok) throw new Error(data.error || `Error: ${response.status}`);
       const rows = data.full_content?.Sheet1;
-
-      console.log("rows", rows);
-
-      if (!Array.isArray(rows)) {
-        throw new Error("Invalid data format: Sheet1 is not an array.");
-      }
-
+      if (!Array.isArray(rows)) throw new Error("Invalid data format: Sheet1 is not an array.");
       // Prepare the rows for upsertion
       const formattedRows = rows.map((row, index) => ({
         keyword: row.KEYWORD || "",
@@ -216,57 +98,26 @@ export default function Step1_ConnectGDrive() {
         article_outcome: row["ARTICLE OUTCOME FOR READER"] || "",
         outline_format: row["OUTLINE"] || "",
         target_audience: row["TARGET AUDIENCE"] || "",
-
-        // This row_id will be used to check for conflicts
         row_id: `${fileId}_${index + 1}`,
       }));
-
-      // --- MODIFICATION START ---
-      // Use .upsert() instead of .insert()
       const { data: upsertedData, error } = await supabase
         .from("row_details")
-        .upsert(formattedRows, {
-          onConflict: "row_id", // The column to check for conflicts
-        });
-
-      setIsLoading(false);
+        .upsert(formattedRows, { onConflict: "row_id" });
+      if (error) throw error;
       router.push(`/keywords/${fileId}`);
-      if (error) {
-        // Re-throw the error to be caught by the outer catch block
-        throw error;
-      } else {
-        console.log("Upsert success:", upsertedData);
-        toast.success("Files listed and started reading!");
-      }
-      // --- MODIFICATION END ---
-
-      console.log("Processed data:", data);
+      toast.success("File processed and data inserted!");
     } catch (e) {
-      // This will now catch both fetch errors and Supabase errors
-      const errorMessage = e.message || "Something went wrong.";
-      setError(errorMessage);
-      toast.error(`❌ ${errorMessage}`);
-      console.error("Operation failed:", e); // Log the full error for debugging
+      setError(e.message || "Something went wrong.");
+      toast.error(`❌ ${e.message}`);
     } finally {
-      setIsLoading(false);
+      setIsProcessing(false);
     }
   };
+
   return (
-    <div
-      className="min-h-screen px-6 py-14 flex flex-col items-center"
-      style={
-        {
-          // background: `linear-gradient(to bottom right, #eff6ff, #ecfeff)`,
-          // fontFamily: `'Inter', sans-serif`,
-        }
-      }
-    >
+    <div className="min-h-screen px-6 py-14 flex flex-col items-center">
       <div className="max-w-3xl w-full text-center mb-10">
         <div className="flex items-center justify-center gap-2 mb-3">
-          {/* <div className="p-2 rounded-lg bg-yellow-100 shadow-inner inline-block">
-            <Folder className="w-6 h-6 text-yellow-500" />
-          </div> */}
-
           <h1 className="text-xl sm:text-4xl font-bold text-gray-800">
             📂Google Drive
           </h1>
@@ -275,72 +126,35 @@ export default function Step1_ConnectGDrive() {
           Connect to your Google Drive and manage your files.
         </p>
       </div>
-
-      {/* Search Card */}
+      {/* Unified Search Card */}
       <div className="w-full max-w-4xl bg-white shadow-xl rounded-2xl p-6 sm:p-8 mb-10 border border-gray-100">
         <div className="flex flex-col sm:flex-row items-center gap-4">
           <div className="flex items-center w-full sm:w-3/4 border rounded-xl px-4 py-3 bg-gray-50 border-gray-300">
             <Folder className="w-5 h-5 text-gray-400 mr-3" />
             <input
-              id="folder-input"
+              id="gdrive-input"
               type="text"
-              value={folderNameInput}
-              onChange={(e) => setFolderNameInput(e.target.value)}
-              placeholder="Enter folder name "
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Enter folder name, file ID, or Google Sheet URL"
               className="w-full bg-transparent text-gray-800 focus:outline-none text-base border-none !mb-[0px]"
+              disabled={isSearching || isProcessing}
             />
           </div>
-
           <button
-            disabled={!folderNameInput || isLoading}
-            onClick={handleListFiles}
-            className={`px-6 py-3 w-full sm:w-auto flex items-center justify-center gap-2 text-white font-semibold rounded-xl transition 
-              ${
-                ""
-                // folderNameInput && !isLoading
-                //   ? "bg-gradient-to-r from-blue-500 to-cyan-500 hover:scale-[1.02]"
-                //   : "bg-gray-300 cursor-not-allowed"
-              }
-            `}
+            disabled={!input.trim() || isSearching || isProcessing}
+            onClick={handleSearch}
+            className={`px-6 py-3 w-full sm:w-auto flex items-center justify-center gap-2 text-white font-semibold rounded-xl transition ${input.trim() && !isSearching && !isProcessing
+                ? "bg-gradient-to-r from-green-500 to-emerald-500 hover:scale-[1.02]"
+                : "bg-gray-300 cursor-not-allowed"
+              }`}
           >
             <Search className="w-5 h-5" />
-            {isLoading ? "Searching..." : "Search Folder"}
+            {isSearching ? "Searching..." : "Search"}
           </button>
         </div>
-
-        <div className="flex flex-col sm:flex-row items-center gap-4">
-          <div className="flex items-center w-full sm:w-3/4 border rounded-xl px-4 py-3 bg-gray-50 border-gray-300">
-            <Folder className="w-5 h-5 text-gray-400 mr-3" />
-            <input
-              id="folder-input"
-              type="text"
-              value={folderNameInput}
-              onChange={(e) => setFolderNameInput(e.target.value)}
-              placeholder="Enter folder name "
-              className="w-full bg-transparent text-gray-800 focus:outline-none text-base border-none !mb-[0px]"
-            />
-          </div>
-
-          <button
-            disabled={!folderNameInput || isLoading}
-            onClick={handleListFilesFileID}
-            className={`px-6 py-3 w-full sm:w-auto flex items-center justify-center gap-2 text-white font-semibold rounded-xl transition 
-              ${
-                ""
-                // folderNameInput && !isLoading
-                //   ? "bg-gradient-to-r from-blue-500 to-cyan-500 hover:scale-[1.02]"
-                //   : "bg-gray-300 cursor-not-allowed"
-              }
-            `}
-          >
-            <Search className="w-5 h-5" />
-            {isLoading ? "Searching..." : "Search Files"}
-          </button>
-        </div>
-
         {error && <div className="mt-4 text-red-600 text-sm">{error}</div>}
       </div>
-
       {/* File Display */}
       <div className="w-full max-w-5xl">
         {files.length === 0 ? (
@@ -348,36 +162,34 @@ export default function Step1_ConnectGDrive() {
             <Folder className="w-10 h-10 mx-auto mb-3 text-gray-300" />
             <p className="text-lg font-medium">No files found</p>
             <p className="text-sm mt-1">
-              Enter a folder name above to search for files
+              Enter a folder name, file ID, or Google Sheet URL above to search for files
             </p>
           </div>
         ) : (
           <div className="grid ssm:grid-cols-2 llg:grid-cols-3 gap-6">
-            {files &&
-              files.map((file, i) => (
-                <div
-                  key={file.id || `${file.name}-${i}`}
-                  className="flex gap-[30px] items-center bg-white shadow rounded-xl p-3 bborder border-gray-100 hover:shadow-lg transition"
+            {files.map((file, i) => (
+              <div
+                key={file.id || `${file.name}-${i}`}
+                className="flex gap-[30px] items-center bg-white shadow rounded-xl p-3 bborder border-gray-100 hover:shadow-lg transition"
+              >
+                <h3 className="flex-1 text-md font-semibold text-gray-800 truncate !pb-[0px] !border-0">
+                  {file.name}
+                </h3>
+                <button
+                  disabled={isProcessing}
+                  onClick={() => handleReadSpreadsheet(file.id)}
+                  className={`whitespace-nowrap text-white py-2 rounded-xl text-sm font-semibold px-4 ${!isProcessing
+                      ? "bg-gradient-to-r from-green-500 to-emerald-500 hover:scale-[1.02]"
+                      : "bg-gray-300 cursor-not-allowed"
+                    }`}
                 >
-                  <h3 className="flex-1 text-md font-semibold text-gray-800 truncate !pb-[0px] !border-0">
-                    {file.name}
-                  </h3>
-                  {/* <p className="text-sm text-gray-500">{file.mimeType}</p> */}
-                  <button
-                    disabled={!folderNameInput || isLoading}
-                    onClick={() => {
-                      handleReadSpreadsheet(file.id);
-                    }}
-                    className=" whitespace-nowrap text-white py-2 rounded-xl text-sm font-semibold"
-                  >
-                    Select & Process →
-                  </button>
-                </div>
-              ))}
+                  {isProcessing ? "Processing..." : "Select & Process →"}
+                </button>
+              </div>
+            ))}
           </div>
         )}
       </div>
-
       <ToastContainer position="bottom-right" autoClose={3000} />
     </div>
   );
