@@ -22,17 +22,12 @@ export default function Sidebar() {
             isActive = currentRouteSegment === step.route;
           }
 
-          // 2. Construct the href for the link based on specific patterns
           let linkHref;
           if (step.route === "/") {
-            // Connect Google Drive (root)
             linkHref = "/";
           } else if (step.route === "keywords") {
-            // SPECIAL CASE: For 'keywords' step, only include selectedFileId
             linkHref = `/${step.route}/${step.selectedFileId}`;
           } else {
-            // DEFAULT CASE: For all other dynamic steps (LSI Keywords, Mission Plan, Analysis, Content),
-            // include both selectedFileId and selectedRowIndex
             linkHref = `/${step.route}/${step.selectedFileId}/${step.selectedRowIndex}`;
           }
 

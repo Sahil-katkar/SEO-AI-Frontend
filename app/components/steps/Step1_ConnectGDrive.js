@@ -25,6 +25,8 @@ export default function Step1_ConnectGDrive() {
     setIsLoading(true);
     try {
       const queryParams = new URLSearchParams();
+      console.log("queryParams", queryParams);
+
       if (folderNameInput) queryParams.append("folder_name", folderNameInput);
 
       const response = await fetch(`/api/list-files?${queryParams.toString()}`);
@@ -32,6 +34,75 @@ export default function Step1_ConnectGDrive() {
 
       if (!response.ok)
         throw new Error(data.detail || `Error: ${response.status}`);
+
+      if (!Array.isArray(data)) {
+        throw new Error("API did not return a list of files.");
+      }
+
+      setFiles(data);
+      updateProjectData({ isGDriveConnected: true, gDriveFiles: data || [] });
+      toast.success("Files listed successfully!");
+    } catch (e) {
+      setFiles([]);
+      setError(e.message || "Something went wrong.");
+      toast.error(`❌ ${e.message}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleListFilesFileID = async () => {
+    setError(null);
+    setIsLoading(true);
+
+    // Assuming 'folderNameInput' actually holds the URL or the direct ID from user input
+    const rawUserInput = folderNameInput; // Get the user's input
+
+    let fileIdToFetch = null;
+
+    // Regular expression to extract the ID from a Google Sheets URL
+    // It looks for '/d/' followed by a sequence of alphanumeric characters, hyphens, or underscores,
+    // until the next '/'
+    const googleSheetUrlRegex = /\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/;
+    const match = rawUserInput.match(googleSheetUrlRegex);
+
+    if (match && match[1]) {
+      // If a match is found, use the captured group (the ID)
+      fileIdToFetch = match[1];
+      console.log("Extracted Google Sheet ID from URL:", fileIdToFetch);
+    } else if (rawUserInput) {
+      // If it's not a URL, assume the user directly entered the ID
+      fileIdToFetch = rawUserInput;
+      console.log("Assuming input is a direct File ID:", fileIdToFetch);
+      // You might want to add some basic validation here to check if it looks like a valid ID format
+    } else {
+      // No input provided
+      setError("Please provide a Google Sheet URL or File ID.");
+      setIsLoading(false);
+      toast.error("❌ Please provide a Google Sheet URL or File ID.");
+      return; // Exit the function
+    }
+
+    try {
+      const queryParams = new URLSearchParams();
+
+      // Now, always append the extracted/assumed file ID
+      if (fileIdToFetch) {
+        queryParams.append("file_id", fileIdToFetch);
+      } else {
+        // This case should ideally be caught by the earlier 'if (!rawUserInput)' block,
+        // but as a fallback.
+        throw new Error("No valid File ID could be determined from the input.");
+      }
+
+      console.log("queryParams", queryParams.toString()); // Will now show "file_id=<extracted_id>"
+
+      const response = await fetch(`/api/list-files?${queryParams.toString()}`);
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.detail || `Error: ${response.status}`);
+      }
 
       if (!Array.isArray(data)) {
         throw new Error("API did not return a list of files.");
@@ -223,6 +294,36 @@ export default function Step1_ConnectGDrive() {
           <button
             disabled={!folderNameInput || isLoading}
             onClick={handleListFiles}
+            className={`px-6 py-3 w-full sm:w-auto flex items-center justify-center gap-2 text-white font-semibold rounded-xl transition 
+              ${
+                ""
+                // folderNameInput && !isLoading
+                //   ? "bg-gradient-to-r from-blue-500 to-cyan-500 hover:scale-[1.02]"
+                //   : "bg-gray-300 cursor-not-allowed"
+              }
+            `}
+          >
+            <Search className="w-5 h-5" />
+            {isLoading ? "Searching..." : "Search Folder"}
+          </button>
+        </div>
+
+        <div className="flex flex-col sm:flex-row items-center gap-4">
+          <div className="flex items-center w-full sm:w-3/4 border rounded-xl px-4 py-3 bg-gray-50 border-gray-300">
+            <Folder className="w-5 h-5 text-gray-400 mr-3" />
+            <input
+              id="folder-input"
+              type="text"
+              value={folderNameInput}
+              onChange={(e) => setFolderNameInput(e.target.value)}
+              placeholder="Enter folder name "
+              className="w-full bg-transparent text-gray-800 focus:outline-none text-base border-none !mb-[0px]"
+            />
+          </div>
+
+          <button
+            disabled={!folderNameInput || isLoading}
+            onClick={handleListFilesFileID}
             className={`px-6 py-3 w-full sm:w-auto flex items-center justify-center gap-2 text-white font-semibold rounded-xl transition 
               ${
                 ""
