@@ -76,6 +76,32 @@ export default function FileRow() {
   // const [logs, setLogs] = useState([]);
   // ... rest of the state
 
+  const handleSaveGdrive = async () => {
+    try {
+      const backendPayload = {
+        test_content_string: articledata,
+        row_folder_name: row_id,
+      };
+      const apiResponse = await fetch(`/api/save-to-gdrive/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(backendPayload),
+      });
+
+      const data = await apiResponse.json();
+      console.log("FastAPI response:", data);
+
+      if (!apiResponse.ok) {
+        return NextResponse.json(
+          { error: data.detail || "Backend error" },
+          { status: apiResponse.status }
+        );
+      }
+    } catch (e) {}
+  };
+
   useEffect(() => {
     // const row_id = `${fileId}_${row}`;
 
@@ -1187,6 +1213,14 @@ export default function FileRow() {
                           }}
                         >
                           Save
+                        </button>
+
+                        <button
+                          disabled={sectionIsGenerating}
+                          className=""
+                          onClick={() => handleSaveGdrive()}
+                        >
+                          Save to Google Drive
                         </button>
                       </div>
                       {sectionIsGenerating && <Loader />}
