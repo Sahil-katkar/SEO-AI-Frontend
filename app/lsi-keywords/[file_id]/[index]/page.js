@@ -10,6 +10,8 @@ import { toast, ToastContainer } from "react-toastify";
 
 export default function Analysis() {
   const [isLoading, setIsLoading] = useState(false);
+  const { updateProjectData } = useAppContext();
+
   const [lsiData, setLsiData] = useState("");
   const [compAnalysis, setCompAnalysis] = useState("");
   const [valueAdd, setValueAdd] = useState("");
@@ -256,6 +258,10 @@ export default function Analysis() {
       if (error) {
         throw new Error(`Supabase error: ${error.message}`);
       }
+      updateProjectData({
+        selectedFileId: fileId,
+        selectedRowIndex: index, // Set selectedRowIndex to the index + 1
+      });
 
       // Transform the article data into an array of URLs
       const urls = article
@@ -501,6 +507,11 @@ export default function Analysis() {
         ...item,
         lsi_keywords,
       };
+    });
+
+    updateProjectData({
+      selectedFileId: fileId,
+      selectedRowIndex: index, // Set selectedRowIndex to the index + 1
     });
 
     // Save to Supabase
