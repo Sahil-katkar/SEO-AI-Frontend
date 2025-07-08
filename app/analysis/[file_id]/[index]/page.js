@@ -1,18 +1,17 @@
 "use client";
 
 import Loader from "@/components/common/Loader";
-import React, { useState, useEffect } from "react";
-import { Pencil } from "lucide-react"; // <-- 1. Import the icon at the top of your file
-import { usePathname, useRouter, useParams } from "next/navigation";
-import { useAppContext } from "@/context/AppContext";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import StatusHeading from "@/components/StatusHeading";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { useParams, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 export default function Analysis() {
   const [isLoading, setIsLoading] = useState(false);
   const [lsiData, setLsiData] = useState("");
   const [compAnalysis, setCompAnalysis] = useState("");
   const [valueAdd, setValueAdd] = useState("");
+  const [missionPlan, setMissionPlan] = useState("");
 
   const router = useRouter();
   const params = useParams();
@@ -156,12 +155,13 @@ export default function Analysis() {
   });
   const [editedCompAnalysis, setEditedCompAnalysis] = useState("");
   const [editedValueAdd, setEditedValueAdd] = useState("");
-
   const [isGeneratingLSI, setIsGeneratingLSI] = useState(false);
   const [isGeneratingAnalysis, setIsGeneratingAnalysis] = useState(false);
   const [isGeneratingValueAdd, setIsGeneratingValueAdd] = useState(false);
-
   const [isAnalysisGenerated, setIsAnalysisGenerated] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isEditingMP, setIsEditingMP] = useState(false);
+  const [isEditingMissionPlan, setIsEditingMissionPlan] = useState(false);
 
   //   !-----------------------------------
   const handleEditIntent = (item) => {
@@ -580,9 +580,23 @@ export default function Analysis() {
       // Fetch LSI and competitor analysis data from Supabase
       const { data, error } = await supabase
         .from("analysis")
-        .select("lsi_keywords, comp_analysis")
+        .select("lsi_keywords, comp_analysis, value_add")
         .eq("row_id", row_id)
         .single();
+
+      setValueAdd(data.value_add);
+
+      const file__Id = `${fileId}_${index}`;
+
+      const { data: dbData, error: dbError } = await supabase
+        .from("row_details")
+        .select("mission_plan")
+        .eq("row_id", file__Id)
+        .single();
+
+      console.log("dbData", dbData);
+
+      setMissionPlan(dbData.mission_plan);
 
       // if (error) {
       //   console.error("Error fetching analysis data:", error);
@@ -612,6 +626,51 @@ export default function Analysis() {
     fetchAnalysisData();
   }, [row_id]);
 
+  const handleEditMissionPlan = () => {
+    setIsEditingMP(true);
+  };
+
+  const handleSaveMission = async () => {
+    try {
+      setIsEditingMissionPlan(true);
+      const file_Id = `${fileId}_${index}`;
+
+      const { error: upsertError } = await supabase.from("row_details").upsert(
+        {
+          row_id: file_Id,
+          mission_plan: missionPlan, // Use the state value from the textarea
+        },
+        { onConflict: "row_id" }
+      );
+
+      if (upsertError) {
+        // Throw an error to be caught by the catch block
+        throw new Error(`Failed to save to database: ${upsertError.message}`);
+      }
+
+      // On successful save, update local state to reflect the change
+      setMissionPlan(missionPlan);
+      // setResponseData((prev) => ({
+      //   ...prev,
+      //   generated_mission_plan: missionPlan,
+      // }));
+
+      // Exit edit mode
+      // setEditIntent({ [`comp${index + 1}`]: false });
+      console.log("Mission plan saved successfully.");
+    } catch (error) {
+      console.error("Save Error:", error);
+      setError(error.message); // Set error state to display to the user
+    } finally {
+      setIsEditingMissionPlan(false);
+      setIsEditingMP(false);
+    }
+  };
+
+  const handleCancelMission = () => {
+    setIsEditingMP(false);
+  };
+
   return (
     <>
       <div className="container px-4 py-6">
@@ -639,6 +698,10 @@ export default function Analysis() {
                       Competitor {index + 1}
                     </p>
                   </div> */}
+                  {console.log(
+                    "editCompAnalysis[`comp${index + 1}`]",
+                    editCompAnalysis[`comp${index + 1}`]
+                  )}
 
                   <div>
                     <div className="mb-[8px] flex justify-between items-center">
@@ -646,23 +709,25 @@ export default function Analysis() {
                         Competitor Analysis
                       </p>
                       <div className="flex gap-[8px]">
-                        <button
-                          onClick={generateAnalysis}
-                          disabled={isGeneratingAnalysis}
-                        >
-                          {isGeneratingAnalysis ? (
-                            <Loader size={20} />
-                          ) : (
-                            "Generate Analysis"
-                          )}
-                        </button>
+                        {!compAnalysis && (
+                          <button
+                            onClick={generateAnalysis}
+                            disabled={isGeneratingAnalysis}
+                          >
+                            {isGeneratingAnalysis ? (
+                              <Loader size={20} />
+                            ) : (
+                              "Generate Analysis"
+                            )}
+                          </button>
+                        )}
                         {!editCompAnalysis[`comp${index + 1}`] && (
                           <button
                             onClick={() => {
                               handleEditCompAnalysis(index + 1);
                             }}
                           >
-                            <Pencil className="h-5 w-5" />
+                            Edit
                           </button>
                         )}
                         {editCompAnalysis[`comp${index + 1}`] && (
@@ -686,7 +751,7 @@ export default function Analysis() {
                     <textarea
                       disabled={!editCompAnalysis[`comp${index + 1}`]}
                       className="focus:outline-[#1abc9c] focus:outline-2"
-                      rows="2"
+                      rows="10"
                       value={
                         editCompAnalysis[`comp${index + 1}`]
                           ? editedCompAnalysis
@@ -699,28 +764,32 @@ export default function Analysis() {
                   {/* value_add */}
                   <div>
                     <div className="mb-[8px] flex justify-between items-center">
-                      <p className="font-bold text-[24px] ">Value Add</p>
+                      <p className="font-bold text-[24px]">Value Add</p>
                       <div className="flex gap-[8px]">
-                        <button
-                          onClick={generateValueAdd}
-                          disabled={!isAnalysisGenerated}
-                        >
-                          {isGeneratingValueAdd ? (
-                            <Loader size={20} />
-                          ) : (
-                            "Generate Value Add"
-                          )}
-                        </button>
-                        {!editValueAdd[`comp${index + 1}`] && (
+                        {!valueAdd && (
                           <button
-                            onClick={() => {
-                              handleEditValueAdd(index + 1);
-                            }}
-                            disabled={!isAnalysisGenerated}
+                            onClick={generateValueAdd}
+                            disabled={!compAnalysis || isGeneratingValueAdd}
                           >
-                            <Pencil className="h-5 w-5" />
+                            {isGeneratingValueAdd ? (
+                              <Loader size={20} />
+                            ) : (
+                              "Generate Value Add"
+                            )}
                           </button>
                         )}
+
+                        {!valueAdd ||
+                          (!editValueAdd[`comp${index + 1}`] && (
+                            <button
+                              onClick={() => {
+                                handleEditValueAdd(index + 1);
+                              }}
+                              disabled={!compAnalysis}
+                            >
+                              Edit
+                            </button>
+                          ))}
                         {editValueAdd[`comp${index + 1}`] && (
                           <>
                             <button
@@ -740,7 +809,7 @@ export default function Analysis() {
                     <textarea
                       disabled={!editValueAdd[`comp${index + 1}`]}
                       className="focus:outline-[#1abc9c] focus:outline-2"
-                      rows="2"
+                      rows="10"
                       value={
                         editValueAdd[`comp${index + 1}`]
                           ? editedValueAdd
@@ -749,18 +818,63 @@ export default function Analysis() {
                       onChange={(e) => setEditedValueAdd(e.target.value)}
                     />
                   </div>
-
                   {/* value_add_end */}
 
-                  <div className="mt-6 flex justify-end">
-                    <button
-                      onClick={handleNext}
-                      className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                      // disabled={isEditing} // Optional: disable "Next" while editing
-                    >
-                      Next
-                    </button>
+                  {/* mission plan start*/}
+                  <div>
+                    <div className="mb-2 flex justify-between items-center">
+                      <p className="font-bold text-[24px]">Mission Plan:</p>
+                      <div className="flex gap-2">
+                        {!isEditingMP && (
+                          <button
+                            disabled={!missionPlan || isEditingMP}
+                            onClick={() => handleEditMissionPlan()}
+                            className="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600 transition-colors"
+                          >
+                            Edit
+                          </button>
+                        )}
+
+                        {isEditingMP && (
+                          <>
+                            <button
+                              onClick={handleSaveMission}
+                              className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition-colors disabled:bg-blue-300"
+                              disabled={isEditingMissionPlan}
+                            >
+                              Save
+                            </button>
+                            <button
+                              onClick={handleCancelMission}
+                              className="bg-gray-500 text-white px-3 py-1 rounded hover:bg-gray-600 transition-colors"
+                              disabled={isEditingMissionPlan}
+                            >
+                              Cancel
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                    <textarea
+                      disabled={!isEditingMP}
+                      className="w-full border p-2 rounded focus:outline-[#1abc9c] focus:outline-2  ffocus:ring-blue-500 ddisabled:bg-gray-100"
+                      rows="10"
+                      value={missionPlan}
+                      onChange={(e) => setMissionPlan(e.target.value)}
+                    />
+
+                    <div className="mt-6 flex justify-end">
+                      <button
+                        onClick={handleNext}
+                        className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                        disabled={isEditing} // Optional: disable "Next" while editing
+                      >
+                        Next
+                      </button>
+                    </div>
                   </div>
+                  {/*mission plan end*/}
+
                   {/* <div>
                     <div className="mb-[8px] flex justify-between items-center">
                       <p className="font-bold mb-[8px]">Outline:</p>
