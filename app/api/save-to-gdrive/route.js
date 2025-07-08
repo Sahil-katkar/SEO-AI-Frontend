@@ -5,24 +5,36 @@ const FASTAPI_BACKEND_URL =
 
 export async function POST(request) {
   try {
-    console.log("hello");
+    console.log("Request received for /save_to_gdrive/"); // More descriptive log
 
-    const { test_content_string, row_folder_name } = await request.json();
+    // Safely parse the JSON body
+    const requestBody = await request.json();
 
-    console.log("row_folder_name", test_content_string, row_folder_name);
+    // Extract values and explicitly convert them to strings
+    // Using String() ensures that even if they are numbers, booleans, or null,
+    // they become their string representation.
+    const test_content_string = String(requestBody.test_content_string);
+    const row_folder_name = String(requestBody.row_folder_name);
+
+    console.log(
+      "Processed string values:",
+      test_content_string,
+      row_folder_name
+    );
 
     const backendPayload = {
-      test_content_string,
-      row_folder_name,
+      test_content_string: test_content_string, // These are now guaranteed strings
+      row_folder_name: row_folder_name, // These are now guaranteed strings
     };
 
-    console.log("backendPayload", backendPayload);
+    console.log("Backend payload:", backendPayload);
 
     const apiResponse = await fetch(`${FASTAPI_BACKEND_URL}/save_to_gdrive/`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
+      // IMPORTANT: Convert the JavaScript object to a JSON string for the fetch body
       body: JSON.stringify(backendPayload),
     });
 
@@ -30,6 +42,8 @@ export async function POST(request) {
     console.log("FastAPI response:", data);
 
     if (!apiResponse.ok) {
+      // If FastAPI returns an error, it usually sends a JSON object with a 'detail' field.
+      // We pass that detail back to the client.
       return NextResponse.json(
         { error: data.detail || "Backend error" },
         { status: apiResponse.status }
@@ -39,9 +53,11 @@ export async function POST(request) {
     return NextResponse.json(data, { status: 200 });
   } catch (error) {
     console.error("Error in Next.js API route:", error);
-    return NextResponse.json(
-      { error: "An internal server error occurred." },
-      { status: 500 }
-    );
+    // Provide a more specific error message if JSON parsing failed
+    let errorMessage = "An internal server error occurred.";
+    if (error instanceof SyntaxError && error.message.includes("JSON")) {
+      errorMessage = "Invalid JSON in request body.";
+    }
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }

@@ -104,7 +104,7 @@ export default function FileRow() {
   const handleSaveGdrive = async () => {
     try {
       const backendPayload = {
-        test_content_string: articledata,
+        test_content_string: articleSections,
         row_folder_name: row_id,
       };
       const apiResponse = await fetch(`/api/save-to-gdrive/`, {
@@ -118,11 +118,17 @@ export default function FileRow() {
       const data = await apiResponse.json();
       console.log("FastAPI response:", data);
 
-      if (!apiResponse.ok) {
-        return NextResponse.json(
-          { error: data.detail || "Backend error" },
-          { status: apiResponse.status }
-        );
+      if (apiResponse.ok) {
+        // Success: Status code was 2xx
+        toast.success("File Saved Succesfully!");
+        // You can also access data.document_id here if needed
+        // console.log("Document ID:", data.document_id);
+      } else {
+        // Error: Status code was not 2xx (e.g., 4xx, 5xx)
+        const errorMessage =
+          data.error || data.detail || "Failed to save file.";
+        toast.error(`Error: ${errorMessage}`);
+        console.error("API Error Response:", data);
       }
     } catch (e) {}
   };
@@ -1280,6 +1286,7 @@ export default function FileRow() {
                         <button
                           disabled={sectionIsGenerating}
                           className=""
+                          style={{ backgroundColor: "#4CAF50" }} // Material Design green
                           onClick={() => {
                             handleSaveArticle(
                               Array.isArray(articleSections)
@@ -1294,6 +1301,7 @@ export default function FileRow() {
                         <button
                           disabled={sectionIsGenerating}
                           className=""
+                          style={{ backgroundColor: "#3478F6" }} // A common, vibrant action blue
                           onClick={() => handleSaveGdrive()}
                         >
                           Save to Google Drive

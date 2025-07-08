@@ -178,7 +178,7 @@ export default function FileId() {
 
   const statusBadge = (status) => {
     const map = {
-      idle: ["⏸️", "Idle", "bg-gray-100 text-gray-600"],
+      // idle: ["⏸️", "Idle", "bg-gray-100 text-gray-600"],
       loading: [
         "⏳",
         "Processing",
