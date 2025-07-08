@@ -122,7 +122,7 @@ export default function ContentBriefPage() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || `HTTP error: ${response.status}`);
+        // throw new Error(errorData.error || `HTTP error: ${response.status}`);
       }
 
       const data = await response.json();
@@ -160,12 +160,12 @@ export default function ContentBriefPage() {
         );
       }
     } catch (error) {
-      console.error("Fetch Error:", {
-        message: error.message,
-        stack: error.stack,
-        fileId,
-        index,
-      });
+      // console.error("Fetch Error:", {
+      //   message: error.message,
+      //   stack: error.stack,
+      //   fileId,
+      //   index,
+      // });
       setError(error.message || "An unexpected error occurred");
     } finally {
       setIsLoading(false);
