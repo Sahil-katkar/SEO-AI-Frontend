@@ -453,7 +453,7 @@ export default function FileRow() {
         position: "bottom-right",
       });
     } catch (err) {
-      console.error("Error saving edited outline:", err);
+      // console.error("Error saving edited outline:", err);
       toast.error(err.message || "Something went wrong.", {
         position: "top-right",
       });
@@ -757,10 +757,10 @@ export default function FileRow() {
             setOutlineData(data);
           }
         } catch (err) {
-          console.error("Error fetching or generating outline:", err);
+          // console.error("Error generating outline:", err);
           toast.error(err.message || "An unexpected error occurred.");
         } finally {
-          setOutlineLoading(false);
+          setOutlineLoading(false); // Start the loader
         }
       };
 
@@ -828,10 +828,14 @@ export default function FileRow() {
             });
 
             if (!res.ok) {
-              const errorData = await res.json();
-              throw new Error(
-                errorData.error || `Server responded with ${res.status}`
-              );
+              let errorMsg = `Server responded with ${res.status}`;
+              try {
+                const errorData = await res.json();
+                errorMsg = errorData.error || errorMsg;
+              } catch (jsonErr) {
+                // If response is not JSON, keep the default errorMsg
+              }
+              throw new Error(errorMsg);
             }
 
             const data = await res.json();
@@ -860,8 +864,12 @@ export default function FileRow() {
             setCitableData(data);
           }
         } catch (err) {
-          console.error("Error fetching or generating citable summary:", err);
-          toast.error(err.message || "An unexpected error occurred.");
+          // console.error("Error fetching or generating citable summary:", err);
+          toast.error(
+            err.message === "Failed to fetch"
+              ? "API is not available. Please try again later."
+              : err.message || "An unexpected error occurred."
+          );
         } finally {
           setCitableLoading(false);
         }
