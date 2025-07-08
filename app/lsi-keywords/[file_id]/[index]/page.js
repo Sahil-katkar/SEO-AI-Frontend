@@ -281,33 +281,41 @@ export default function Analysis() {
 
       console.log("backendPayload", backendPayload);
 
-      const response = await fetch("/api/lsi-keywords", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(backendPayload),
-      });
+      // const response = await fetch("/api/lsi-keywords", {
+      //   method: "POST",
+      //   headers: { "Content-Type": "application/json" },
+      //   body: JSON.stringify(backendPayload),
+      // });
+      try {
+        response = await fetch("/api/lsi-keywords", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(backendPayload),
+        });
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || `HTTP error: ${response.status}`);
+        }
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || `HTTP error: ${response.status}`);
+        const data = await response.json();
+        setLsiData(data);
+        const { data: lsi_data } = await supabase.from("analysis").upsert(
+          {
+            row_id: row_id,
+            lsi_keywords: data,
+          },
+          { onConflict: "row_id" }
+        );
+
+        if (lsi_data) {
+          console.error("Supabase upsert error after API call:", upsertError);
+        } else {
+          console.log("added to db ");
+        }
+        console.log("Scraped data:", data);
+      } catch (networkError) {
+        toast.error(`Server Not Started`, { position: "top-right" });
       }
-
-      const data = await response.json();
-      setLsiData(data);
-      const { data: lsi_data } = await supabase.from("analysis").upsert(
-        {
-          row_id: row_id,
-          lsi_keywords: data,
-        },
-        { onConflict: "row_id" }
-      );
-
-      if (lsi_data) {
-        console.error("Supabase upsert error after API call:", upsertError);
-      } else {
-        console.log("added to db ");
-      }
-      console.log("Scraped data:", data);
     } catch (error) {
       console.error("Error generating LSI:", error);
     } finally {

@@ -59,7 +59,9 @@ export default function Step1_ConnectGDrive() {
       if (!response.ok)
         throw new Error(data.detail || `Error: ${response.status}`);
       if (!Array.isArray(data))
-        throw new Error("API did not return a list of files.");
+        throw new Error(
+          "API endpoint is unavailable. Initiate server startup."
+        );
       setFiles(data);
       updateProjectData({ isGDriveConnected: true, gDriveFiles: data || [] });
       toast.success("Files listed successfully!");
