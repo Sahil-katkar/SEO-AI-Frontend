@@ -754,8 +754,8 @@ export default function Analysis() {
                       rows="10"
                       value={
                         editCompAnalysis[`comp${index + 1}`]
-                          ? editedCompAnalysis
-                          : compAnalysis
+                          ? editedCompAnalysis ?? ""
+                          : compAnalysis ?? ""
                       }
                       onChange={(e) => setEditedCompAnalysis(e.target.value)}
                     />
@@ -812,8 +812,8 @@ export default function Analysis() {
                       rows="10"
                       value={
                         editValueAdd[`comp${index + 1}`]
-                          ? editedValueAdd
-                          : valueAdd
+                          ? editedValueAdd ?? ""
+                          : valueAdd ?? ""
                       }
                       onChange={(e) => setEditedValueAdd(e.target.value)}
                     />
@@ -859,7 +859,7 @@ export default function Analysis() {
                       disabled={!isEditingMP}
                       className="w-full border p-2 rounded focus:outline-[#1abc9c] focus:outline-2  ffocus:ring-blue-500 ddisabled:bg-gray-100"
                       rows="10"
-                      value={missionPlan}
+                      value={missionPlan ?? ""}
                       onChange={(e) => setMissionPlan(e.target.value)}
                     />
 
