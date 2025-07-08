@@ -8,6 +8,8 @@ import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { toast, ToastContainer } from "react-toastify";
 import { useSearchParams } from "next/navigation";
 
+import StatusHeading from "@/components/StatusHeading";
+
 export default function FileRow() {
   const {
     projectData,
@@ -21,6 +23,7 @@ export default function FileRow() {
   } = useAppContext();
 
   const [isLoading, setIsLoading] = useState(false);
+  const [status, setstatus] = useState("");
 
   const [apiError, setApiError] = useState(null);
   const [articledata, setArticleData] = useState([]);
@@ -54,6 +57,25 @@ export default function FileRow() {
   const [outlineLoading, setOutlineLoading] = useState(false);
 
   const row_id = `${fileId}_${row}`;
+
+  useEffect(() => {
+    const fetchStatus = async () => {
+      const { data, error } = await supabase
+        .from("analysis")
+        .select("status")
+        .eq("row_id", row_id);
+
+      console.log("status", data[0].status);
+
+      if (data) {
+        setstatus(data[0].status);
+      } else {
+        console.log("error", error);
+      }
+    };
+
+    fetchStatus();
+  }, [row_id]);
 
   // ... after the intent state variables
   // const [editIntent, setEditIntent] = useState(false);
@@ -857,6 +879,8 @@ export default function FileRow() {
   return (
     <div className="container">
       <main className="main-content step-component">
+        <StatusHeading status={status} />
+
         <div className="flex items-center gap-4 mb-4">
           <span
             className="p-2 text-blue-500 hover:text-blue-600 text-xl rounded-full hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
