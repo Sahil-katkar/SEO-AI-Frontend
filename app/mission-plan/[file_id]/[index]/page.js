@@ -6,6 +6,7 @@ import React, { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useAppContext } from "@/app/context/AppContext"; // Adjust path as needed
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import StatusHeading from "@/components/StatusHeading";
 
 export default function ContentBriefPage() {
   // State
@@ -16,6 +17,7 @@ export default function ContentBriefPage() {
   const [editIntent, setEditIntent] = useState({}); // Tracks edit mode for intent
   const [missionPlanValue, setMissionPlanValue] = useState(""); // Stores mission plan value during edit
   const supabase = createClientComponentClient();
+  const [status, setstatus] = useState("");
 
   // Context and Navigation
   const { projectData, updateProjectData } = useAppContext();
@@ -23,6 +25,7 @@ export default function ContentBriefPage() {
   const params = useParams();
   const fileId = params.file_id; // From /contentBrief/[file_id]/index route
   const index = params.index;
+  const row_id = `${fileId}_${index}`;
 
   const fetchContentBrief = async () => {
     setIsLoading(true);
@@ -170,6 +173,25 @@ export default function ContentBriefPage() {
   };
 
   useEffect(() => {
+    const fetchStatus = async () => {
+      const { data, error } = await supabase
+        .from("analysis")
+        .select("status")
+        .eq("row_id", row_id);
+
+      console.log("status", data[0].status);
+
+      if (data) {
+        setstatus(data[0].status);
+      } else {
+        console.log("error", error);
+      }
+    };
+
+    fetchStatus();
+  }, [row_id]);
+
+  useEffect(() => {
     fetchContentBrief();
   }, [fileId, index]);
 
@@ -236,6 +258,7 @@ export default function ContentBriefPage() {
   return (
     <div className="container px-4 py-6">
       <main className="main-content step-component">
+        <StatusHeading status={status} />
         <h3 className="text-xl font-semibold mb-6 text-blue-600">
           Mission Plan Generator:
         </h3>

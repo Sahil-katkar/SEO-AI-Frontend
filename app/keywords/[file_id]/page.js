@@ -59,10 +59,28 @@ export default function FileId() {
     router.push(`/mission-plan/${file_id}/${index + 1}`);
   };
 
-  const lsiKeyowrds = (file_id, keyword, index) => {
+  const lsiKeyowrds = async (file_id, keyword, index) => {
     console.log(" ", file_id, index);
 
+    const row_id = `${file_id}_${index + 1}`;
+
     router.push(`/lsi-keywords/${file_id}/${index + 1}`);
+
+    updateProjectData({
+      selectedFileId: file_id, // Set selectedFileId to the file_id passed to the function
+      selectedRowIndex: index + 1, // Set selectedRowIndex to the index + 1
+    });
+
+    const { data: upsertedData, error: upsertError } = await supabase
+      .from("analysis")
+      .upsert(
+        {
+          row_id: row_id,
+          status: "Not Approved",
+        },
+        { onConflict: "row_id" }
+      )
+      .select();
   };
   // const callMainAgent = async (userId, keyword, index, currentUrl) => {
   //   try {

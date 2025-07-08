@@ -46,7 +46,9 @@ export default function Step1_ConnectGDrive() {
     if (!type || !value) {
       setError("Please enter a folder name, file ID, or Google Sheet URL.");
       setIsSearching(false);
-      toast.error("❌ Please enter a folder name, file ID, or Google Sheet URL.");
+      toast.error(
+        "❌ Please enter a folder name, file ID, or Google Sheet URL."
+      );
       return;
     }
     try {
@@ -54,8 +56,10 @@ export default function Step1_ConnectGDrive() {
       queryParams.append(type, value);
       const response = await fetch(`/api/list-files?${queryParams.toString()}`);
       const data = await response.json();
-      if (!response.ok) throw new Error(data.detail || `Error: ${response.status}`);
-      if (!Array.isArray(data)) throw new Error("API did not return a list of files.");
+      if (!response.ok)
+        throw new Error(data.detail || `Error: ${response.status}`);
+      if (!Array.isArray(data))
+        throw new Error("API did not return a list of files.");
       setFiles(data);
       updateProjectData({ isGDriveConnected: true, gDriveFiles: data || [] });
       toast.success("Files listed successfully!");
@@ -79,9 +83,11 @@ export default function Step1_ConnectGDrive() {
         body: JSON.stringify({ fileId }),
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || `Error: ${response.status}`);
+      if (!response.ok)
+        throw new Error(data.error || `Error: ${response.status}`);
       const rows = data.full_content?.Sheet1;
-      if (!Array.isArray(rows)) throw new Error("Invalid data format: Sheet1 is not an array.");
+      if (!Array.isArray(rows))
+        throw new Error("Invalid data format: Sheet1 is not an array.");
       // Prepare the rows for upsertion
       const formattedRows = rows.map((row, index) => ({
         keyword: row.KEYWORD || "",
@@ -136,7 +142,7 @@ export default function Step1_ConnectGDrive() {
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Enter folder name, file ID, or Google Sheet URL"
+              placeholder="Enter folder name or Google Sheet URL"
               className="w-full bg-transparent text-gray-800 focus:outline-none text-base border-none !mb-[0px]"
               disabled={isSearching || isProcessing}
             />
@@ -144,10 +150,11 @@ export default function Step1_ConnectGDrive() {
           <button
             disabled={!input.trim() || isSearching || isProcessing}
             onClick={handleSearch}
-            className={`px-6 py-3 w-full sm:w-auto flex items-center justify-center gap-2 text-white font-semibold rounded-xl transition ${input.trim() && !isSearching && !isProcessing
+            className={`px-6 py-3 w-full sm:w-auto flex items-center justify-center gap-2 text-white font-semibold rounded-xl transition ${
+              input.trim() && !isSearching && !isProcessing
                 ? "bg-gradient-to-r from-green-500 to-emerald-500 hover:scale-[1.02]"
                 : "bg-gray-300 cursor-not-allowed"
-              }`}
+            }`}
           >
             <Search className="w-5 h-5" />
             {isSearching ? "Searching..." : "Search"}
@@ -162,7 +169,8 @@ export default function Step1_ConnectGDrive() {
             <Folder className="w-10 h-10 mx-auto mb-3 text-gray-300" />
             <p className="text-lg font-medium">No files found</p>
             <p className="text-sm mt-1">
-              Enter a folder name, file ID, or Google Sheet URL above to search for files
+              Enter a folder name, file ID, or Google Sheet URL above to search
+              for files
             </p>
           </div>
         ) : (
@@ -178,10 +186,11 @@ export default function Step1_ConnectGDrive() {
                 <button
                   disabled={isProcessing}
                   onClick={() => handleReadSpreadsheet(file.id)}
-                  className={`whitespace-nowrap text-white py-2 rounded-xl text-sm font-semibold px-4 ${!isProcessing
+                  className={`whitespace-nowrap text-white py-2 rounded-xl text-sm font-semibold px-4 ${
+                    !isProcessing
                       ? "bg-gradient-to-r from-green-500 to-emerald-500 hover:scale-[1.02]"
                       : "bg-gray-300 cursor-not-allowed"
-                    }`}
+                  }`}
                 >
                   {isProcessing ? "Processing..." : "Select & Process →"}
                 </button>
