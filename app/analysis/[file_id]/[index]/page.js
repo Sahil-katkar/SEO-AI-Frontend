@@ -6,6 +6,7 @@ import { Pencil } from "lucide-react"; // <-- 1. Import the icon at the top of y
 import { usePathname, useRouter, useParams } from "next/navigation";
 import { useAppContext } from "@/context/AppContext";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import StatusHeading from "@/components/StatusHeading";
 
 export default function Analysis() {
   const [isLoading, setIsLoading] = useState(false);
@@ -17,10 +18,30 @@ export default function Analysis() {
   const params = useParams();
   const fileId = params.file_id; // From /contentBrief/[file_id]/index route
   const index = params.index;
+  const [status, setstatus] = useState("");
 
   // const projectData = useAppContext();
   const row_id = `${fileId}_${index}`;
   const supabase = createClientComponentClient();
+
+  useEffect(() => {
+    const fetchStatus = async () => {
+      const { data, error } = await supabase
+        .from("analysis")
+        .select("status")
+        .eq("row_id", row_id);
+
+      console.log("status", data[0].status);
+
+      if (data) {
+        setstatus(data[0].status);
+      } else {
+        console.log("error", error);
+      }
+    };
+
+    fetchStatus();
+  }, [row_id]);
 
   // console.log("selectedFileId", projectData.selected);
 
@@ -595,6 +616,8 @@ export default function Analysis() {
     <>
       <div className="container px-4 py-6">
         <main className="main-content step-component">
+          <StatusHeading status={status} />
+
           <h3 className="text-xl font-semibold mb-6 text-blue-600">
             2. Analysis
           </h3>
@@ -733,7 +756,7 @@ export default function Analysis() {
                     <button
                       onClick={handleNext}
                       className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                    // disabled={isEditing} // Optional: disable "Next" while editing
+                      // disabled={isEditing} // Optional: disable "Next" while editing
                     >
                       Next
                     </button>
