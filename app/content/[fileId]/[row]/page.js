@@ -55,6 +55,7 @@ export default function FileRow() {
   const router = useRouter();
   const supabase = createClientComponentClient();
   const [outlineLoading, setOutlineLoading] = useState(false);
+  const [citableLoading, setCitableLoading] = useState(false);
 
   const row_id = `${fileId}_${row}`;
 
@@ -779,82 +780,97 @@ export default function FileRow() {
 
   useEffect(() => {
     if (projectData.activeModalTab === "Citable Summary") {
-      const callCitableSummary = async () => {
-        // Consider adding a loading state here, e.g., setLoading(true);
+      const fetchOrGenerateCitableSummary = async () => {
+        setCitableLoading(true);
         try {
-          // 1. Combine into a single, more efficient query.
-          // Also, use .single() to get a single object instead of an array.
-          // .single() will throw an error if no row or multiple rows are found,
-          // which is often the desired behavior for fetching by a unique ID.
-          const { data: rowDetails, error } = await supabase
-            .from("row_details")
-            .select("mission_plan, outline_format")
+          // 1. Check if citable summary exists in the database
+          const { data: citableDataFromDB, error: citableError } = await supabase
+            .from("outline")
+            .select("citable_answer")
             .eq("row_id", row_id)
-            .single(); // Use .single() to get one object directly
+            .single();
 
-          // 2. Proper error handling for the database query.
-          if (error) {
-            throw new Error(
-              error.message || "Failed to fetch project details."
-            );
+          if (citableError && citableError.code !== "PGRST116") {
+            throw citableError;
           }
 
-          if (!rowDetails) {
-            throw new Error("No details found for this project.");
-          }
-
-          // 3. Construct the payload with the correct values from the fetched data.
-          const payload = {
-            mission_plan: rowDetails.mission_plan,
-            initial_draft_index: rowDetails.outline_format,
-          };
-
-          const res = await fetch("/api/citable-summary", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(payload),
-          });
-
-          if (!res.ok) {
-            const errorData = await res.json();
-            throw new Error(
-              errorData.error || `Server responded with ${res.status}`
-            );
-          }
-
-          const data = await res.json();
-          console.log("Citable summary generated successfully:", data);
-
-          setCitableData(data);
-
-          const { error: upsertError } = await supabase.from("outline").upsert(
-            {
-              row_id: row_id, // <-- Add this line
-              citable_answer: data,
-            },
-            { onConflict: "row_id" }
-          );
-
-          if (upsertError) {
-            throw new Error(`Failed to save analysis: ${upsertError.message}`);
+          if (
+            citableDataFromDB &&
+            citableDataFromDB.citable_answer &&
+            citableDataFromDB.citable_answer.trim() !== ""
+          ) {
+            // Citable summary exists, use it
+            setCitableData(citableDataFromDB.citable_answer);
           } else {
-            console.log("outline saved successfully.");
-          }
+            // Citable summary does not exist, call the API to generate it
 
-          // Assuming you have a state setter like setCitableSummaryData
-          setOutlineData(data); // Or a more specific state setter
+            // 1. Fetch required data from Supabase
+            const { data: rowDetails, error } = await supabase
+              .from("row_details")
+              .select("mission_plan, outline_format")
+              .eq("row_id", row_id)
+              .single();
+
+            if (error) {
+              throw new Error(error.message || "Failed to fetch project details.");
+            }
+
+            if (!rowDetails) {
+              throw new Error("No details found for this project.");
+            }
+
+            // 2. Construct the payload
+            const payload = {
+              mission_plan: rowDetails.mission_plan,
+              initial_draft_index: rowDetails.outline_format,
+            };
+
+            // 3. Call the API
+            const res = await fetch("/api/citable-summary", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(payload),
+            });
+
+            if (!res.ok) {
+              const errorData = await res.json();
+              throw new Error(
+                errorData.error || `Server responded with ${res.status}`
+              );
+            }
+
+            const data = await res.json();
+            console.log("Citable summary generated successfully:", data);
+
+            // 4. Save the new citable summary to the database
+            const { error: upsertError } = await supabase.from("outline").upsert(
+              {
+                row_id: row_id,
+                citable_answer: data,
+              },
+              { onConflict: "row_id" }
+            );
+
+            if (upsertError) {
+              throw new Error(`Failed to save citable summary: ${upsertError.message}`);
+            } else {
+              console.log("Citable summary saved successfully.");
+            }
+
+            // 5. Set the citable summary data for display
+            setCitableData(data);
+          }
         } catch (err) {
-          console.error("Error generating citable summary:", err);
+          console.error("Error fetching or generating citable summary:", err);
           toast.error(err.message || "An unexpected error occurred.");
         } finally {
-          // 4. Always unset the loading state.
-          // e.g., setLoading(false);
+          setCitableLoading(false);
         }
       };
 
-      callCitableSummary();
+      fetchOrGenerateCitableSummary();
     }
   }, [projectData.activeModalTab, row_id]);
 
@@ -1031,7 +1047,17 @@ export default function FileRow() {
 
               {projectData.activeModalTab === "Citable Summary" && (
                 <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200">
-                  {outlineData.length > 0 ? (
+                  {citableLoading ? (
+                    <div className="flex flex-col items-center justify-center min-h-[250px]">
+                      <Loader />
+                      <p className="mt-4 text-gray-600 font-semibold">
+                        Generating Citable Summary...
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        This may take a moment.
+                      </p>
+                    </div>
+                  ) : citabledata.length > 0 ? (
                     <div className="mb-6">
                       <div className="flex justify-between items-center mb-2">
                         <h4 className="text-lg font-semibold text-black-700 mb-2">
