@@ -5,7 +5,7 @@ import StatusHeading from "@/components/StatusHeading";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { toast } from "react-toastify";
+import { toast, ToastContainer } from "react-toastify";
 
 export default function Analysis() {
   const [isLoading, setIsLoading] = useState(false);
@@ -36,7 +36,9 @@ export default function Analysis() {
       if (data) {
         setstatus(data[0].status);
       } else {
-        toast.error(error?.message || "Error fetching status", { position: "top-right" });
+        toast.error(error?.message || "Error fetching status", {
+          position: "top-right",
+        });
       }
     };
 
@@ -260,7 +262,9 @@ export default function Analysis() {
       }
       console.log("Scraped data:", data);
     } catch (error) {
-      toast.error(error.message || "Error generating LSI", { position: "top-right" });
+      toast.error(error.message || "Error generating LSI", {
+        position: "top-right",
+      });
     } finally {
       setIsGeneratingLSI(false);
     }
@@ -306,42 +310,65 @@ export default function Analysis() {
             comp_contents: competitorData,
           };
 
-          const response = await fetch("/api/comp-analysis", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-          });
+          try {
+            const response = await fetch("/api/comp-analysis", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(payload),
+            });
 
-          if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(
-              errorData.error || `HTTP error: ${response.status}`
-            );
+            let data;
+            if (!response.ok) {
+              let errorMsg = `HTTP error: ${response.status}`;
+              try {
+                const errorData = await response.json();
+                errorMsg = errorData.error || errorMsg;
+              } catch (jsonErr) {
+                errorMsg = response.statusText || errorMsg;
+              }
+              throw new Error(errorMsg);
+            } else {
+              data = await response.json();
+            }
+
+            setCompAnalysis(data);
+
+            const { data: lsi_data, error } = await supabase
+              .from("analysis")
+              .upsert(
+                {
+                  row_id: row_id,
+                  comp_analysis: data,
+                },
+                { onConflict: "row_id" }
+              );
+
+            if (lsi_data) {
+              console.log("added succesfully");
+            }
+
+            console.log("data", data);
+          } catch (e) {
+            let msg = e.message || "";
+            if (msg.includes("404")) {
+              msg = "The requested resource was not found (404).";
+            } else if (msg.includes("501")) {
+              msg = "This feature is not implemented on the server (501).";
+            } else if (msg === "Failed to fetch") {
+              msg = "API is not available. Please try again later.";
+            } else if (!msg) {
+              msg = "An unexpected error occurred.";
+            }
+            toast.error(msg, { position: "top-right" });
           }
-
-          const data = await response.json();
-          setCompAnalysis(data);
-
-          const { data: lsi_data, error } = await supabase
-            .from("analysis")
-            .upsert(
-              {
-                row_id: row_id,
-                comp_analysis: data,
-              },
-              { onConflict: "row_id" }
-            );
-
-          if (lsi_data) {
-            console.log("added succesfully");
-          }
-
-          console.log("data", data);
         } catch (parseError) {
-          console.error(
-            "Failed to parse lsi_keywords JSON string:",
-            parseError
-          );
+          // console.error(
+          //   "Failed to parse lsi_keywords JSON string:",
+          //   parseError
+          // );
+          toast.error("Error ", {
+            position: "top-right",
+          });
         }
       }
     }
@@ -392,50 +419,67 @@ export default function Analysis() {
       const competitive_analysis_report = analysisData.comp_analysis;
       const mission_plan_context = rowDetailsData.mission_plan;
 
-      const payload = {
-        mission_plan_context, // Shorthand for mission_plan_context: mission_plan_context
-        competitive_analysis_report,
-      };
+      try {
+        const payload = {
+          mission_plan_context, // Shorthand for mission_plan_context: mission_plan_context
+          competitive_analysis_report,
+        };
 
-      console.log("payload", payload);
+        console.log("payload", payload);
+        const response = await fetch("/api/value_add", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
 
-      const response = await fetch("/api/value_add", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+        if (!response.ok) {
+          // Provide a more graceful error message from the API.
+          const errorData = await response.json();
+          throw new Error(errorData.error || `API error: ${response.status}`);
+        }
 
-      if (!response.ok) {
-        // Provide a more graceful error message from the API.
-        const errorData = await response.json();
-        throw new Error(errorData.error || `API error: ${response.status}`);
-      }
+        const data = await response.json();
+        console.log("Successfully generated value add:", data);
 
-      const data = await response.json();
-      console.log("Successfully generated value add:", data);
+        setValueAdd(data);
 
-      setValueAdd(data);
+        // You can now use the 'data' to update state or perform the upsert.
+        // For example: setCompAnalysis(data);
 
-      // You can now use the 'data' to update state or perform the upsert.
-      // For example: setCompAnalysis(data);
+        // The commented-out upsert logic can now be safely used.
 
-      // The commented-out upsert logic can now be safely used.
+        const { error: upsertError } = await supabase.from("analysis").upsert(
+          {
+            row_id: row_id, // <-- Add this line
+            value_add: data,
+          },
+          { onConflict: "row_id" }
+        );
 
-      const { error: upsertError } = await supabase.from("analysis").upsert(
-        {
-          row_id: row_id, // <-- Add this line
-          value_add: data,
-        },
-        { onConflict: "row_id" }
-      );
-
-      if (upsertError) {
-        throw new Error(`Failed to save analysis: ${upsertError.message}`);
-      } else {
-        console.log("Analysis saved successfully.");
+        if (upsertError) {
+          throw new Error(`Failed to save analysis: ${upsertError.message}`);
+        } else {
+          console.log("Analysis saved successfully.");
+        }
+      } catch (e) {
+        let msg = e.message || "";
+        if (msg.includes("404")) {
+          msg = "The requested resource was not found (404).";
+        } else if (msg.includes("501")) {
+          msg = "This feature is not implemented on the server (501).";
+        } else if (msg === "Failed to fetch") {
+          msg = "API is not available. Please try again later.";
+        } else if (!msg) {
+          msg = "An unexpected error occurred.";
+        } else if (msg.includes("422")) {
+          msg = "Format not correct or check API";
+        }
+        toast.error(msg, { position: "top-right" });
       }
     } catch (error) {
-      toast.error(error.message || "Failed to generate value add", { position: "top-right" });
+      toast.error(error.message || "Failed to generate value add", {
+        position: "top-right",
+      });
       // Here you would typically show a notification to the user
       // e.g., toast.error(error.message);
     } finally {
@@ -463,7 +507,9 @@ export default function Analysis() {
     );
 
     if (error) {
-      toast.error(error.message || "Error saving LSI", { position: "top-right" });
+      toast.error(error.message || "Error saving LSI", {
+        position: "top-right",
+      });
     } else {
       setLsiData(updatedLsi);
       setEditLSI({ ...editLSI, [`comp${compIndex}`]: false });
@@ -539,7 +585,9 @@ export default function Analysis() {
     );
 
     if (error) {
-      toast.error(error.message || "Error saving competitor analysis", { position: "top-right" });
+      toast.error(error.message || "Error saving competitor analysis", {
+        position: "top-right",
+      });
     } else {
       setCompAnalysis(editedCompAnalysis);
       setEditCompAnalysis({ ...editCompAnalysis, [`comp${compIndex}`]: false });
@@ -557,7 +605,9 @@ export default function Analysis() {
     );
 
     if (error) {
-      toast.error(error.message || "Error saving value add", { position: "top-right" });
+      toast.error(error.message || "Error saving value add", {
+        position: "top-right",
+      });
     } else {
       setValueAdd(editedValueAdd);
       setEditValueAdd({ ...editValueAdd, [`comp${compIndex}`]: false });
@@ -1002,6 +1052,7 @@ export default function Analysis() {
             </div>
           </div>
         </main>
+        <ToastContainer />
       </div>
     </>
   );
