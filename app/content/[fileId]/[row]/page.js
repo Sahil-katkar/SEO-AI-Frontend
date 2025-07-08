@@ -22,6 +22,8 @@ export default function FileRow() {
     primaryKeyword,
   } = useAppContext();
 
+  console.log("activeModalTab", activeModalTab);
+
   const [isLoading, setIsLoading] = useState(false);
   const [status, setstatus] = useState("");
 
@@ -122,7 +124,7 @@ export default function FileRow() {
           { status: apiResponse.status }
         );
       }
-    } catch (e) { }
+    } catch (e) {}
   };
 
   useEffect(() => {
@@ -512,30 +514,6 @@ export default function FileRow() {
     }
   };
 
-  // # Contentful Explained: A Comprehensive Headless CMS Comparison Guide
-  //   const testoutline = `
-  //     * [Contentful Explained: A Comprehensive Headless CMS Comparison Guide](#contentful-explained-a-comprehensive-headless-cms-comparison-guide)
-  //     * [What is Contentful? Demystifying a Modern Content Platform](#what-is-contentful-demystifying-a-modern-content-platform)
-  //     * [Traditional vs. Headless: Understanding Core CMS Differences](#traditional-vs-headless-understanding-core-cms-differences)
-  //         * [The Architecture of a Traditional (Monolithic) CMS](#the-architecture-of-a-traditional-monolithic-cms)
-  //         * [The Rise of Headless CMS: Decoupled Content Delivery](#the-rise-of-headless-cms-decoupled-content-delivery)
-  //         * [Key Distinctions: Headless CMS vs. Traditional CMS (Image: Comparison Chart)](#key-distinctions-headless-cms-vs-traditional-cms-image-comparison-chart)
-  //     * [Why Choose a Headless CMS Like Contentful?](#why-choose-a-headless-cms-like-contentful)
-  //         * [Advantages of Adopting a Headless Architecture (Video: Explainer)](#advantages-of-adopting-a-headless-architecture-video-explainer)
-  //         * [How Contentful Works: Powering Digital Experiences](#how-contentful-works-powering-digital-experiences)
-  //     * [Key Features and Benefits of the Contentful Platform](#key-features-and-benefits-of-the-contentful-platform)
-  //         * [Contentful's Unique Capabilities for Developers and Marketers](#contentfuls-unique-capabilities-for-developers-and-marketers)
-  //         * [Delivering Omnichannel Experiences with Contentful](#delivering-omnichannel-experiences-with-contentful)
-  //     * [Who is Contentful Best For? Making the 'Better Option' Choice](#who-is-contentful-best-for-making-the-better-option-choice)
-  //         * [Use Cases for Contentful: From Marketing Sites to Headless Commerce (Image: Use Case Icons)](#use-cases-for-contentful-from-marketing-sites-to-headless-commerce-image-use-case-icons)
-  //         * [When is Contentful the Better Option for Your Business?](#when-is-contentful-the-better-option-for-your-business)
-  //     * [Contentful FAQs: Your Questions About Headless CMS Answered](#contentful-faqs-your-questions-about-headless-cms-answered)
-  //         * [Is Contentful truly a CMS, or something different?](#is-contentful-truly-a-cms-or-something-different)
-  //         * [What are the main advantages and disadvantages of traditional CMS platforms?](#what-are-the-main-advantages-and-disadvantages-of-traditional-cms-platforms)
-  //         * [Should I use a headless CMS or a traditional CMS for my next project?](#should-i-use-a-headless-cms-or-a-traditional-cms-for-my-next-project)
-  //     * [Conclusion: Is Contentful the Right CMS for You?](#conclusion-is-contentful-the-right-cms-for-you)
-  // `;
-
   // console.log("outlineData", outlineData);
   // console.log("outlineDataUpdated", outlineDataUpdated);
 
@@ -631,16 +609,16 @@ export default function FileRow() {
       section: String(section), // ensure string
     };
 
-    const calculateSectionCount = async (outline) => {
-      const lines = outline.split("\n");
-      // Match lines that start with 4 spaces and an asterisk, but not more
-      // const count = lines.filter((line) => /^ {4}\*/.test(line)).length;
-      const count = lines.filter((line) => /^\s*-- H2:/.test(line)).length;
-      console.log("count", count);
-      setArticleSectionCount(count);
-      // return count;
-    };
-    calculateSectionCount(payload?.outline);
+    // const calculateSectionCount = async (outline) => {
+    //   const lines = outline.split("\n");
+    //   // Match lines that start with 4 spaces and an asterisk, but not more
+    //   // const count = lines.filter((line) => /^ {4}\*/.test(line)).length;
+    //   const count = lines.filter((line) => /^\s*-- H2:/.test(line)).length;
+    //   console.log("count", count);
+    //   setArticleSectionCount(count);
+    //   // return count;
+    // };
+    // calculateSectionCount(payload?.outline);
 
     console.log("payload", payload);
 
@@ -668,18 +646,23 @@ export default function FileRow() {
 
         try {
           // 1. Check if outline exists in the database
-          const { data: outlineDataFromDB, error: outlineError } = await supabase
-            .from("outline")
-            .select("new_outline")
-            .eq("row_id", row_id)
-            .single();
+          const { data: outlineDataFromDB, error: outlineError } =
+            await supabase
+              .from("outline")
+              .select("new_outline")
+              .eq("row_id", row_id)
+              .single();
 
           if (outlineError && outlineError.code !== "PGRST116") {
             // PGRST116 = no rows found, so only throw if it's a real error
             throw outlineError;
           }
 
-          if (outlineDataFromDB && outlineDataFromDB.new_outline && outlineDataFromDB.new_outline.trim() !== "") {
+          if (
+            outlineDataFromDB &&
+            outlineDataFromDB.new_outline &&
+            outlineDataFromDB.new_outline.trim() !== ""
+          ) {
             // Outline exists, use it
             setOutlineData(outlineDataFromDB.new_outline);
           } else {
@@ -688,7 +671,9 @@ export default function FileRow() {
             // 1. Fetch all required data from Supabase
             const { data: rowDetails, error: rowDetailsError } = await supabase
               .from("row_details")
-              .select("keyword, intent, persona, questions, faq, outline_format")
+              .select(
+                "keyword, intent, persona, questions, faq, outline_format"
+              )
               .eq("row_id", row_id)
               .single();
 
@@ -700,7 +685,8 @@ export default function FileRow() {
 
             if (rowDetailsError) throw rowDetailsError;
             if (analysisError) throw analysisError;
-            if (!rowDetails) throw new Error("Details not found for this entry.");
+            if (!rowDetails)
+              throw new Error("Details not found for this entry.");
 
             // 2. Safely parse and extract LSI keywords
             let allExtractedKeywords = [];
@@ -749,16 +735,20 @@ export default function FileRow() {
             console.log("Outline generated successfully:", data);
 
             // 5. Save the new outline to the database
-            const { error: upsertError } = await supabase.from("outline").upsert(
-              {
-                row_id: row_id,
-                new_outline: data,
-              },
-              { onConflict: "row_id" }
-            );
+            const { error: upsertError } = await supabase
+              .from("outline")
+              .upsert(
+                {
+                  row_id: row_id,
+                  new_outline: data,
+                },
+                { onConflict: "row_id" }
+              );
 
             if (upsertError) {
-              throw new Error(`Failed to save analysis: ${upsertError.message}`);
+              throw new Error(
+                `Failed to save analysis: ${upsertError.message}`
+              );
             } else {
               console.log("outline saved successfully.");
             }
@@ -784,11 +774,12 @@ export default function FileRow() {
         setCitableLoading(true);
         try {
           // 1. Check if citable summary exists in the database
-          const { data: citableDataFromDB, error: citableError } = await supabase
-            .from("outline")
-            .select("citable_answer")
-            .eq("row_id", row_id)
-            .single();
+          const { data: citableDataFromDB, error: citableError } =
+            await supabase
+              .from("outline")
+              .select("citable_answer")
+              .eq("row_id", row_id)
+              .single();
 
           if (citableError && citableError.code !== "PGRST116") {
             throw citableError;
@@ -812,7 +803,9 @@ export default function FileRow() {
               .single();
 
             if (error) {
-              throw new Error(error.message || "Failed to fetch project details.");
+              throw new Error(
+                error.message || "Failed to fetch project details."
+              );
             }
 
             if (!rowDetails) {
@@ -845,16 +838,20 @@ export default function FileRow() {
             console.log("Citable summary generated successfully:", data);
 
             // 4. Save the new citable summary to the database
-            const { error: upsertError } = await supabase.from("outline").upsert(
-              {
-                row_id: row_id,
-                citable_answer: data,
-              },
-              { onConflict: "row_id" }
-            );
+            const { error: upsertError } = await supabase
+              .from("outline")
+              .upsert(
+                {
+                  row_id: row_id,
+                  citable_answer: data,
+                },
+                { onConflict: "row_id" }
+              );
 
             if (upsertError) {
-              throw new Error(`Failed to save citable summary: ${upsertError.message}`);
+              throw new Error(
+                `Failed to save citable summary: ${upsertError.message}`
+              );
             } else {
               console.log("Citable summary saved successfully.");
             }
@@ -890,6 +887,21 @@ export default function FileRow() {
     setSectionIsGenerating(false);
   };
 
+  useEffect(() => {
+    const calculateSectionCount = async (outline) => {
+      const lines = outline.split("\n");
+      // Match lines that start with 4 spaces and an asterisk, but not more
+      // const count = lines.filter((line) => /^ {4}\*/.test(line)).length;
+      const count = lines.filter((line) => /^\s*-- H2:/.test(line)).length;
+      console.log("count", count);
+      setArticleSectionCount(count);
+      // return count;
+    };
+    calculateSectionCount(outlineData);
+
+    console.log("outlineData", outlineData);
+  }, [outlineData]);
+
   return (
     <div className="container">
       <main className="main-content step-component">
@@ -917,22 +929,21 @@ export default function FileRow() {
         {!isLoading && (
           <div className="flex flex-col gap-[8px]">
             <div className="modal-tabs">
-              {["Logs", "Outline", "Citable Summary", "Article"].map(
-                (tabName) => (
-                  <button
-                    key={tabName}
-                    className={`modal-tab-button ${projectData.activeModalTab === tabName ? "active" : ""
-                      }`}
-                    onClick={() => handleTabChange(tabName)}
-                  >
-                    {tabName}
-                  </button>
-                )
-              )}
+              {["Outline", "Citable Summary", "Article"].map((tabName) => (
+                <button
+                  key={tabName}
+                  className={`modal-tab-button ${
+                    projectData.activeModalTab === tabName ? "active" : ""
+                  }`}
+                  onClick={() => handleTabChange(tabName)}
+                >
+                  {tabName}
+                </button>
+              ))}
             </div>
 
             <div className="modal-tab-content">
-              {projectData.activeModalTab === "Logs" && (
+              {/* {projectData.activeModalTab === "Logs" && (
                 <div className="mt-4 bg-gray-100 p-4 rounded">
                   <h4 className="font-semibold mb-2">Processing Logs</h4>
                   {logs.length > 0 ? (
@@ -945,7 +956,7 @@ export default function FileRow() {
                     <p className="text-sm text-gray-500">No logs found.</p>
                   )}
                 </div>
-              )}
+              )} */}
 
               {projectData.activeModalTab === "Outline" && (
                 <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200">
@@ -972,7 +983,7 @@ export default function FileRow() {
                           </h4>
 
                           {/* --- EDIT / SAVE / CANCEL BUTTONS --- */}
-                          <div className="ml-auto flex items-center gap-[30px]">
+                          <div className="ml-auto flex items-center gap-2">
                             {!editOutline && (
                               <button
                                 onClick={() => {
@@ -1011,31 +1022,31 @@ export default function FileRow() {
                         {/* --- TEXTAREA FOR VIEWING OR EDITING --- */}
                         {editOutline ? (
                           <textarea
-                            className="w-full p-3 border border-blue-300 rounded-md shadow-inner focus:ring-2 focus:ring-blue-500 min-h-[400px]"
+                            rows="10"
+                            className="w-full p-3 border border-blue-300 rounded-md shadow-inner ffocus:ring-2 ffocus:ring-blue-500 focus:outline-[#1abc9c] focus:outline-2"
                             disabled={saveEditedOutline}
                             value={editedOutline}
                             onChange={(e) => setEditedOutline(e.target.value)}
                           />
                         ) : (
                           <textarea
+                            rows="10"
                             readOnly
-                            className="w-full p-3 border border-gray-200 rounded-md bg-gray-50 min-h-[400px]"
+                            disabled
+                            className="w-full p-3 border border-gray-200 rounded-md bg-gray-50 focus:outline-[#1abc9c] focus:outline-2"
                             value={outlineData}
                           />
                         )}
                       </div>
 
-                      {/* --- NEXT BUTTON --- */}
                       <button
                         onClick={() => handleTabChange("Citable Summary")}
                         className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded flex ml-auto items-center gap-2"
                       >
                         Next
-                        <span aria-hidden="true">→</span>
                       </button>
                     </>
                   ) : (
-                    // --- NO DATA UI ---
                     // This part is shown if loading is complete but no data was found
                     <p className="text-black-500 text-center py-10">
                       No outline data available. It might be generating for the
@@ -1064,7 +1075,7 @@ export default function FileRow() {
                           Citable Summary
                         </h4>
 
-                        <div className="ml-auto flex items-center gap-[30px]">
+                        <div className="ml-auto flex items-center gap-2">
                           {!editCitable && (
                             <button
                               onClick={() => {
@@ -1100,6 +1111,8 @@ export default function FileRow() {
                       {editCitable ? (
                         <>
                           <textarea
+                            rows="10"
+                            className="w-full p-3 border border-gray-200 rounded-md bg-gray-50 focus:outline-[#1abc9c] focus:outline-2"
                             disabled={saveEditedCitable}
                             value={editedCitable}
                             onChange={(e) => setEditedCitable(e.target.value)}
@@ -1117,9 +1130,13 @@ export default function FileRow() {
                         </>
                       ) : (
                         <>
-                          <p className="text-black-600 text-base mb-4">
-                            {citabledata}
-                          </p>
+                          <textarea
+                            rows="10"
+                            readOnly
+                            disabled
+                            className="w-full p-3 border border-gray-200 rounded-md bg-gray-50 focus:outline-[#1abc9c] focus:outline-2"
+                            value={citabledata}
+                          />
                           {/* <h4 className="text-lg font-semibold text-black-700 mb-2">
                             Explanation
                           </h4>
@@ -1138,7 +1155,6 @@ export default function FileRow() {
                     className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded flex ml-auto items-center gap-2"
                   >
                     Next
-                    <span aria-hidden="true">→</span>
                   </button>
                 </div>
               )}
@@ -1192,8 +1208,9 @@ export default function FileRow() {
               {projectData.activeModalTab === "Article" && (
                 <div className="flex flex-col md:flex-row gap-6">
                   <div
-                    className={`${articledataUpdated.length > 0 ? "md:w-1/2" : "w-full"
-                      } w-full bg-gray-50 p-6 rounded-xl shadow-md border border-gray-200`}
+                    className={`${
+                      articledataUpdated.length > 0 ? "md:w-1/2" : "w-full"
+                    } w-full bg-gray-50 p-6 rounded-xl shadow-md border border-gray-200`}
                   >
                     <h4 className="text-lg font-semibold text-black-700 mb-4">
                       Generated Article
@@ -1222,9 +1239,9 @@ export default function FileRow() {
                           }
                         )} */}
                       <textarea
-                        rows={20}
+                        rows="10"
+                        className="w-full p-3 border border-gray-200 rounded-md bg-gray-50 focus:outline-[#1abc9c] focus:outline-2"
                         disabled={sectionIsGenerating}
-                        className=""
                         defaultValue={
                           Array.isArray(articleSections)
                             ? articleSections.join("\n")
@@ -1232,20 +1249,25 @@ export default function FileRow() {
                         }
                       />
 
-                      <div className="flex gap-[30px]">
-                        <button
-                          className="ml-auto "
-                          disabled={sectionIsGenerating}
-                          onClick={() => {
-                            generateArticleSection(articleSectionGenerateCount);
-                            console.log(
-                              "articleSectionGenerateCount",
-                              articleSectionGenerateCount
-                            );
-                          }}
-                        >
-                          Generate section test
-                        </button>
+                      <div className="ml-auto flex gap-2">
+                        {articleSectionGenerateCount < articleSectionCount && (
+                          <button
+                            className=""
+                            disabled={sectionIsGenerating}
+                            onClick={() => {
+                              generateArticleSection(
+                                articleSectionGenerateCount
+                              );
+                              console.log(
+                                "articleSectionGenerateCount",
+                                articleSectionGenerateCount
+                              );
+                            }}
+                          >
+                            Generate section {articleSectionGenerateCount} /{" "}
+                            {articleSectionCount}
+                          </button>
+                        )}
 
                         <button
                           disabled={sectionIsGenerating}

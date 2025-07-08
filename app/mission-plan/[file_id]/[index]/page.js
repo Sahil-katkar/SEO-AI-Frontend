@@ -179,10 +179,10 @@ export default function ContentBriefPage() {
         .select("status")
         .eq("row_id", row_id);
 
-      console.log("status", data[0].status);
+      console.log("status", data[0]?.status);
 
       if (data) {
-        setstatus(data[0].status);
+        setstatus(data[0]?.status);
       } else {
         console.log("error", error);
       }
