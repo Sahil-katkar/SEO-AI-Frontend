@@ -287,7 +287,7 @@ export default function Analysis() {
       //   body: JSON.stringify(backendPayload),
       // });
       try {
-        response = await fetch("/api/lsi-keywords", {
+        const response = await fetch("/api/lsi-keywords", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(backendPayload),
