@@ -722,11 +722,15 @@ export default function Analysis() {
                             onClick={() => {
                               handleEditLSI(index + 1);
                             }}
-                            // Optional: Add some padding for a better click area
                             className="p-1 text-gray-600 hover:text-black"
+                            disabled={!lsiData || !Array.isArray(lsiData) || lsiData.length === 0}
+                            title={
+                              !lsiData || !Array.isArray(lsiData) || lsiData.length === 0
+                                ? "Generate LSI data first"
+                                : "Edit LSI"
+                            }
                           >
-                            <Pencil className="h-5 w-5" />{" "}
-                            {/* <-- 2. Use the icon component */}
+                            <Pencil className="h-5 w-5" />
                           </button>
                         )}
                         {editLSI && (
@@ -942,6 +946,12 @@ export default function Analysis() {
                     <button
                       onClick={handleApprove}
                       className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                      disabled={!lsiData || !Array.isArray(lsiData) || lsiData.length === 0}
+                      title={
+                        !lsiData || !Array.isArray(lsiData) || lsiData.length === 0
+                          ? "Generate LSI data first"
+                          : "Approve LSI keywords"
+                      }
                     >
                       Approve
                     </button>
