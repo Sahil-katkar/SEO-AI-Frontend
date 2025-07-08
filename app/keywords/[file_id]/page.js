@@ -206,8 +206,8 @@ export default function FileId() {
             ✨ Keyword Analysis Dashboard
           </h1>
           <p className="text-gray-500">
-            Transform your SEO strategy with AI-powered keyword analysis and
-            real-time insights
+            {/* Transform your SEO strategy with AI-powered keyword analysis and
+            real-time insights */}
           </p>
         </div>
 
@@ -312,7 +312,7 @@ export default function FileId() {
                         lsiKeyowrds(file_id, keyword, index, url[index] || "")
                       }
                     >
-                      ⚙ SEO
+                      LSI Agent
                     </button>
 
                     <button
@@ -323,7 +323,7 @@ export default function FileId() {
                         contentbrief(file_id, keyword, index, url[index] || "")
                       }
                     >
-                      ⚙ Run Agent
+                      Article Agent
                     </button>
                   </div>
                 </div>

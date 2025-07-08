@@ -131,7 +131,7 @@ export default function Step1_ConnectGDrive() {
           </h1>
         </div>
         <p className="text-gray-600 text-md sm:text-lg">
-          Connect to your Google Drive and manage your files.
+          Connect to your Google Drive and list your files.
         </p>
       </div>
       {/* Unified Search Card */}
@@ -171,8 +171,7 @@ export default function Step1_ConnectGDrive() {
             <Folder className="w-10 h-10 mx-auto mb-3 text-gray-300" />
             <p className="text-lg font-medium">No files found</p>
             <p className="text-sm mt-1">
-              Enter a folder name, file ID, or Google Sheet URL above to search
-              for files
+              Enter a folder name or Google Sheet URL above to search for files
             </p>
           </div>
         ) : (
