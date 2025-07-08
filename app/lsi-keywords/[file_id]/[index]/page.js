@@ -286,7 +286,7 @@ export default function Analysis() {
       //   headers: { "Content-Type": "application/json" },
       //   body: JSON.stringify(backendPayload),
       // });
-      try {
+      try { 
         const response = await fetch("/api/lsi-keywords", {
           method: "POST",
           headers: { "Content-Type": "application/json" },

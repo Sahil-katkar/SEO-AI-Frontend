@@ -121,7 +121,7 @@ export default function FileRow() {
           { status: apiResponse.status }
         );
       }
-    } catch (e) {}
+    } catch (e) { }
   };
 
   useEffect(() => {
@@ -427,12 +427,13 @@ export default function FileRow() {
     setSaveEditedOutline(true);
 
     try {
+      // Upsert the edited outline into the database
       const { data: upsertedData, error: upsertError } = await supabase
         .from("outline")
         .upsert(
           {
             row_id: row_id,
-            new_outline: editedOutline,
+            new_outline: editedOutline, // Use the edited outline here!
           },
           { onConflict: "row_id" }
         )
@@ -442,31 +443,14 @@ export default function FileRow() {
         throw upsertError;
       }
 
-      console.log("Outline saved to database successfully:", upsertedData);
-      toast.success("Intent saved successfully", {
+      // Update the UI with the new outline
+      setOutlineData(editedOutline);
+      setEditOutline(false); // Exit edit mode
+      toast.success("Outline saved successfully!", {
         position: "bottom-right",
       });
-
-      // const payload = {
-      //   user_id: row_id,
-      //   Mainkeyword: keyword,
-      //   edit_content: {
-      //     intent: editedIntent,
-      //   },
-      // };
-
-      // const res = await fetch("/api/contentEdit", {
-      //   method: "POST",
-      //   headers: {
-      //     "Content-Type": "application/json",
-      //   },
-      //   body: JSON.stringify(payload),
-      // });
     } catch (err) {
-      console.error(
-        "An error occurred during the save/regeneration process:",
-        err
-      );
+      console.error("Error saving edited outline:", err);
       toast.error(err.message || "Something went wrong.", {
         position: "top-right",
       });
@@ -677,107 +661,121 @@ export default function FileRow() {
   // In your React Component
 
   useEffect(() => {
-    // Only call when switching to the Outline tab
     if (projectData.activeModalTab === "Outline") {
-      // Optionally, set a loading state here, e.g., setLoading(true);
+      const fetchOrGenerateOutline = async () => {
+        setOutlineLoading(true);
 
-      const callGenerateOutline = async () => {
         try {
-          setOutlineLoading(true); // Start the loader
-
-          // 1. Fetch all required data from Supabase efficiently.
-          // Use .single() to get one object directly instead of an array.
-          const { data: rowDetails, error: rowDetailsError } = await supabase
-            .from("row_details")
-            .select("keyword, intent, persona, questions, faq, outline_format")
+          // 1. Check if outline exists in the database
+          const { data: outlineDataFromDB, error: outlineError } = await supabase
+            .from("outline")
+            .select("new_outline")
             .eq("row_id", row_id)
             .single();
 
-          const { data: analysis, error: analysisError } = await supabase
-            .from("analysis")
-            .select("lsi_keywords")
-            .eq("row_id", row_id)
-            .single();
-
-          // Abort if there were any database errors
-          if (rowDetailsError) throw rowDetailsError;
-          if (analysisError) throw analysisError;
-          if (!rowDetails) throw new Error("Details not found for this entry.");
-
-          // 2. Safely parse and extract LSI keywords.
-          let allExtractedKeywords = [];
-          if (analysis?.lsi_keywords) {
-            try {
-              const parsedData = JSON.parse(analysis.lsi_keywords);
-              allExtractedKeywords = parsedData
-                .map(
-                  (item) =>
-                    item?.lsi_keywords?.lsi_keyword || item?.lsi_keywords
-                )
-                .filter(Boolean); // filter(Boolean) removes null/undefined values
-            } catch (error) {
-              console.error("Failed to parse lsi_keywords JSON:", error);
-              // Decide how to handle malformed JSON - here we proceed with no LSI keywords.
-            }
+          if (outlineError && outlineError.code !== "PGRST116") {
+            // PGRST116 = no rows found, so only throw if it's a real error
+            throw outlineError;
           }
 
-          // 3. Construct the payload with the correct structure.
-          const payload = {
-            primary_keyword: rowDetails.keyword,
-            lsi_keywords: allExtractedKeywords,
-            intent: rowDetails.intent,
-            persona: rowDetails.persona,
-            questions: rowDetails.questions,
-            faq: rowDetails.faq,
-            standard_outline_format: rowDetails.outline_format,
-          };
-
-          const res = await fetch("/api/generate-outline", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(payload), // Corrected line
-          });
-
-          if (!res.ok) {
-            const errorData = await res.json();
-            throw new Error(
-              errorData.error || `Server responded with ${res.status}`
-            );
-          }
-
-          const data = await res.json();
-          console.log("Outline generated successfully:", data);
-
-          const { error: upsertError } = await supabase.from("outline").upsert(
-            {
-              row_id: row_id, // <-- Add this line
-              new_outline: data,
-            },
-            { onConflict: "row_id" }
-          );
-
-          if (upsertError) {
-            throw new Error(`Failed to save analysis: ${upsertError.message}`);
+          if (outlineDataFromDB && outlineDataFromDB.new_outline && outlineDataFromDB.new_outline.trim() !== "") {
+            // Outline exists, use it
+            setOutlineData(outlineDataFromDB.new_outline);
           } else {
-            console.log("outline saved successfully.");
-          }
+            // Outline does not exist, call the API to generate it
 
-          setOutlineData(data);
+            // 1. Fetch all required data from Supabase
+            const { data: rowDetails, error: rowDetailsError } = await supabase
+              .from("row_details")
+              .select("keyword, intent, persona, questions, faq, outline_format")
+              .eq("row_id", row_id)
+              .single();
+
+            const { data: analysis, error: analysisError } = await supabase
+              .from("analysis")
+              .select("lsi_keywords")
+              .eq("row_id", row_id)
+              .single();
+
+            if (rowDetailsError) throw rowDetailsError;
+            if (analysisError) throw analysisError;
+            if (!rowDetails) throw new Error("Details not found for this entry.");
+
+            // 2. Safely parse and extract LSI keywords
+            let allExtractedKeywords = [];
+            if (analysis?.lsi_keywords) {
+              try {
+                const parsedData = JSON.parse(analysis.lsi_keywords);
+                allExtractedKeywords = parsedData
+                  .map(
+                    (item) =>
+                      item?.lsi_keywords?.lsi_keyword || item?.lsi_keywords
+                  )
+                  .filter(Boolean);
+              } catch (error) {
+                console.error("Failed to parse lsi_keywords JSON:", error);
+              }
+            }
+
+            // 3. Construct the payload
+            const payload = {
+              primary_keyword: rowDetails.keyword,
+              lsi_keywords: allExtractedKeywords,
+              intent: rowDetails.intent,
+              persona: rowDetails.persona,
+              questions: rowDetails.questions,
+              faq: rowDetails.faq,
+              standard_outline_format: rowDetails.outline_format,
+            };
+
+            // 4. Call the API
+            const res = await fetch("/api/generate-outline", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(payload),
+            });
+
+            if (!res.ok) {
+              const errorData = await res.json();
+              throw new Error(
+                errorData.error || `Server responded with ${res.status}`
+              );
+            }
+
+            const data = await res.json();
+            console.log("Outline generated successfully:", data);
+
+            // 5. Save the new outline to the database
+            const { error: upsertError } = await supabase.from("outline").upsert(
+              {
+                row_id: row_id,
+                new_outline: data,
+              },
+              { onConflict: "row_id" }
+            );
+
+            if (upsertError) {
+              throw new Error(`Failed to save analysis: ${upsertError.message}`);
+            } else {
+              console.log("outline saved successfully.");
+            }
+
+            // 6. Set the outline data for display
+            setOutlineData(data);
+          }
         } catch (err) {
-          console.error("Error generating outline:", err);
+          console.error("Error fetching or generating outline:", err);
           toast.error(err.message || "An unexpected error occurred.");
         } finally {
-          // Unset loading state here, e.g., setLoading(false);
-          setOutlineLoading(false); // Start the loader
+          setOutlineLoading(false);
         }
       };
 
-      callGenerateOutline();
+      fetchOrGenerateOutline();
     }
-    // 5. Use a stable dependency array. `row` and `keyword` are likely derived from `row_id`.
-  }, [projectData.activeModalTab, row_id]); // Make sure `row_id` and `supabase` are available in scope.
+  }, [projectData.activeModalTab, row_id]);
 
   useEffect(() => {
     if (projectData.activeModalTab === "Citable Summary") {
@@ -907,9 +905,8 @@ export default function FileRow() {
                 (tabName) => (
                   <button
                     key={tabName}
-                    className={`modal-tab-button ${
-                      projectData.activeModalTab === tabName ? "active" : ""
-                    }`}
+                    className={`modal-tab-button ${projectData.activeModalTab === tabName ? "active" : ""
+                      }`}
                     onClick={() => handleTabChange(tabName)}
                   >
                     {tabName}
@@ -1169,9 +1166,8 @@ export default function FileRow() {
               {projectData.activeModalTab === "Article" && (
                 <div className="flex flex-col md:flex-row gap-6">
                   <div
-                    className={`${
-                      articledataUpdated.length > 0 ? "md:w-1/2" : "w-full"
-                    } w-full bg-gray-50 p-6 rounded-xl shadow-md border border-gray-200`}
+                    className={`${articledataUpdated.length > 0 ? "md:w-1/2" : "w-full"
+                      } w-full bg-gray-50 p-6 rounded-xl shadow-md border border-gray-200`}
                   >
                     <h4 className="text-lg font-semibold text-black-700 mb-4">
                       Generated Article

@@ -5,6 +5,7 @@ import StatusHeading from "@/components/StatusHeading";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { toast } from "react-toastify";
 
 export default function Analysis() {
   const [isLoading, setIsLoading] = useState(false);
@@ -35,7 +36,7 @@ export default function Analysis() {
       if (data) {
         setstatus(data[0].status);
       } else {
-        console.log("error", error);
+        toast.error(error?.message || "Error fetching status", { position: "top-right" });
       }
     };
 
@@ -259,7 +260,7 @@ export default function Analysis() {
       }
       console.log("Scraped data:", data);
     } catch (error) {
-      console.error("Error generating LSI:", error);
+      toast.error(error.message || "Error generating LSI", { position: "top-right" });
     } finally {
       setIsGeneratingLSI(false);
     }
@@ -434,7 +435,7 @@ export default function Analysis() {
         console.log("Analysis saved successfully.");
       }
     } catch (error) {
-      console.error("Failed to generate value add:", error);
+      toast.error(error.message || "Failed to generate value add", { position: "top-right" });
       // Here you would typically show a notification to the user
       // e.g., toast.error(error.message);
     } finally {
@@ -462,7 +463,7 @@ export default function Analysis() {
     );
 
     if (error) {
-      console.error("Supabase upsert error after API call:", error);
+      toast.error(error.message || "Error saving LSI", { position: "top-right" });
     } else {
       setLsiData(updatedLsi);
       setEditLSI({ ...editLSI, [`comp${compIndex}`]: false });
@@ -538,7 +539,7 @@ export default function Analysis() {
     );
 
     if (error) {
-      console.error("Supabase upsert error after API call:", error);
+      toast.error(error.message || "Error saving competitor analysis", { position: "top-right" });
     } else {
       setCompAnalysis(editedCompAnalysis);
       setEditCompAnalysis({ ...editCompAnalysis, [`comp${compIndex}`]: false });
@@ -556,7 +557,7 @@ export default function Analysis() {
     );
 
     if (error) {
-      console.error("Supabase upsert error after API call:", error);
+      toast.error(error.message || "Error saving value add", { position: "top-right" });
     } else {
       setValueAdd(editedValueAdd);
       setEditValueAdd({ ...editValueAdd, [`comp${compIndex}`]: false });
@@ -659,7 +660,7 @@ export default function Analysis() {
       // setEditIntent({ [`comp${index + 1}`]: false });
       console.log("Mission plan saved successfully.");
     } catch (error) {
-      console.error("Save Error:", error);
+      toast.error(error.message || "Save Error", { position: "top-right" });
       setError(error.message); // Set error state to display to the user
     } finally {
       setIsEditingMissionPlan(false);
