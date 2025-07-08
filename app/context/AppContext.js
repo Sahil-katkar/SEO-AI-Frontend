@@ -25,7 +25,7 @@ export function AppProvider({ children }) {
     isGDriveConnected: false,
     isModalOpen: false,
     activeModalRowIndex: null,
-    activeModalTab: "Intent",
+    activeModalTab: "Outline",
     selectedFileId: "", // These values are derived from updates, not initial path
     selectedRowIndex: "", // These values are derived from updates, not initial path
   });

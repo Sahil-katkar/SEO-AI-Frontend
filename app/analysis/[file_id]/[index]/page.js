@@ -31,10 +31,10 @@ export default function Analysis() {
         .select("status")
         .eq("row_id", row_id);
 
-      console.log("status", data[0].status);
+      console.log("status", data[0]?.status);
 
       if (data) {
-        setstatus(data[0].status);
+        setstatus(data[0]?.status);
       } else {
         toast.error(error?.message || "Error fetching status", {
           position: "top-right",
@@ -635,7 +635,9 @@ export default function Analysis() {
         .eq("row_id", row_id)
         .single();
 
-      setValueAdd(data.value_add);
+      if (!error) {
+        setValueAdd(data.value_add);
+      }
 
       const file__Id = `${fileId}_${index}`;
 
@@ -646,8 +648,9 @@ export default function Analysis() {
         .single();
 
       console.log("dbData", dbData);
-
-      setMissionPlan(dbData.mission_plan);
+      if (!dbError) {
+        setMissionPlan(dbData.mission_plan);
+      }
 
       // if (error) {
       //   console.error("Error fetching analysis data:", error);
@@ -772,29 +775,35 @@ export default function Analysis() {
                             )}
                           </button>
                         )}
-                        {!editCompAnalysis[`comp${index + 1}`] && (
-                          <button
-                            onClick={() => {
-                              handleEditCompAnalysis(index + 1);
-                            }}
-                          >
-                            Edit
-                          </button>
-                        )}
-                        {editCompAnalysis[`comp${index + 1}`] && (
+                        {compAnalysis && (
                           <>
-                            <button
-                              onClick={() => handleSaveCompAnalysis(index + 1)}
-                            >
-                              Save
-                            </button>
-                            <button
-                              onClick={() =>
-                                handleCancelCompAnalysis(index + 1)
-                              }
-                            >
-                              Cancel
-                            </button>
+                            {!editCompAnalysis[`comp${index + 1}`] && (
+                              <button
+                                onClick={() => {
+                                  handleEditCompAnalysis(index + 1);
+                                }}
+                              >
+                                Edit
+                              </button>
+                            )}
+                            {editCompAnalysis[`comp${index + 1}`] && (
+                              <>
+                                <button
+                                  onClick={() =>
+                                    handleSaveCompAnalysis(index + 1)
+                                  }
+                                >
+                                  Save
+                                </button>
+                                <button
+                                  onClick={() =>
+                                    handleCancelCompAnalysis(index + 1)
+                                  }
+                                >
+                                  Cancel
+                                </button>
+                              </>
+                            )}
                           </>
                         )}
                       </div>
