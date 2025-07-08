@@ -665,6 +665,7 @@ export default function Analysis() {
 
   return (
     <>
+      <ToastContainer />
       <div className="container px-4 py-6">
         <main className="main-content step-component">
           <h3 className="text-xl font-semibold mb-6 text-blue-600">
