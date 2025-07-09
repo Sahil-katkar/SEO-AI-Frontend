@@ -23,6 +23,17 @@ export default function Step1_ConnectGDrive() {
     document.getElementById("gdrive-input")?.focus();
   }, []);
 
+  // useEffect(() => {
+  //   const value = localStorage.getItem("value", value);
+  //   console.log("value", value);
+
+  //   // const { data: fileLists, error: InsertErr } = getData(
+  //   //   "file_details",
+  //   //   "name",
+  //   //   "fileId"
+  //   // );
+  // });
+
   function extractFileIdOrFolder(input) {
     if (!input) return { type: null, value: null };
     const sheetMatch = input.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
@@ -81,6 +92,20 @@ export default function Step1_ConnectGDrive() {
 
       const queryParams = new URLSearchParams();
       queryParams.append(type, value);
+      console.log("queryParams", queryParams);
+
+      const fileId = queryParams.get("file_id");
+      const folderName = queryParams.get("folder_name");
+
+      if (fileId) {
+        localStorage.setItem("value", fileId);
+      }
+      if (folderName) {
+        localStorage.setItem("value", folderName);
+      }
+
+      console.log("fileId1", fileId);
+      console.log("folderName1", folderName);
 
       const response = await fetch(`/api/list-files?${queryParams.toString()}`);
       const data = await response.json();
