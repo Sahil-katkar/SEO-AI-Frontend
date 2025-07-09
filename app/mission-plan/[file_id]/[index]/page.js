@@ -1,29 +1,25 @@
 "use client";
-
-// Components and Hooks
 import Loader from "@/components/common/Loader";
 import React, { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { useAppContext } from "@/app/context/AppContext"; // Adjust path as needed
+import { useAppContext } from "@/app/context/AppContext";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import StatusHeading from "@/components/StatusHeading";
 
 export default function ContentBriefPage() {
-  // State
-  const [isLoading, setIsLoading] = useState(true); // Start with true since we fetch on mount
-  const [isSaving, setIsSaving] = useState(false); // Tracks saving state for the button
-  const [responseData, setResponseData] = useState(null); // Stores API/DB response
-  const [error, setError] = useState(null); // Stores error messages
-  const [editIntent, setEditIntent] = useState({}); // Tracks edit mode for intent
-  const [missionPlanValue, setMissionPlanValue] = useState(""); // Stores mission plan value during edit
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [responseData, setResponseData] = useState(null);
+  const [error, setError] = useState(null);
+  const [editIntent, setEditIntent] = useState({});
+  const [missionPlanValue, setMissionPlanValue] = useState("");
   const supabase = createClientComponentClient();
   const [status, setstatus] = useState("");
 
-  // Context and Navigation
   const { projectData, updateProjectData } = useAppContext();
   const router = useRouter();
   const params = useParams();
-  const fileId = params.file_id; // From /contentBrief/[file_id]/index route
+  const fileId = params.file_id;
   const index = params.index;
   const row_id = `${fileId}_${index}`;
 
@@ -37,14 +33,13 @@ export default function ContentBriefPage() {
         throw new Error("File ID or index not provided in URL");
       }
 
-      const file__Id = `${fileId}_${index}`;
-      console.log("Checking database for fileId:", file__Id);
+      // const file__Id = `${fileId}_${index}`;
+      console.log("Checking database for fileId:", row_id);
 
-      // Check database first
       const { data: dbData, error: dbError } = await supabase
         .from("row_details")
         .select("mission_plan")
-        .eq("row_id", file__Id)
+        .eq("row_id", row_id)
         .single();
 
       const { data: dataInput, error: inputError } = await supabase
@@ -52,8 +47,8 @@ export default function ContentBriefPage() {
         .select(
           "keyword, BUSINESS_GOAL, target_audience, intent, article_outcome, pillar, cluster,questions,faq,lsi_keywords,ai_mode,persona, outline_format"
         )
-        .eq("row_id", file__Id)
-        .single(); // Use .single() to ensure one row is returned
+        .eq("row_id", row_id)
+        .single();
 
       if (inputError) {
         console.error("Error fetching row details:", inputError);
@@ -65,16 +60,14 @@ export default function ContentBriefPage() {
         throw new Error(`Database query error: ${dbError.message}`);
       }
 
-      // If mission_plan exists and is not empty, use it from the database
       if (dbData?.mission_plan) {
         console.log("Found mission plan in database:", dbData.mission_plan);
         setResponseData({ generated_mission_plan: dbData.mission_plan });
         setMissionPlanValue(dbData.mission_plan);
         setIsLoading(false);
-        return; // Exit early if data is found
+        return;
       }
 
-      // If no mission plan in database, call API
       const keyword = dataInput?.keyword || "";
       const BUSINESS_GOAL = dataInput?.BUSINESS_GOAL || "";
       const target_audience = dataInput?.target_audience || "";
@@ -88,16 +81,6 @@ export default function ContentBriefPage() {
       const ai_mode = dataInput?.ai_mode || "";
       const persona = dataInput?.persona || "";
       const outline = dataInput?.outline_format || "";
-
-      console.log("Input data for API:", {
-        keyword,
-        BUSINESS_GOAL,
-        target_audience,
-        intent,
-        article_outcome,
-        pillar,
-        cluster,
-      });
 
       console.log("No mission plan in database, calling API...");
       const response = await fetch("/api/contentBrief", {
@@ -122,13 +105,11 @@ export default function ContentBriefPage() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        // throw new Error(errorData.error || `HTTP error: ${response.status}`);
       }
 
       const data = await response.json();
       console.log("API Response:", data);
 
-      // Ensure we extract the mission plan string correctly
       const missionPlan =
         data.generated_mission_plan ||
         data.mission_plan ||
@@ -137,22 +118,19 @@ export default function ContentBriefPage() {
         throw new Error("No mission plan found in API response");
       }
 
-      // Update state with the mission plan
       setResponseData({ generated_mission_plan: missionPlan });
       setMissionPlanValue(missionPlan);
 
-      // Upsert API response to database
       const { error: upsertError } = await supabase.from("row_details").upsert(
         {
-          row_id: file__Id,
-          mission_plan: missionPlan, // Store only the mission plan string
+          row_id: row_id,
+          mission_plan: missionPlan,
         },
         { onConflict: "row_id" }
       );
 
       if (upsertError) {
         console.error("Supabase upsert error:", upsertError);
-        // Log error but don't throw, as UI already has the data
       } else {
         console.log(
           "Successfully saved mission plan to Supabase:",
@@ -160,12 +138,6 @@ export default function ContentBriefPage() {
         );
       }
     } catch (error) {
-      // console.error("Fetch Error:", {
-      //   message: error.message,
-      //   stack: error.stack,
-      //   fileId,
-      //   index,
-      // });
       setError(error.message || "An unexpected error occurred");
     } finally {
       setIsLoading(false);
@@ -195,8 +167,6 @@ export default function ContentBriefPage() {
     fetchContentBrief();
   }, [fileId, index]);
 
-  // --- Handlers ---
-
   const handleEditIntent = (compIndex) => {
     setEditIntent({ [`comp${compIndex}`]: true });
     setMissionPlanValue(responseData?.generated_mission_plan || "");
@@ -204,53 +174,46 @@ export default function ContentBriefPage() {
 
   const handleCancelIntent = (compIndex) => {
     setEditIntent({ [`comp${compIndex}`]: false });
-    // Reset the textarea to the last saved value
     setMissionPlanValue(responseData?.generated_mission_plan || "");
   };
 
   const handleSaveIntent = async () => {
     setIsSaving(true);
-    setError(null); // Clear previous errors before trying to save
+    setError(null);
 
-    const file__Id = `${fileId}_${index}`;
+    // const row_id = `${fileId}_${index}`;
 
     try {
       const { error: upsertError } = await supabase.from("row_details").upsert(
         {
-          row_id: file__Id,
-          mission_plan: missionPlanValue, // Use the state value from the textarea
+          row_id: row_id,
+          mission_plan: missionPlanValue,
         },
         { onConflict: "row_id" }
       );
 
       if (upsertError) {
-        // Throw an error to be caught by the catch block
         throw new Error(`Failed to save to database: ${upsertError.message}`);
       }
 
-      // On successful save, update local state to reflect the change
       setResponseData((prev) => ({
         ...prev,
         generated_mission_plan: missionPlanValue,
       }));
 
-      // Exit edit mode
       setEditIntent({ [`comp${index + 1}`]: false });
       console.log("Mission plan saved successfully.");
     } catch (error) {
       console.error("Save Error:", error);
-      setError(error.message); // Set error state to display to the user
+      setError(error.message);
     } finally {
       setIsSaving(false);
     }
   };
 
-  // NEW: Handler for the "Next" button
   const handleNext = () => {
     console.log("Navigating to the next step...");
     router.push(`/analysis/${fileId}/${index}`);
-    // Example: router.push(`/next-step-url/${fileId}/${index}`);
-    // Replace with your actual navigation logic.
   };
 
   const isEditing = editIntent[`comp${index + 1}`];
