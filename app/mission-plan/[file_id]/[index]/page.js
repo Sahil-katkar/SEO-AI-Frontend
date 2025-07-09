@@ -286,6 +286,18 @@ export default function ContentBriefPage() {
                   <button
                     onClick={() => handleEditIntent(index + 1)}
                     className="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600 transition-colors"
+                    disabled={
+                      !responseData ||
+                      !responseData.generated_mission_plan ||
+                      responseData.generated_mission_plan.trim() === ""
+                    }
+                    title={
+                      !responseData ||
+                      !responseData.generated_mission_plan ||
+                      responseData.generated_mission_plan.trim() === ""
+                        ? "No mission plan to edit. Generate or fetch first."
+                        : "Edit Mission Plan"
+                    }
                   >
                     Edit
                   </button>

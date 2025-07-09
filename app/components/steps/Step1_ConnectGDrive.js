@@ -6,6 +6,8 @@ import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { Search, Folder } from "lucide-react";
+import { getData } from "../../../utils/dbQueries";
+import { upsertData } from "../../../utils/dbQueries";
 
 export default function Step1_ConnectGDrive() {
   const { projectData, updateProjectData } = useAppContext();
@@ -21,28 +23,25 @@ export default function Step1_ConnectGDrive() {
     document.getElementById("gdrive-input")?.focus();
   }, []);
 
-  // Helper to extract Google Sheet file ID from URL or direct input
   function extractFileIdOrFolder(input) {
     if (!input) return { type: null, value: null };
-    // Google Sheet URL
     const sheetMatch = input.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
     if (sheetMatch && sheetMatch[1]) {
       return { type: "file_id", value: sheetMatch[1] };
     }
-    // Looks like a file ID (basic validation: length and chars)
     if (/^[a-zA-Z0-9_-]{20,}$/.test(input)) {
       return { type: "file_id", value: input };
     }
-    // Otherwise, treat as folder name
     return { type: "folder_name", value: input };
   }
 
-  // Unified search handler
   const handleSearch = async () => {
     setError(null);
     setIsSearching(true);
     setFiles([]);
+
     const { type, value } = extractFileIdOrFolder(input.trim());
+
     if (!type || !value) {
       setError("Please enter a folder name, file ID, or Google Sheet URL.");
       setIsSearching(false);
@@ -51,19 +50,76 @@ export default function Step1_ConnectGDrive() {
       );
       return;
     }
+
     try {
+      // const { data: existingRows, error: fetchError } = await supabase
+      //   .from("file_details")
+      //   .select("fileId, name")
+      //   .eq("folder", value);
+
+      const { data: existingRows, error: fetchError } = await getData(
+        "file_details",
+        ["fileId", "name"],
+        "folder",
+        value
+      );
+
+      if (fetchError) {
+        throw new Error("Database lookup failed.");
+      }
+
+      if (existingRows && existingRows.length > 0) {
+        console.log("Found in database:", existingRows);
+        setFiles(existingRows);
+        updateProjectData({
+          isGDriveConnected: true,
+          gDriveFiles: existingRows,
+        });
+        toast.success("Files loaded from database!");
+        return;
+      }
+
       const queryParams = new URLSearchParams();
       queryParams.append(type, value);
+
       const response = await fetch(`/api/list-files?${queryParams.toString()}`);
       const data = await response.json();
+
       if (!response.ok)
         throw new Error(data.detail || `Error: ${response.status}`);
       if (!Array.isArray(data))
         throw new Error(
           "API endpoint is unavailable. Initiate server startup."
         );
+
       setFiles(data);
+
+      const rows = data.map((item) => ({
+        fileId: item.id,
+        name: item.name,
+        folder: value,
+      }));
+
+      console.log("Inserting rows into Supabase:", rows);
+
+      // const { data: filesList, error: insertError } = await supabase
+      //   .from("file_details")
+      //   .upsert(rows, { onConflict: "fileId" });
+
+      const { data: filesList, error: insertError } = await upsertData(
+        "file_details",
+        rows,
+        "fileId"
+      );
+
+      if (insertError) {
+        console.error("Error adding file records:", insertError);
+      } else {
+        console.log("Added successfully:", filesList);
+      }
+
       updateProjectData({ isGDriveConnected: true, gDriveFiles: data || [] });
+
       toast.success("Files listed successfully!");
     } catch (e) {
       setFiles([]);
@@ -74,7 +130,6 @@ export default function Step1_ConnectGDrive() {
     }
   };
 
-  // File processing handler
   const handleReadSpreadsheet = async (fileId) => {
     setError(null);
     setIsProcessing(true);
