@@ -54,13 +54,6 @@ export default function Step1_ConnectGDrive() {
     fetchData();
   }, []);
 
-  //   // const { data: fileLists, error: InsertErr } = getData(
-  //   //   "file_details",
-  //   //   "name",
-  //   //   "fileId"
-  //   // );
-  // });
-
   function extractFileIdOrFolder(input) {
     if (!input) return { type: null, value: null };
     const sheetMatch = input.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
@@ -90,11 +83,6 @@ export default function Step1_ConnectGDrive() {
     }
 
     try {
-      // const { data: existingRows, error: fetchError } = await supabase
-      //   .from("file_details")
-      //   .select("fileId, name")
-      //   .eq("folder", value);
-
       const { data: existingRows, error: fetchError } = await getData(
         "file_details",
         ["fileId", "name"],
@@ -171,10 +159,6 @@ export default function Step1_ConnectGDrive() {
 
       console.log("Inserting rows into Supabase:", rows);
 
-      // const { data: filesList, error: insertError } = await supabase
-      //   .from("file_details")
-      //   .upsert(rows, { onConflict: "fileId" });
-
       const { data: filesList, error: insertError } = await upsertData(
         "file_details",
         rows,
@@ -214,7 +198,6 @@ export default function Step1_ConnectGDrive() {
       const rows = data.full_content?.Sheet1;
       if (!Array.isArray(rows))
         throw new Error("Invalid data format: Sheet1 is not an array.");
-      // Prepare the rows for upsertion
       const formattedRows = rows.map((row, index) => ({
         keyword: row.KEYWORD || "",
         intent: row.INTENT || "",
@@ -258,7 +241,6 @@ export default function Step1_ConnectGDrive() {
           Connect to your Google Drive and list your files.
         </p>
       </div>
-      {/* Unified Search Card */}
       <div className="w-full max-w-4xl bg-white shadow-xl rounded-2xl p-6 sm:p-8 mb-10 border border-gray-100">
         <div className="flex flex-col sm:flex-row items-center gap-4">
           <div className="flex items-center w-full sm:w-3/4 border rounded-xl px-4 py-3 bg-gray-50 border-gray-300">
@@ -288,7 +270,6 @@ export default function Step1_ConnectGDrive() {
         </div>
         {error && <div className="mt-4 text-red-600 text-sm">{error}</div>}
       </div>
-      {/* File Display */}
       <div className="w-full max-w-5xl">
         {files.length === 0 ? (
           <div className="border-2 border-dashed border-gray-200 rounded-2xl p-12 text-center text-gray-400 bg-white shadow-sm">
