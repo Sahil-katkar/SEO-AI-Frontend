@@ -27,9 +27,10 @@ export default function CompetitorAnalysis({ index, row_id }) {
         .single();
 
       if (error) {
-        console.log(error);
-      } else if (data.comp_analysis) {
-        setCompAnalysis(data.comp_analysis);
+        console.log("error fetchCompetitorAnalysis", error);
+      } else if (data) {
+        console.log("data fetchCompetitorAnalysis", data);
+        setCompAnalysis(data?.comp_analysis);
         updateProjectData({
           isCompetitorAnalysisFetched: true,
         });

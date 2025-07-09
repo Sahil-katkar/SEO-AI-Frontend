@@ -27,8 +27,11 @@ export default function ValueAdd({ index, row_id }) {
         .eq("row_id", row_id)
         .single();
 
-      if (!error) {
-        setValueAdd(data.value_add);
+      if (error) {
+        console.log("error fetchValueAdd", error);
+      } else if (data) {
+        console.log("data fetchValueAdd", data);
+        setValueAdd(data?.value_add);
         updateProjectData({
           isValueAddFetched: true,
         });
@@ -53,17 +56,14 @@ export default function ValueAdd({ index, row_id }) {
       });
     } else {
       setValueAdd(editedValueAdd);
-      // setEditValueAdd({ ...editValueAdd, [`comp${compIndex}`]: false });
     }
   };
 
   const handleEditValueAdd = (item) => {
-    // setEditValueAdd({ ...editValueAdd, [`comp${item}`]: true });
     setEditedValueAdd(valueAdd);
   };
 
   const handleCancelValueAdd = (item) => {
-    // setEditValueAdd({ ...editValueAdd, [`comp${item}`]: false });
     setEditedValueAdd(valueAdd);
   };
 

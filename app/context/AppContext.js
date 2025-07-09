@@ -47,8 +47,8 @@ export function AppProvider({ children }) {
       id: "step3",
       name: "LSI Keywords",
       route: "lsi-keywords",
-      selectedFileId: projectData.selectedFileId, // These are based on projectData state
-      selectedRowIndex: projectData.selectedRowIndex, // and are updated via updateProjectData
+      selectedFileId: projectData.selectedFileId,
+      selectedRowIndex: projectData.selectedRowIndex,
     },
     {
       id: "step4",

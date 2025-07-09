@@ -5,24 +5,25 @@ import CompetitorAnalysis from "@/components/CompetitorAnalysis";
 import MissionPlan from "@/components/MissionPlan";
 import StatusHeading from "@/components/StatusHeading";
 import ValueAdd from "@/components/ValueAdd";
+import { useAppContext } from "@/context/AppContext";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast, ToastContainer } from "react-toastify";
 
 export default function Analysis() {
-  const [isLoading, setIsLoading] = useState(false);
-  const [lsiData, setLsiData] = useState("");
-  // const [compAnalysis, setCompAnalysis] = useState("");
-
+  const supabase = createClientComponentClient();
+  const { projectData, updateProjectData } = useAppContext();
   const router = useRouter();
   const params = useParams();
-  const fileId = params.file_id;
-  const index = params.index;
+
+  const [isLoading, setIsLoading] = useState(false);
+  const [lsiData, setLsiData] = useState("");
   const [status, setstatus] = useState("");
 
+  const fileId = params.file_id;
+  const index = params.index;
   const row_id = `${fileId}_${index}`;
-  const supabase = createClientComponentClient();
 
   useEffect(() => {
     const fetchStatus = async () => {
@@ -50,9 +51,6 @@ export default function Analysis() {
     router.push(`/content/${fileId}/${index}`);
   };
 
-  const [isEditing, setIsEditing] = useState(false);
-
-  //   !-----------------------------------
   useEffect(() => {
     const fetchAnalysisData = async (row_id) => {
       if (!row_id) return;
@@ -63,7 +61,9 @@ export default function Analysis() {
         .eq("row_id", row_id)
         .single();
 
-      if (data) {
+      if (error) {
+        console.log("error fetchAnalysisData", error);
+      } else if (data) {
         if (data.lsi_keywords) {
           try {
             setLsiData(
@@ -98,16 +98,18 @@ export default function Analysis() {
               className="flex flex-col gap-[30px] rounded-[12px] border-[1px] border-gray-200 py-3 px-4 text-sm hover:bg-gray-50 transition"
             >
               <CompetitorAnalysis row_id={row_id} />
-
               <ValueAdd row_id={row_id} />
-
               <MissionPlan row_id={row_id} />
 
               <div className="mt-6 flex justify-end">
                 <button
                   onClick={handleNext}
                   className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                  //   disabled={isEditing}
+                  disabled={
+                    !projectData.isCompetitorAnalysisFetched &&
+                    !projectData.isValueAddFetched &&
+                    !projectData.isMissionPlanFetched
+                  }
                 >
                   Next
                 </button>

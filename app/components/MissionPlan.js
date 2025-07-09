@@ -14,15 +14,17 @@ export default function MissionPlan({ row_id }) {
     const fetchMissionPlan = async (row_id) => {
       if (!row_id) return;
 
-      const { data: dbData, error: dbError } = await supabase
+      const { data, error } = await supabase
         .from("row_details")
         .select("mission_plan")
         .eq("row_id", row_id)
         .single();
 
-      console.log("dbData", dbData);
-      if (!dbError) {
-        setMissionPlan(dbData.mission_plan);
+      if (error) {
+        console.log("error fetchMissionPlan", error);
+      } else if (data) {
+        console.log("data fetchMissionPlan", data);
+        setMissionPlan(data?.mission_plan);
         updateProjectData({
           isMissionPlanFetched: true,
         });
@@ -109,7 +111,6 @@ export default function MissionPlan({ row_id }) {
         value={missionPlan ?? ""}
         onChange={(e) => setMissionPlan(e.target.value)}
       />
-      a
     </div>
   );
 }
