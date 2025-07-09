@@ -95,26 +95,12 @@ export default function Step1_ConnectGDrive() {
       }
 
       if (existingRows && existingRows.length > 0) {
-        const queryParams = new URLSearchParams();
-        queryParams.append(type, value);
-        console.log("queryParams", queryParams);
-
-        const fileId = queryParams.get("file_id");
-        const folderName = queryParams.get("folder_name");
-
-        console.log("fileId", fileId);
-
-        if (fileId) {
-          localStorage.setItem("value", fileId);
-        }
-        if (folderName) {
-          localStorage.setItem("value", folderName);
-        }
         console.log("Found in database:", existingRows);
-        setFiles(existingRows);
+        const formattedFiles = existingRows.map((file) => ({ ...file, id: file.fileId }));
+        setFiles(formattedFiles);
         updateProjectData({
           isGDriveConnected: true,
-          gDriveFiles: existingRows,
+          gDriveFiles: formattedFiles,
         });
         toast.success("Files loaded from database!");
         return;
