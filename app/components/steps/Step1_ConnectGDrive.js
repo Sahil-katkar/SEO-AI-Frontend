@@ -96,7 +96,19 @@ export default function Step1_ConnectGDrive() {
 
       if (existingRows && existingRows.length > 0) {
         console.log("Found in database:", existingRows);
-        const formattedFiles = existingRows.map((file) => ({ ...file, id: file.fileId }));
+        const formattedFiles = existingRows.map((file) => ({
+          ...file,
+          id: file.fileId,
+        }));
+        const queryParams = new URLSearchParams();
+        queryParams.append(type, value);
+        console.log("queryParams", queryParams);
+
+        const fileId = queryParams.get("file_id");
+        const folderName = queryParams.get("folder_name");
+
+        localStorage.setItem("fileId", fileId);
+
         setFiles(formattedFiles);
         updateProjectData({
           isGDriveConnected: true,
@@ -123,6 +135,7 @@ export default function Step1_ConnectGDrive() {
       }
 
       console.log("fileId1", fileId);
+      localStorage.setItem("fileId", fileId);
       console.log("folderName1", folderName);
 
       const response = await fetch(`/api/list-files?${queryParams.toString()}`);
@@ -277,7 +290,11 @@ export default function Step1_ConnectGDrive() {
                 </h3>
                 <button
                   disabled={isProcessing}
-                  onClick={() => handleReadSpreadsheet(file.id)}
+                  onClick={() =>
+                    handleReadSpreadsheet(
+                      file.id || localStorage.getItem("fileId")
+                    )
+                  }
                   className={`whitespace-nowrap text-white py-2 rounded-xl text-sm font-semibold px-4 ${
                     !isProcessing
                       ? "bg-gradient-to-r from-green-500 to-emerald-500 hover:scale-[1.02]"
