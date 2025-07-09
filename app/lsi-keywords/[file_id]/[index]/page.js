@@ -2,7 +2,7 @@
 
 import Loader from "@/components/common/Loader";
 import React, { useState, useEffect } from "react";
-import { Pencil } from "lucide-react"; // <-- 1. Import the icon at the top of your file
+import { Pencil } from "lucide-react";
 import { usePathname, useRouter, useParams } from "next/navigation";
 import { useAppContext } from "@/context/AppContext";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
@@ -18,30 +18,15 @@ export default function Analysis() {
 
   const router = useRouter();
   const params = useParams();
-  const fileId = params.file_id; // From /contentBrief/[file_id]/index route
+  const fileId = params.file_id;
   const index = params.index;
-
-  // const projectData = useAppContext();
   const row_id = `${fileId}_${index}`;
   const supabase = createClientComponentClient();
 
-  // console.log("selectedFileId", projectData.selected);
-
-  // NEW: Handler for the "Next" button
   const handleNext = () => {
     console.log("Navigating to the next step...");
     router.push(`/content/${fileId}/${index}`);
-    // Example: router.push(`/next-step-url/${fileId}/${index}`);
-    // Replace with your actual navigation logic.
   };
-
-  // Assume 'supabase' client is initialized and accessible,
-  // and 'row_id' is a variable holding the current row's ID.
-  // For example, if this is within a React component:
-  // const { row_id, supabase } = props; // Or from useContext, etc.
-  // const [isLoading, setIsLoading] = useState(false);
-  // const [error, setError] = useState(null);
-  // const [successMessage, setSuccessMessage] = useState(null);
 
   const handleApprove = async () => {
     try {
@@ -50,37 +35,23 @@ export default function Analysis() {
         .upsert(
           {
             row_id: row_id,
-            status: "Approved", // Using "Approved" as the string literal for status
+            status: "Approved",
           },
-          { onConflict: "row_id" } // Ensure 'row_id' is your primary key or unique constraint
+          { onConflict: "row_id" }
         )
-        .select(); // .select() is good practice to get the updated row data back
+        .select();
 
       if (upsertError) {
-        // If there's an error from Supabase, throw it to jump to the catch block
         throw upsertError;
       } else {
         toast.success("LSI keywords approved successfully!", {
-          position: "bottom-right", // You can change this position as needed
+          position: "bottom-right",
         });
       }
 
-      // --- SUCCESS TOAST ---
-      // Display a success toast notification.
-      // 'position: "top-right"' is an option here, but if you've already
-      // configured your <Toaster /> component with a default position,
-      // you might not need to specify it here.
-
       console.log("Analysis approved successfully:", upsertedData);
-      // Optional: After successful approval, you might want to:
-      // 1. Update the local state of the item (e.g., change its status to "Approved").
-      // 2. Re-fetch the data to ensure the UI is in sync with the database.
-      // 3. Close a modal or redirect the user.
     } catch (error) {
-      // Catch any errors that occurred during the process (either from Supabase or thrown)
       console.error("Error approving analysis:", error.message || error);
-      // --- ERROR TOAST (Highly Recommended for user feedback) ---
-      // Display an error toast to inform the user about the failure.
       toast.error(
         `Failed to approve LSI keywords: ${error.message || "Unknown error"}`,
         {
@@ -88,9 +59,6 @@ export default function Analysis() {
         }
       );
     } finally {
-      // Optional: This block will always execute, regardless of success or failure.
-      // It's a good place to hide loading indicators.
-      // setIsLoading(false);
     }
   };
 
@@ -222,8 +190,6 @@ export default function Analysis() {
 
   //   !-----------------------------------
   const handleEditLSI = (item) => {
-    // item is 1-based index (comp1, comp2, ...)
-    // For each lsiData entry, initialize editedLsiData as an array of {keyword, value}
     const newEditedLsiData = { ...editedLsiData };
     lsiData.forEach((lsi, idx) => {
       const baseKeywords = String(lsi.lsi_keywords || "");
@@ -260,14 +226,13 @@ export default function Analysis() {
       }
       updateProjectData({
         selectedFileId: fileId,
-        selectedRowIndex: index, // Set selectedRowIndex to the index + 1
+        selectedRowIndex: index,
       });
 
-      // Transform the article data into an array of URLs
       const urls = article
-        .filter((item) => typeof item.comp_url === "string" && item.comp_url) // Ensure comp_url is a valid string
-        .flatMap((item) => item.comp_url.split("\n").map((url) => url.trim())) // Split by newline and trim whitespace
-        .filter((url) => url); // Remove any empty strings
+        .filter((item) => typeof item.comp_url === "string" && item.comp_url)
+        .flatMap((item) => item.comp_url.split("\n").map((url) => url.trim()))
+        .filter((url) => url);
 
       if (urls.length === 0) {
         throw new Error("No valid competitor URLs found");
@@ -281,11 +246,6 @@ export default function Analysis() {
 
       console.log("backendPayload", backendPayload);
 
-      // const response = await fetch("/api/lsi-keywords", {
-      //   method: "POST",
-      //   headers: { "Content-Type": "application/json" },
-      //   body: JSON.stringify(backendPayload),
-      // });
       try {
         const response = await fetch("/api/lsi-keywords", {
           method: "POST",
@@ -342,7 +302,6 @@ export default function Analysis() {
         const jsonString = lsi_keywords[0].lsi_keywords;
 
         try {
-          // 3. Parse the string into a JavaScript array
           const parsedData = JSON.parse(jsonString);
 
           const comp_contents = parsedData.map((item) => item.raw_text);
@@ -409,11 +368,9 @@ export default function Analysis() {
     setIsGeneratingValueAdd(true);
     try {
       if (!row_id) {
-        // It's better to notify the user or log this, but throwing is fine too.
         throw new Error("Invalid or missing row_id");
       }
 
-      // Fetch both pieces of data in parallel for better performance
       const [analysisResult, rowDetailsResult] = await Promise.all([
         supabase
           .from("analysis")
@@ -430,7 +387,6 @@ export default function Analysis() {
       const { data: analysisData, error: errorAnalysis } = analysisResult;
       const { data: rowDetailsData, error: errorMission } = rowDetailsResult;
 
-      // FIX: Correctly check for and combine error messages.
       if (errorAnalysis || errorMission) {
         const errorMessage = [errorAnalysis?.message, errorMission?.message]
           .filter(Boolean)
@@ -438,18 +394,15 @@ export default function Analysis() {
         throw new Error(`Supabase error: ${errorMessage}`);
       }
 
-      // FIX: Add checks to ensure data exists before trying to access properties.
-      // This prevents "Cannot read properties of undefined" errors.
       if (!analysisData || !rowDetailsData) {
         throw new Error("Required data not found for the given row_id.");
       }
 
-      // FIX: Use new variable names to avoid "Identifier has already been declared" error.
       const competitive_analysis_report = analysisData.comp_analysis;
       const mission_plan_context = rowDetailsData.mission_plan;
 
       const payload = {
-        mission_plan_context, // Shorthand for mission_plan_context: mission_plan_context
+        mission_plan_context,
         competitive_analysis_report,
       };
 
@@ -462,7 +415,6 @@ export default function Analysis() {
       });
 
       if (!response.ok) {
-        // Provide a more graceful error message from the API.
         const errorData = await response.json();
         throw new Error(errorData.error || `API error: ${response.status}`);
       }
@@ -472,14 +424,9 @@ export default function Analysis() {
 
       setValueAdd(data);
 
-      // You can now use the 'data' to update state or perform the upsert.
-      // For example: setCompAnalysis(data);
-
-      // The commented-out upsert logic can now be safely used.
-
       const { error: upsertError } = await supabase.from("analysis").upsert(
         {
-          row_id: row_id, // <-- Add this line
+          row_id: row_id,
           value_add: data,
         },
         { onConflict: "row_id" }
@@ -492,10 +439,7 @@ export default function Analysis() {
       }
     } catch (error) {
       console.error("Failed to generate value add:", error);
-      // Here you would typically show a notification to the user
-      // e.g., toast.error(error.message);
     } finally {
-      // FIX: This ensures the loading spinner is turned off regardless of success or failure.
       setIsGeneratingValueAdd(false);
     }
   };
@@ -505,7 +449,6 @@ export default function Analysis() {
       let lsi_keywords = item.lsi_keywords;
 
       if (editedLsiData[tableEditKey]) {
-        // Reconstruct as comma-separated string: keyword1,value1,keyword2,value2,...
         lsi_keywords = editedLsiData[tableEditKey]
           .map((pair) => `${pair.keyword},${pair.value}`)
           .join(",");
@@ -519,10 +462,9 @@ export default function Analysis() {
 
     updateProjectData({
       selectedFileId: fileId,
-      selectedRowIndex: index, // Set selectedRowIndex to the index + 1
+      selectedRowIndex: index,
     });
 
-    // Save to Supabase
     const { error } = await supabase.from("analysis").upsert(
       {
         row_id: row_id,
@@ -589,16 +531,15 @@ export default function Analysis() {
 
   const handleEditCompAnalysis = (item) => {
     setEditCompAnalysis({ ...editCompAnalysis, [`comp${item}`]: true });
-    setEditedCompAnalysis(compAnalysis); // Load current value for editing
+    setEditedCompAnalysis(compAnalysis);
   };
 
   const handleEditValueAdd = (item) => {
     setEditValueAdd({ ...editValueAdd, [`comp${item}`]: true });
-    setEditedValueAdd(valueAdd); // Load current value for editing
+    setEditedValueAdd(valueAdd);
   };
 
   const handleSaveCompAnalysis = async (compIndex) => {
-    // Save to Supabase
     const { error } = await supabase.from("analysis").upsert(
       {
         row_id: row_id,
@@ -616,7 +557,6 @@ export default function Analysis() {
   };
 
   const handleSaveValueAdd = async (compIndex) => {
-    // Save to Supabase
     const { error } = await supabase.from("analysis").upsert(
       {
         row_id: row_id,
@@ -635,32 +575,25 @@ export default function Analysis() {
 
   const handleCancelCompAnalysis = (item) => {
     setEditCompAnalysis({ ...editCompAnalysis, [`comp${item}`]: false });
-    setEditedCompAnalysis(compAnalysis); // Reset to original
+    setEditedCompAnalysis(compAnalysis);
   };
 
   const handleCancelValueAdd = (item) => {
     setEditValueAdd({ ...editValueAdd, [`comp${item}`]: false });
-    setEditedValueAdd(valueAdd); // Reset to the original value
+    setEditedValueAdd(valueAdd);
   };
 
   useEffect(() => {
     const fetchAnalysisData = async () => {
       if (!row_id) return;
 
-      // Fetch LSI and competitor analysis data from Supabase
       const { data, error } = await supabase
         .from("analysis")
         .select("lsi_keywords, comp_analysis")
         .eq("row_id", row_id)
         .single();
 
-      // if (error) {
-      //   console.error("Error fetching analysis data:", error);
-      //   return;
-      // }
-
       if (data) {
-        // Parse and set LSI data
         if (data.lsi_keywords) {
           try {
             setLsiData(
@@ -669,10 +602,9 @@ export default function Analysis() {
                 : data.lsi_keywords
             );
           } catch (e) {
-            setLsiData(data.lsi_keywords); // fallback if already parsed
+            setLsiData(data.lsi_keywords);
           }
         }
-        // Set competitor analysis data
         if (data.comp_analysis) {
           setCompAnalysis(data.comp_analysis);
         }
@@ -700,7 +632,6 @@ export default function Analysis() {
                   key={index}
                   className="flex flex-col gap-[30px] rounded-[12px] border-[1px] border-gray-200 py-3 px-4 text-sm hover:bg-gray-50 transition"
                 >
-                  {/* lsi section */}
                   <div>
                     <div className="mb-[8px] flex justify-between items-center">
                       <p className="font-bold text-[24px] ">LSI:</p>
@@ -723,9 +654,15 @@ export default function Analysis() {
                               handleEditLSI(index + 1);
                             }}
                             className="p-1 text-gray-600 hover:text-black"
-                            disabled={!lsiData || !Array.isArray(lsiData) || lsiData.length === 0}
+                            disabled={
+                              !lsiData ||
+                              !Array.isArray(lsiData) ||
+                              lsiData.length === 0
+                            }
                             title={
-                              !lsiData || !Array.isArray(lsiData) || lsiData.length === 0
+                              !lsiData ||
+                              !Array.isArray(lsiData) ||
+                              lsiData.length === 0
                                 ? "Generate LSI data first"
                                 : "Edit LSI"
                             }
@@ -796,35 +733,29 @@ export default function Analysis() {
                         const baseKeywords = String(item.lsi_keywords || "");
 
                         const transformedKeywordsForTextarea = baseKeywords
-                          .split(",") // Split by comma
-                          .map((s) => s.trim()) // Trim whitespace from each part
-                          .filter((s) => s) // Remove any empty strings (e.g., from "a,,b")
-                          .join("\n"); // Join with newlines for textarea display
+                          .split(",")
+                          .map((s) => s.trim())
+                          .filter((s) => s)
+                          .join("\n");
 
-                        // 3. Prepare data for the TABLE DISPLAY (parsing into keyword/value pairs)
                         const keywordValuePairs = [];
-                        const parts = baseKeywords.split(","); // Split the original string by comma
+                        const parts = baseKeywords.split(",");
                         for (let i = 0; i < parts.length; i += 2) {
-                          // Each pair consists of a keyword (at index i) and a value (at index i+1)
                           const keyword = parts[i] ? parts[i].trim() : "";
                           const value = parts[i + 1]
                             ? parseFloat(parts[i + 1].trim())
-                            : null; // Parse the float value
+                            : null;
 
-                          // Only add to pairs if a keyword part exists
                           if (keyword) {
                             keywordValuePairs.push({
                               keyword,
-                              value: isNaN(value) ? null : value, // Handle cases where parsing might result in NaN
+                              value: isNaN(value) ? null : value,
                             });
                           }
                         }
 
-                        // Determine if this specific item is in edit mode.
-                        // Assuming 'index' from your original code refers to 'idx' from the map loop.
                         const isEditing = editLSI;
 
-                        // Prepare editable data structure
                         const tableEditKey = `${idx}_${item.url}`;
                         const editedPairs =
                           editedLsiData[tableEditKey] ||
@@ -836,7 +767,6 @@ export default function Analysis() {
                             className="mb-4 p-4 border border-gray-200 rounded-md"
                           >
                             {" "}
-                            {/* Added some styling for better separation */}
                             <label className="block font-bold mb-2">
                               Result {idx + 1} (Source:{" "}
                               <a
@@ -936,19 +866,18 @@ export default function Analysis() {
                   </div>
 
                   <div className="mt-6 flex justify-end">
-                    {/* <button
-                      onClick={handleNext}
-                      className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                    >
-                      Next
-                    </button> */}
-
                     <button
                       onClick={handleApprove}
                       className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                      disabled={!lsiData || !Array.isArray(lsiData) || lsiData.length === 0}
+                      disabled={
+                        !lsiData ||
+                        !Array.isArray(lsiData) ||
+                        lsiData.length === 0
+                      }
                       title={
-                        !lsiData || !Array.isArray(lsiData) || lsiData.length === 0
+                        !lsiData ||
+                        !Array.isArray(lsiData) ||
+                        lsiData.length === 0
                           ? "Generate LSI data first"
                           : "Approve LSI keywords"
                       }
