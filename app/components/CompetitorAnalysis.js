@@ -1,19 +1,170 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Loader from "./common/Loader";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { useAppContext } from "@/context/AppContext";
 
-export default function CompetitorAnalysis({
-  compAnalysis,
-  generateAnalysis,
-  isGeneratingAnalysis,
-  editCompAnalysis,
-  index,
-  handleEditCompAnalysis,
-  handleSaveCompAnalysis,
-  handleCancelCompAnalysis,
-  editedCompAnalysis,
-  setEditedCompAnalysis,
-}) {
-  console.log("index", index);
+export default function CompetitorAnalysis({ index, row_id }) {
+  const supabase = createClientComponentClient();
+  const { projectData, updateProjectData } = useAppContext();
+  const [isGeneratingAnalysis, setIsGeneratingAnalysis] = useState(false);
+  const [editedCompAnalysis, setEditedCompAnalysis] = useState("");
+  const [compAnalysis, setCompAnalysis] = useState("");
+
+  const [editCompAnalysis, setEditCompAnalysis] = useState({
+    comp1: false,
+    comp2: false,
+    comp3: false,
+  });
+
+  useEffect(() => {
+    const fetchCompetitorAnalysis = async (row_id) => {
+      if (!row_id) return;
+
+      const { data, error } = await supabase
+        .from("analysis")
+        .select("comp_analysis")
+        .eq("row_id", row_id)
+        .single();
+
+      if (error) {
+        console.log(error);
+      } else if (data.comp_analysis) {
+        setCompAnalysis(data.comp_analysis);
+        updateProjectData({
+          isCompetitorAnalysisFetched: true,
+        });
+      }
+    };
+    fetchCompetitorAnalysis(row_id);
+  }, [row_id]);
+
+  const handleEditCompAnalysis = (item) => {
+    setEditCompAnalysis({ ...editCompAnalysis, [`comp${item}`]: true });
+    setEditedCompAnalysis(compAnalysis);
+  };
+
+  const handleSaveCompAnalysis = async (compIndex) => {
+    const { error } = await supabase.from("analysis").upsert(
+      {
+        row_id: row_id,
+        comp_analysis: editedCompAnalysis,
+      },
+      { onConflict: "row_id" }
+    );
+
+    if (error) {
+      toast.error(error.message || "Error saving competitor analysis", {
+        position: "top-right",
+      });
+    } else {
+      setCompAnalysis(editedCompAnalysis);
+      setEditCompAnalysis({ ...editCompAnalysis, [`comp${compIndex}`]: false });
+    }
+  };
+
+  const handleCancelCompAnalysis = (item) => {
+    setEditCompAnalysis({ ...editCompAnalysis, [`comp${item}`]: false });
+    setEditedCompAnalysis(compAnalysis);
+  };
+
+  const generateAnalysis = async () => {
+    setIsGeneratingAnalysis(true);
+    if (!row_id) {
+      throw new Error("Invalid or missing row_id");
+    }
+
+    const { data: lsi_keywords, error } = await supabase
+      .from("analysis")
+      .select("lsi_keywords")
+      .eq("row_id", row_id);
+
+    if (error) {
+      throw new Error(`Supabase error: ${error.message}`);
+    } else {
+      console.log("lsi_keywords", lsi_keywords);
+      if (lsi_keywords && lsi_keywords.length > 0) {
+        const jsonString = lsi_keywords[0].lsi_keywords;
+
+        try {
+          const parsedData = JSON.parse(jsonString);
+
+          const comp_contents = parsedData.map((item) => item.raw_text);
+          const url = parsedData.map((item) => item.url);
+
+          const competitorData = parsedData.map((item) => ({
+            raw_text: item.raw_text,
+            url: item.url,
+          }));
+
+          console.log("Data to send to API:", competitorData);
+          console.log("url", url);
+          console.log("Extracted Raw Texts:", comp_contents);
+
+          const payload = {
+            comp_contents: competitorData,
+          };
+
+          try {
+            const response = await fetch("/api/comp-analysis", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(payload),
+            });
+
+            let data;
+            if (!response.ok) {
+              let errorMsg = `HTTP error: ${response.status}`;
+              try {
+                const errorData = await response.json();
+                errorMsg = errorData.error || errorMsg;
+              } catch (jsonErr) {
+                errorMsg = response.statusText || errorMsg;
+              }
+              throw new Error(errorMsg);
+            } else {
+              data = await response.json();
+            }
+
+            setCompAnalysis(data);
+
+            const { data: lsi_data, error } = await supabase
+              .from("analysis")
+              .upsert(
+                {
+                  row_id: row_id,
+                  comp_analysis: data,
+                },
+                { onConflict: "row_id" }
+              );
+
+            if (lsi_data) {
+              console.log("added succesfully");
+            }
+
+            console.log("data", data);
+          } catch (e) {
+            let msg = e.message || "";
+            if (msg.includes("404")) {
+              msg = "The requested resource was not found (404).";
+            } else if (msg.includes("501")) {
+              msg = "This feature is not implemented on the server (501).";
+            } else if (msg === "Failed to fetch") {
+              msg = "API is not available. Please try again later.";
+            } else if (!msg) {
+              msg = "An unexpected error occurred.";
+            }
+            toast.error(msg, { position: "top-right" });
+          }
+        } catch (parseError) {
+          toast.error("Error ", {
+            position: "top-right",
+          });
+        }
+      }
+    }
+    setIsGeneratingAnalysis(false);
+    setIsAnalysisGenerated(true);
+  };
 
   return (
     <div className="">

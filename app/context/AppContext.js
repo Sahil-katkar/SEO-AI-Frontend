@@ -26,8 +26,11 @@ export function AppProvider({ children }) {
     isModalOpen: false,
     activeModalRowIndex: null,
     activeModalTab: "Outline",
-    selectedFileId: "", // These values are derived from updates, not initial path
-    selectedRowIndex: "", // These values are derived from updates, not initial path
+    selectedFileId: "",
+    selectedRowIndex: "",
+    isCompetitorAnalysisFetched: false,
+    isValueAddFetched: false,
+    isMissionPlanFetched: false,
   });
 
   const STEPS = [

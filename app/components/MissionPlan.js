@@ -1,8 +1,10 @@
+import { useAppContext } from "@/context/AppContext";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import React, { useEffect, useState } from "react";
 
-export default function MissionPlan({ isEditing, handleNext, row_id }) {
+export default function MissionPlan({ row_id }) {
   const supabase = createClientComponentClient();
+  const { projectData, updateProjectData } = useAppContext();
 
   const [missionPlan, setMissionPlan] = useState("");
   const [isEditingMP, setIsEditingMP] = useState(false);
@@ -21,6 +23,9 @@ export default function MissionPlan({ isEditing, handleNext, row_id }) {
       console.log("dbData", dbData);
       if (!dbError) {
         setMissionPlan(dbData.mission_plan);
+        updateProjectData({
+          isMissionPlanFetched: true,
+        });
       }
     };
     fetchMissionPlan(row_id);
@@ -104,16 +109,7 @@ export default function MissionPlan({ isEditing, handleNext, row_id }) {
         value={missionPlan ?? ""}
         onChange={(e) => setMissionPlan(e.target.value)}
       />
-
-      <div className="mt-6 flex justify-end">
-        <button
-          onClick={handleNext}
-          className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-          disabled={isEditing}
-        >
-          Next
-        </button>
-      </div>
+      a
     </div>
   );
 }

@@ -1,13 +1,16 @@
 import React, { useEffect, useState } from "react";
 import Loader from "./common/Loader";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { useAppContext } from "@/context/AppContext";
 
-export default function ValueAdd({ compAnalysis, index, row_id }) {
+export default function ValueAdd({ index, row_id }) {
   const supabase = createClientComponentClient();
+  const { projectData, updateProjectData } = useAppContext();
+  const compAnalysis = projectData.isCompetitorAnalysisFetched;
+
   const [valueAdd, setValueAdd] = useState("");
   const [isGeneratingValueAdd, setIsGeneratingValueAdd] = useState(false);
   const [editedValueAdd, setEditedValueAdd] = useState("");
-
   const [editValueAdd, setEditValueAdd] = useState({
     comp1: false,
     comp2: false,
@@ -26,6 +29,9 @@ export default function ValueAdd({ compAnalysis, index, row_id }) {
 
       if (!error) {
         setValueAdd(data.value_add);
+        updateProjectData({
+          isValueAddFetched: true,
+        });
       }
     };
 
