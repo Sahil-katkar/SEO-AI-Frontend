@@ -14,7 +14,6 @@ export default function Analysis() {
   const [isLoading, setIsLoading] = useState(false);
   const [lsiData, setLsiData] = useState("");
   const [compAnalysis, setCompAnalysis] = useState("");
-  const [valueAdd, setValueAdd] = useState("");
 
   const router = useRouter();
   const params = useParams();
@@ -57,15 +56,10 @@ export default function Analysis() {
     comp3: false,
   });
 
-  const [editValueAdd, setEditValueAdd] = useState({
-    comp1: false,
-    comp2: false,
-    comp3: false,
-  });
   const [editedCompAnalysis, setEditedCompAnalysis] = useState("");
-  const [editedValueAdd, setEditedValueAdd] = useState("");
+  // const [editedValueAdd, setEditedValueAdd] = useState("");
   const [isGeneratingAnalysis, setIsGeneratingAnalysis] = useState(false);
-  const [isGeneratingValueAdd, setIsGeneratingValueAdd] = useState(false);
+  // const [isGeneratingValueAdd, setIsGeneratingValueAdd] = useState(false);
   const [isAnalysisGenerated, setIsAnalysisGenerated] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
 
@@ -169,112 +163,15 @@ export default function Analysis() {
     setIsAnalysisGenerated(true);
   };
 
-  const generateValueAdd = async () => {
-    setIsGeneratingValueAdd(true);
-    try {
-      if (!row_id) {
-        throw new Error("Invalid or missing row_id");
-      }
-
-      const [analysisResult, rowDetailsResult] = await Promise.all([
-        supabase
-          .from("analysis")
-          .select("comp_analysis")
-          .eq("row_id", row_id)
-          .single(),
-        supabase
-          .from("row_details")
-          .select("mission_plan")
-          .eq("row_id", row_id)
-          .single(),
-      ]);
-
-      const { data: analysisData, error: errorAnalysis } = analysisResult;
-      const { data: rowDetailsData, error: errorMission } = rowDetailsResult;
-
-      if (errorAnalysis || errorMission) {
-        const errorMessage = [errorAnalysis?.message, errorMission?.message]
-          .filter(Boolean)
-          .join("; ");
-        throw new Error(`Supabase error: ${errorMessage}`);
-      }
-
-      if (!analysisData || !rowDetailsData) {
-        throw new Error("Required data not found for the given row_id.");
-      }
-
-      const competitive_analysis_report = analysisData.comp_analysis;
-      const mission_plan_context = rowDetailsData.mission_plan;
-
-      try {
-        const payload = {
-          mission_plan_context,
-          competitive_analysis_report,
-        };
-
-        console.log("payload", payload);
-        const response = await fetch("/api/value_add", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || `API error: ${response.status}`);
-        }
-
-        const data = await response.json();
-        console.log("Successfully generated value add:", data);
-
-        setValueAdd(data);
-
-        const { error: upsertError } = await supabase.from("analysis").upsert(
-          {
-            row_id: row_id,
-            value_add: data,
-          },
-          { onConflict: "row_id" }
-        );
-
-        if (upsertError) {
-          throw new Error(`Failed to save analysis: ${upsertError.message}`);
-        } else {
-          console.log("Analysis saved successfully.");
-        }
-      } catch (e) {
-        let msg = e.message || "";
-        if (msg.includes("404")) {
-          msg = "The requested resource was not found (404).";
-        } else if (msg.includes("501")) {
-          msg = "This feature is not implemented on the server (501).";
-        } else if (msg === "Failed to fetch") {
-          msg = "API is not available. Please try again later.";
-        } else if (!msg) {
-          msg = "An unexpected error occurred.";
-        } else if (msg.includes("422")) {
-          msg = "Format not correct or check API";
-        }
-        toast.error(msg, { position: "top-right" });
-      }
-    } catch (error) {
-      toast.error(error.message || "Failed to generate value add", {
-        position: "top-right",
-      });
-    } finally {
-      setIsGeneratingValueAdd(false);
-    }
-  };
-
   const handleEditCompAnalysis = (item) => {
     setEditCompAnalysis({ ...editCompAnalysis, [`comp${item}`]: true });
     setEditedCompAnalysis(compAnalysis);
   };
 
-  const handleEditValueAdd = (item) => {
-    setEditValueAdd({ ...editValueAdd, [`comp${item}`]: true });
-    setEditedValueAdd(valueAdd);
-  };
+  // const handleEditValueAdd = (item) => {
+  //   setEditValueAdd({ ...editValueAdd, [`comp${item}`]: true });
+  //   setEditedValueAdd(valueAdd);
+  // };
 
   const handleSaveCompAnalysis = async (compIndex) => {
     const { error } = await supabase.from("analysis").upsert(
@@ -295,48 +192,39 @@ export default function Analysis() {
     }
   };
 
-  const handleSaveValueAdd = async (compIndex) => {
-    const { error } = await supabase.from("analysis").upsert(
-      {
-        row_id: row_id,
-        value_add: editedValueAdd,
-      },
-      { onConflict: "row_id" }
-    );
+  // const handleSaveValueAdd = async (compIndex) => {
+  //   const { error } = await supabase.from("analysis").upsert(
+  //     {
+  //       row_id: row_id,
+  //       value_add: editedValueAdd,
+  //     },
+  //     { onConflict: "row_id" }
+  //   );
 
-    if (error) {
-      toast.error(error.message || "Error saving value add", {
-        position: "top-right",
-      });
-    } else {
-      setValueAdd(editedValueAdd);
-      setEditValueAdd({ ...editValueAdd, [`comp${compIndex}`]: false });
-    }
-  };
+  //   if (error) {
+  //     toast.error(error.message || "Error saving value add", {
+  //       position: "top-right",
+  //     });
+  //   } else {
+  //     setValueAdd(editedValueAdd);
+  //     setEditValueAdd({ ...editValueAdd, [`comp${compIndex}`]: false });
+  //   }
+  // };
 
   const handleCancelCompAnalysis = (item) => {
     setEditCompAnalysis({ ...editCompAnalysis, [`comp${item}`]: false });
     setEditedCompAnalysis(compAnalysis);
   };
 
-  const handleCancelValueAdd = (item) => {
-    setEditValueAdd({ ...editValueAdd, [`comp${item}`]: false });
-    setEditedValueAdd(valueAdd);
-  };
-
   useEffect(() => {
-    const fetchAnalysisData = async () => {
+    const fetchAnalysisData = async (row_id) => {
       if (!row_id) return;
 
       const { data, error } = await supabase
         .from("analysis")
-        .select("lsi_keywords, comp_analysis, value_add")
+        .select("lsi_keywords, comp_analysis")
         .eq("row_id", row_id)
         .single();
-
-      if (!error) {
-        setValueAdd(data.value_add);
-      }
 
       if (data) {
         if (data.lsi_keywords) {
@@ -357,7 +245,7 @@ export default function Analysis() {
       }
     };
 
-    fetchAnalysisData();
+    fetchAnalysisData(row_id);
   }, [row_id]);
 
   return (
@@ -389,19 +277,7 @@ export default function Analysis() {
                 setEditedCompAnalysis={setEditedCompAnalysis}
               />
 
-              <ValueAdd
-                valueAdd={valueAdd}
-                generateValueAdd={generateValueAdd}
-                compAnalysis={compAnalysis}
-                isGeneratingValueAdd={isGeneratingValueAdd}
-                editValueAdd={editValueAdd}
-                index={index}
-                handleEditValueAdd={handleEditValueAdd}
-                handleSaveValueAdd={handleSaveValueAdd}
-                handleCancelValueAdd={handleCancelValueAdd}
-                editedValueAdd={editedValueAdd}
-                setEditedValueAdd={setEditedValueAdd}
-              />
+              <ValueAdd compAnalysis={compAnalysis} row_id={row_id} />
 
               <MissionPlan
                 isEditing={isEditing}
