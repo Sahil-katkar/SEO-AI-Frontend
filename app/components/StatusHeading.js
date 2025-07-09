@@ -23,10 +23,10 @@ export default function StatusHeading({ status }) {
     const s = statusMap[normalizedStatus] || statusMap["not approved"];
     return (
         <div
-            className={`flex items-center justify-center gap-3 px-6 py-4 my-6 rounded-lg border text-xl font-semibold shadow-sm ${s.bg} ${s.textColor} ${s.border}`}
+            className={`flex items-center justify-center gap-3 px-6 py-4 mb-6 rounded-lg border text-l font-semibold shadow-sm ${s.bg} ${s.textColor} ${s.border}`}
             style={{ fontFamily: "'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif" }}
         >
-            <span className="text-2xl">{s.icon}</span>
+            <span className="">{s.icon}</span>
             <span>
                 LSI keywords: <span className="capitalize">{s.text}</span>
             </span>
