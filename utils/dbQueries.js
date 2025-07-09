@@ -14,7 +14,7 @@ const supabase = createClient(
  * @returns {Promise<{ data: any, error: any }>}
  */
 export async function getData(table, columns, whereColumn, whereValue) {
-  const { data, error } = supabase
+  const { data, error } = await supabase
     .from(table)
     .select(columns.join(", "))
     .eq(whereColumn, whereValue);

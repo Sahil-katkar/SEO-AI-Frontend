@@ -23,9 +23,36 @@ export default function Step1_ConnectGDrive() {
     document.getElementById("gdrive-input")?.focus();
   }, []);
 
-  // useEffect(() => {
-  //   const value = localStorage.getItem("value", value);
-  //   console.log("value", value);
+  useEffect(() => {
+    const fetchData = async () => {
+      const value = localStorage.getItem("value");
+      if (value) {
+        console.log("value from localStorage:", value);
+
+        const { data: fileLists, error: fetchError } = await getData(
+          "file_details",
+          ["fileId, name"],
+          "folder",
+          value
+        );
+
+        if (fileLists) {
+          console.log("fileLists", fileLists);
+        }
+
+        if (fileLists && fileLists.length > 0) {
+          console.log("fileLists from DB:", fileLists);
+          setFiles(fileLists);
+          updateProjectData({
+            isGDriveConnected: true,
+            gDriveFiles: fileLists,
+          });
+        }
+      }
+    };
+
+    fetchData();
+  }, []);
 
   //   // const { data: fileLists, error: InsertErr } = getData(
   //   //   "file_details",
@@ -80,6 +107,21 @@ export default function Step1_ConnectGDrive() {
       }
 
       if (existingRows && existingRows.length > 0) {
+        const queryParams = new URLSearchParams();
+        queryParams.append(type, value);
+        console.log("queryParams", queryParams);
+
+        const fileId = queryParams.get("file_id");
+        const folderName = queryParams.get("folder_name");
+
+        console.log("fileId", fileId);
+
+        if (fileId) {
+          localStorage.setItem("value", fileId);
+        }
+        if (folderName) {
+          localStorage.setItem("value", folderName);
+        }
         console.log("Found in database:", existingRows);
         setFiles(existingRows);
         updateProjectData({
@@ -96,6 +138,8 @@ export default function Step1_ConnectGDrive() {
 
       const fileId = queryParams.get("file_id");
       const folderName = queryParams.get("folder_name");
+
+      console.log("fileId", fileId);
 
       if (fileId) {
         localStorage.setItem("value", fileId);
