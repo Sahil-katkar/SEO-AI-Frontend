@@ -2,19 +2,20 @@
 
 import Loader from "@/components/common/Loader";
 import React, { useState, useEffect } from "react";
-import { Pencil } from "lucide-react";
-import { usePathname, useRouter, useParams } from "next/navigation";
+// import { Pencil } from "lucide-react"; // No longer needed
+import { useRouter, useParams } from "next/navigation";
 import { useAppContext } from "@/context/AppContext";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { toast, ToastContainer } from "react-toastify";
 
 export default function Analysis() {
-  const [isLoading, setIsLoading] = useState(false);
   const { updateProjectData } = useAppContext();
 
-  const [lsiData, setLsiData] = useState("");
-  const [compAnalysis, setCompAnalysis] = useState("");
-  const [valueAdd, setValueAdd] = useState("");
+  const [lsiData, setLsiData] = useState([]); // Initialize as empty array for safety
+  // const [editLSI, setEditLSI] = useState(false); // Removed, no editing
+  // const [editedLsiData, setEditedLsiData] = useState({}); // Removed, no editing
+  const [isGeneratingLSI, setIsGeneratingLSI] = useState(false);
+  // const [isSavingLSI, setIsSavingLSI] = useState(false); // Removed, no saving of edits
 
   const router = useRouter();
   const params = useParams();
@@ -53,55 +54,15 @@ export default function Analysis() {
           position: "top-right",
         }
       );
-    } finally {
     }
   };
 
+  // Mock data - if you only care about LSI, consider removing this and the outer analysisArr.map
   const analysisArr = [
     {
       intent: "This is some intent 1",
-      outline: `# Contentful Explained: A Comprehensive Headless CMS Comparison Guide
-                * [Contentful Explained: A Comprehensive Headless CMS Comparison Guide](#contentful-explained-a-comprehensive-headless-cms-comparison-guide)
-                * [What is Contentful? Demystifying a Modern Content Platform](#what-is-contentful-demystifying-a-modern-content-platform)
-                * [Traditional vs. Headless: Understanding Core CMS Differences](#traditional-vs-headless-understanding-core-cms-differences)
-                    * [The Architecture of a Traditional (Monolithic) CMS](#the-architecture-of-a-traditional-monolithic-cms)
-                    * [The Rise of Headless CMS: Decoupled Content Delivery](#the-rise-of-headless-cms-decoupled-content-delivery)
-                    * [Key Distinctions: Headless CMS vs. Traditional CMS (Image: Comparison Chart)](#key-distinctions-headless-cms-vs-traditional-cms-image-comparison-chart)
-                * [Why Choose a Headless CMS Like Contentful?](#why-choose-a-headless-cms-like-contentful)
-                    * [Advantages of Adopting a Headless Architecture (Video: Explainer)](#advantages-of-adopting-a-headless-architecture-video-explainer)
-                    * [How Contentful Works: Powering Digital Experiences](#how-contentful-works-powering-digital-experiences)
-                * [Key Features and Benefits of the Contentful Platform](#key-features-and-benefits-of-the-contentful-platform)
-                    * [Contentful's Unique Capabilities for Developers and Marketers](#contentfuls-unique-capabilities-for-developers-and-marketers)
-                    * [Delivering Omnichannel Experiences with Contentful](#delivering-omnichannel-experiences-with-contentful)
-                * [Who is Contentful Best For? Making the 'Better Option' Choice](#who-is-contentful-best-for-making-the-better-option-choice)
-                    * [Use Cases for Contentful: From Marketing Sites to Headless Commerce (Image: Use Case Icons)](#use-cases-for-contentful-from-marketing-sites-to-headless-commerce-image-use-case-icons)
-                    * [When is Contentful the Better Option for Your Business?](#when-is-contentful-the-better-option-for-your-business)
-                * [Contentful FAQs: Your Questions About Headless CMS Answered](#contentful-faqs-your-questions-about-headless-cms-answered)
-                    * [Is Contentful truly a CMS, or something different?](#is-contentful-truly-a-cms-or-something-different)
-                    * [What are the main advantages and disadvantages of traditional CMS platforms?](#what-are-the-main-advantages-and-disadvantages-of-traditional-cms-platforms)
-                    * [Should I use a headless CMS or a traditional CMS for my next project?](#should-i-use-a-headless-cms-or-a-traditional-cms-for-my-next-project)
-                * [Conclusion: Is Contentful the Right CMS for You?](#conclusion-is-contentful-the-right-cms-for-you)`,
-      LSI: [
-        "strapi headless cms",
-        "cms strapi",
-        "headless cms strapi",
-        "strapi cms review",
-        "strapi cms ecommerce",
-        "strapi cms tutorial",
-        "what is strapi cms",
-        "why strapi is the best headless cms",
-        "pros strapi cms",
-        "strapi",
-        "what is strapi",
-        "strapi documentation",
-        "strapi tutorial",
-        "strapi open source",
-        "strapi examples",
-        "strapi getting started",
-        "strapi example",
-        "strapi performance",
-        "strapi features",
-      ],
+      outline: `# Contentful Explained: A Comprehensive Headless CMS Comparison Guide`,
+      LSI: [],
       wordCount: 2000,
       density: 50,
       gaps: "These are some gaps 1",
@@ -109,52 +70,25 @@ export default function Analysis() {
     },
   ];
 
-  const [editLSI, setEditLSI] = useState(false);
-
-  const [editedLsiData, setEditedLsiData] = useState({});
-
-  const [isGeneratingLSI, setIsGeneratingLSI] = useState(false);
-
-  //   !-----------------------------------
-  const handleEditLSI = (item) => {
-    const newEditedLsiData = { ...editedLsiData };
-    lsiData.forEach((lsi, idx) => {
-      const baseKeywords = String(lsi.lsi_keywords || "");
-      const parts = baseKeywords.split(",");
-      const pairs = [];
-      for (let i = 0; i < parts.length; i += 2) {
-        const keyword = parts[i] ? parts[i].trim() : "";
-        const value = parts[i + 1] ? parts[i + 1].trim() : "";
-        if (keyword) {
-          pairs.push({ keyword, value });
-        }
-      }
-      newEditedLsiData[`${idx}_${lsi.url}`] = pairs;
-    });
-    setEditedLsiData(newEditedLsiData);
-    setEditLSI(true);
-  };
+  // Removed handleEditLSI, handleSaveLSI, handleCancelLSI functions as editing is disabled
 
   const generateLsi = async () => {
-    console.log("generateLsi called");
     setIsGeneratingLSI(true);
     try {
       if (!row_id) {
         throw new Error("Invalid or missing row_id");
       }
 
-      const { data: article, error } = await supabase
+      const { data: article, error: articleFetchError } = await supabase
         .from("row_details")
         .select("comp_url")
         .eq("row_id", row_id);
 
-      if (error) {
-        throw new Error(`Supabase error: ${error.message}`);
+      if (articleFetchError) {
+        throw new Error(
+          `Supabase error fetching competitor URLs: ${articleFetchError.message}`
+        );
       }
-      updateProjectData({
-        selectedFileId: fileId,
-        selectedRowIndex: index,
-      });
 
       const urls = article
         .filter((item) => typeof item.comp_url === "string" && item.comp_url)
@@ -162,94 +96,66 @@ export default function Analysis() {
         .filter((url) => url);
 
       if (urls.length === 0) {
-        throw new Error("No valid competitor URLs found");
+        toast.info("No valid competitor URLs found to generate LSI keywords.", {
+          position: "top-right",
+        });
+        return;
       }
 
       console.log("Competitor URLs:", urls);
 
-      const backendPayload = {
-        urls,
-      };
-
+      const backendPayload = { urls };
       console.log("backendPayload", backendPayload);
 
-      try {
-        const response = await fetch("/api/lsi-keywords", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(backendPayload),
-        });
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || `HTTP error: ${response.status}`);
-        }
+      const response = await fetch("/api/lsi-keywords", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(backendPayload),
+      });
 
-        const data = await response.json();
-        setLsiData(data);
-        const { data: lsi_data } = await supabase.from("analysis").upsert(
-          {
-            row_id: row_id,
-            lsi_keywords: data,
-          },
-          { onConflict: "row_id" }
-        );
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `HTTP error: ${response.status}`);
+      }
 
-        if (lsi_data) {
-          console.error("Supabase upsert error after API call:", upsertError);
+      let apiData = await response.json();
+
+      // Ensure apiData is an array from the API response
+      if (!Array.isArray(apiData)) {
+        if (typeof apiData === "object" && apiData !== null) {
+          apiData = [apiData]; // Wrap single object in an array
         } else {
-          console.log("added to db ");
+          apiData = []; // Default to empty array if unexpected type
         }
-        console.log("Scraped data:", data);
-      } catch (networkError) {
-        toast.error(`Server Not Started`, { position: "top-right" });
+      }
+
+      setLsiData(apiData); // Update UI state immediately
+
+      const { error: upsertError } = await supabase.from("analysis").upsert(
+        {
+          row_id: row_id,
+          lsi_keywords: apiData, // Store the array directly if column is jsonb
+        },
+        { onConflict: "row_id" }
+      );
+
+      if (upsertError) {
+        throw new Error(`Supabase upsert error: ${upsertError.message}`);
+      } else {
+        toast.success("LSI keywords generated and saved!", {
+          position: "bottom-right",
+        });
+        console.log("Added to DB successfully");
       }
     } catch (error) {
       console.error("Error generating LSI:", error);
+      toast.error(
+        `Failed to generate LSI: ${error.message || "Unknown error"}`,
+        { position: "top-right" }
+      );
     } finally {
       setIsGeneratingLSI(false);
     }
-  };
-
-  const handleSaveLSI = async (compIndex) => {
-    const updatedLsi = lsiData.map((item, idx) => {
-      const tableEditKey = `${idx}_${item.url}`;
-      let lsi_keywords = item.lsi_keywords;
-
-      if (editedLsiData[tableEditKey]) {
-        lsi_keywords = editedLsiData[tableEditKey]
-          .map((pair) => `${pair.keyword},${pair.value}`)
-          .join(",");
-      }
-
-      return {
-        ...item,
-        lsi_keywords,
-      };
-    });
-
-    updateProjectData({
-      selectedFileId: fileId,
-      selectedRowIndex: index,
-    });
-
-    const { error } = await supabase.from("analysis").upsert(
-      {
-        row_id: row_id,
-        lsi_keywords: updatedLsi,
-      },
-      { onConflict: "row_id" }
-    );
-
-    if (error) {
-      console.error("Supabase upsert error after API call:", error);
-    } else {
-      setLsiData(updatedLsi);
-      setEditLSI(false);
-    }
-  };
-  const handleCancelLSI = (item) => {
-    setEditLSI(false);
-    setEditedLsiData({});
   };
 
   useEffect(() => {
@@ -262,23 +168,46 @@ export default function Analysis() {
         .eq("row_id", row_id)
         .single();
 
-      if (data) {
-        if (data.lsi_keywords) {
+      if (error) {
+        console.error("Error fetching analysis data:", error);
+        setLsiData([]); // Ensure lsiData is an array on fetch error too
+        return;
+      }
+
+      if (data && data.lsi_keywords) {
+        let fetchedLsi = data.lsi_keywords;
+
+        // **IMPORTANT:** Check if the fetched data is a string and needs parsing
+        // This often happens if your Supabase column is `text` instead of `jsonb`
+        if (typeof fetchedLsi === "string") {
           try {
-            setLsiData(
-              typeof data.lsi_keywords === "string"
-                ? JSON.parse(data.lsi_keywords)
-                : data.lsi_keywords
-            );
+            fetchedLsi = JSON.parse(fetchedLsi);
           } catch (e) {
-            setLsiData(data.lsi_keywords);
+            console.warn(
+              "LSI keywords found but not valid JSON, treating as empty array:",
+              e
+            );
+            fetchedLsi = []; // Fallback if JSON parsing fails
           }
         }
+
+        // Ensure it's an array, even if it was a single object (which could happen with jsonb if not upserted as array)
+        if (!Array.isArray(fetchedLsi)) {
+          if (typeof fetchedLsi === "object" && fetchedLsi !== null) {
+            fetchedLsi = [fetchedLsi]; // Wrap single object in an array
+          } else {
+            fetchedLsi = []; // Fallback if it's some other non-array, non-object type
+          }
+        }
+
+        setLsiData(fetchedLsi);
+      } else {
+        setLsiData([]); // Ensure lsiData is an array if no data or null
       }
     };
 
     fetchAnalysisData();
-  }, [row_id]);
+  }, [row_id, supabase]);
 
   return (
     <>
@@ -289,234 +218,146 @@ export default function Analysis() {
             2.LSI Keywords
           </h3>
 
-          {isLoading && <Loader />}
-
           <div className="overflow-x-auto">
-            <div className="flex flex-col gap-[30px]">
-              {analysisArr.map((item, index) => (
-                <div
-                  key={index}
-                  className="flex flex-col gap-[30px] rounded-[12px] border-[1px] border-gray-200 py-3 px-4 text-sm hover:bg-gray-50 transition"
-                >
-                  <div>
-                    <div className="mb-[8px] flex justify-between items-center">
-                      <p className="font-bold text-[24px] ">LSI:</p>
-                      <div className="flex gap-[8px]">
-                        <button
-                          onClick={async () => {
-                            await generateLsi();
-                          }}
-                          disabled={isGeneratingLSI}
-                        >
-                          {isGeneratingLSI ? (
-                            <Loader size={20} />
-                          ) : (
-                            "Generate LSI"
-                          )}
-                        </button>
-                        {!editLSI && (
-                          <button
-                            onClick={() => {
-                              handleEditLSI(index + 1);
-                            }}
-                            className="p-1 text-gray-600 hover:text-black"
-                            disabled={
-                              !lsiData ||
-                              !Array.isArray(lsiData) ||
-                              lsiData.length === 0
-                            }
-                            title={
-                              !lsiData ||
-                              !Array.isArray(lsiData) ||
-                              lsiData.length === 0
-                                ? "Generate LSI data first"
-                                : "Edit LSI"
-                            }
-                          >
-                            <Pencil className="h-5 w-5" />
-                          </button>
+            {analysisArr.map((item, index) => (
+              <div
+                key={index}
+                className="flex flex-col gap-[30px] rounded-[12px] border-[1px] border-gray-200 py-3 px-4 text-sm hover:bg-gray-50 transition"
+              >
+                <div>
+                  <div className="mb-[8px] flex justify-between items-center">
+                    <p className="font-bold text-[24px] ">LSI:</p>
+                    <div className="flex gap-[8px]">
+                      <button
+                        onClick={generateLsi}
+                        disabled={isGeneratingLSI}
+                        className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
+                      >
+                        {isGeneratingLSI ? (
+                          <Loader size={20} />
+                        ) : (
+                          "Generate LSI"
                         )}
-                        {editLSI && (
-                          <button
-                            onClick={() => {
-                              handleSaveLSI(index + 1);
-                            }}
-                          >
-                            Save
-                          </button>
-                        )}
-                        {editLSI && (
-                          <button
-                            onClick={() => {
-                              handleCancelLSI(index + 1);
-                            }}
-                          >
-                            Cancel
-                          </button>
-                        )}
-                      </div>
+                      </button>
+                      {/* Removed Edit/Save/Cancel buttons as per requirement */}
                     </div>
+                  </div>
 
-                    {lsiData &&
-                      lsiData.map((item, idx) => {
-                        const baseKeywords = String(item.lsi_keywords || "");
+                  {Array.isArray(lsiData) && lsiData.length > 0 ? (
+                    lsiData.map((item, idx) => {
+                      const baseKeywords = String(item.lsi_keywords || "");
 
-                        const transformedKeywordsForTextarea = baseKeywords
-                          .split(",")
-                          .map((s) => s.trim())
-                          .filter((s) => s)
-                          .join("\n");
+                      const keywordValuePairs = [];
+                      const parts = baseKeywords.split(",");
+                      for (let i = 0; i < parts.length; i += 2) {
+                        const keyword = parts[i] ? parts[i].trim() : "";
+                        const value = parts[i + 1] ? parts[i + 1].trim() : "";
 
-                        const keywordValuePairs = [];
-                        const parts = baseKeywords.split(",");
-                        for (let i = 0; i < parts.length; i += 2) {
-                          const keyword = parts[i] ? parts[i].trim() : "";
-                          const value = parts[i + 1]
-                            ? parseFloat(parts[i + 1].trim())
-                            : null;
-
-                          if (keyword) {
-                            keywordValuePairs.push({
-                              keyword,
-                              value: isNaN(value) ? null : value,
-                            });
-                          }
+                        if (keyword) {
+                          const numericValue =
+                            value === "" ? null : parseFloat(value);
+                          keywordValuePairs.push({
+                            keyword,
+                            value: isNaN(numericValue) ? value : numericValue,
+                          });
                         }
+                      }
 
-                        const isEditing = editLSI;
-
-                        const tableEditKey = `${idx}_${item.url}`;
-                        const editedPairs =
-                          editedLsiData[tableEditKey] ||
-                          keywordValuePairs.map((pair) => ({ ...pair }));
-
-                        return (
-                          <div
-                            key={idx}
-                            className="mb-4 p-4 border border-gray-200 rounded-md"
-                          >
-                            {" "}
-                            <label className="block font-bold mb-2">
-                              Result {idx + 1} (Source:{" "}
-                              <a
-                                href={item.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-blue-600 hover:underline"
-                              >
-                                {item.url}
-                              </a>
-                              )
-                            </label>
-                            <div className="overflow-x-auto mt-2">
-                              <table className="min-w-full table-auto border-collapse border border-gray-300 text-sm">
-                                <thead className="bg-gray-50">
-                                  <tr>
-                                    <th className="px-3 py-1 text-left border border-gray-300">
-                                      Keyword
-                                    </th>
-                                    <th className="px-3 py-1 text-left border border-gray-300">
-                                      Value
-                                    </th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {editedPairs.length > 0 ? (
-                                    editedPairs.map((pair, pairIdx) => (
-                                      <tr
-                                        key={pairIdx}
-                                        className="border-b border-gray-200 last:border-0"
-                                      >
-                                        <td className="px-3 py-1 border border-gray-300">
-                                          {isEditing ? (
-                                            <input
-                                              type="text"
-                                              value={pair.keyword}
-                                              onChange={(e) => {
-                                                const newPairs = [
-                                                  ...editedPairs,
-                                                ];
-                                                newPairs[pairIdx].keyword =
-                                                  e.target.value;
-                                                setEditedLsiData({
-                                                  ...editedLsiData,
-                                                  [tableEditKey]: newPairs,
-                                                });
-                                              }}
-                                              className="w-full border rounded px-1"
-                                            />
-                                          ) : (
-                                            pair.keyword
-                                          )}
-                                        </td>
-                                        <td className="px-3 py-1 border border-gray-300">
-                                          {isEditing ? (
-                                            <input
-                                              type="number"
-                                              value={pair.value ?? ""}
-                                              onChange={(e) => {
-                                                const newPairs = [
-                                                  ...editedPairs,
-                                                ];
-                                                newPairs[pairIdx].value =
-                                                  e.target.value;
-                                                setEditedLsiData({
-                                                  ...editedLsiData,
-                                                  [tableEditKey]: newPairs,
-                                                });
-                                              }}
-                                              className="w-full border rounded px-1"
-                                            />
-                                          ) : !isNaN(Number(pair.value)) &&
-                                            pair.value !== "" ? (
-                                            Number(pair.value).toFixed(10)
-                                          ) : (
-                                            pair.value || "N/A"
-                                          )}
-                                        </td>
-                                      </tr>
-                                    ))
-                                  ) : (
-                                    <tr>
-                                      <td
-                                        colSpan="2"
-                                        className="px-3 py-1 text-center text-gray-500 border border-gray-300"
-                                      >
-                                        No keywords found.
+                      return (
+                        <div
+                          key={idx}
+                          className="mb-4 p-4 border border-gray-200 rounded-md"
+                        >
+                          <label className="block font-bold mb-2">
+                            Result {idx + 1} (Source:{" "}
+                            <a
+                              href={item.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:underline"
+                            >
+                              {item.url}
+                            </a>
+                            )
+                          </label>
+                          <div className="overflow-x-auto mt-2">
+                            <table className="min-w-full table-auto border-collapse border border-gray-300 text-sm">
+                              <thead className="bg-gray-50">
+                                <tr>
+                                  <th className="px-3 py-1 text-left border border-gray-300">
+                                    Keyword
+                                  </th>
+                                  <th className="px-3 py-1 text-left border border-gray-300">
+                                    Value
+                                  </th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {keywordValuePairs.length > 0 ? (
+                                  keywordValuePairs.map((pair, pairIdx) => (
+                                    <tr
+                                      key={pairIdx}
+                                      className="border-b border-gray-200 last:border-0"
+                                    >
+                                      {/* Always render as plain text with grey background */}
+                                      <td className="px-3 py-1 border border-gray-300 text-gray-700 bg-gray-100">
+                                        {pair.keyword}
+                                      </td>
+                                      <td className="px-3 py-1 border border-gray-300 text-gray-700 bg-gray-100">
+                                        {typeof pair.value === "number" &&
+                                        !isNaN(pair.value)
+                                          ? pair.value.toFixed(10)
+                                          : pair.value || "N/A"}
                                       </td>
                                     </tr>
-                                  )}
-                                </tbody>
-                              </table>
-                            </div>
+                                  ))
+                                ) : (
+                                  <tr>
+                                    <td
+                                      colSpan="2"
+                                      className="px-3 py-1 text-center text-gray-500 border border-gray-300 bg-gray-100"
+                                    >
+                                      No keywords found for this URL.
+                                    </td>
+                                  </tr>
+                                )}
+                              </tbody>
+                            </table>
                           </div>
-                        );
-                      })}
-                  </div>
-
-                  <div className="mt-6 flex justify-end">
-                    <button
-                      onClick={handleApprove}
-                      className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                      disabled={
-                        !lsiData ||
-                        !Array.isArray(lsiData) ||
-                        lsiData.length === 0
-                      }
-                      title={
-                        !lsiData ||
-                        !Array.isArray(lsiData) ||
-                        lsiData.length === 0
-                          ? "Generate LSI data first"
-                          : "Approve LSI keywords"
-                      }
-                    >
-                      Approve
-                    </button>
-                  </div>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <p className="text-gray-500 mt-4">
+                      No LSI keywords available. Click "Generate LSI" to fetch
+                      them.
+                    </p>
+                  )}
                 </div>
-              ))}
-            </div>
+
+                <div className="mt-6 flex justify-end">
+                  <button
+                    onClick={handleApprove}
+                    className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
+                    // The disabled condition no longer checks `editLSI`
+                    disabled={
+                      !lsiData ||
+                      !Array.isArray(lsiData) ||
+                      lsiData.length === 0
+                    }
+                    title={
+                      !lsiData ||
+                      !Array.isArray(lsiData) ||
+                      lsiData.length === 0
+                        ? "Generate LSI data first"
+                        : "Approve LSI keywords"
+                    }
+                  >
+                    Approve
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
         </main>
       </div>
