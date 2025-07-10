@@ -1,37 +1,18 @@
-import { useAppContext } from "@/context/AppContext";
+"use client";
+
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-import React, { useEffect, useState } from "react";
+import { useState } from "react";
 
-export default function MissionPlan({ row_id }) {
+export default function MissionPlan({
+  competitorAnalysisData,
+  valueAddResponseData,
+  missionPlanResponseData,
+  row_id,
+}) {
   const supabase = createClientComponentClient();
-  const { projectData, updateProjectData } = useAppContext();
-
-  const [missionPlan, setMissionPlan] = useState("");
+  const [missionPlan, setMissionPlan] = useState(missionPlanResponseData);
   const [isEditingMP, setIsEditingMP] = useState(false);
   const [isEditingMissionPlan, setIsEditingMissionPlan] = useState(false);
-
-  useEffect(() => {
-    const fetchMissionPlan = async (row_id) => {
-      if (!row_id) return;
-
-      const { data, error } = await supabase
-        .from("row_details")
-        .select("mission_plan")
-        .eq("row_id", row_id)
-        .single();
-
-      if (error) {
-        console.log("error fetchMissionPlan", error);
-      } else if (data) {
-        console.log("data fetchMissionPlan", data);
-        setMissionPlan(data?.mission_plan);
-        updateProjectData({
-          isMissionPlanFetched: true,
-        });
-      }
-    };
-    fetchMissionPlan(row_id);
-  }, [row_id]);
 
   const handleEditMissionPlan = () => {
     setIsEditingMP(true);
@@ -70,7 +51,7 @@ export default function MissionPlan({ row_id }) {
   };
 
   return (
-    <div>
+    <div className="p-4">
       <div className="mb-2 flex justify-between items-center">
         <p className="font-bold text-[24px]">Mission Plan:</p>
         <div className="flex gap-2">

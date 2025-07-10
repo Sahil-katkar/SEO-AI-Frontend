@@ -1,43 +1,24 @@
-import React, { useEffect, useState } from "react";
-import Loader from "./common/Loader";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-import { useAppContext } from "@/context/AppContext";
+"use client";
 
-export default function CompetitorAnalysis({ index, row_id }) {
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { useState } from "react";
+import Loader from "./common/Loader";
+
+export default function CompetitorAnalysis({
+  competitorAnalysisData,
+  index,
+  row_id,
+}) {
   const supabase = createClientComponentClient();
-  const { projectData, updateProjectData } = useAppContext();
   const [isGeneratingAnalysis, setIsGeneratingAnalysis] = useState(false);
   const [editedCompAnalysis, setEditedCompAnalysis] = useState("");
-  const [compAnalysis, setCompAnalysis] = useState("");
+  const [compAnalysis, setCompAnalysis] = useState(competitorAnalysisData);
 
   const [editCompAnalysis, setEditCompAnalysis] = useState({
     comp1: false,
     comp2: false,
     comp3: false,
   });
-
-  useEffect(() => {
-    const fetchCompetitorAnalysis = async (row_id) => {
-      if (!row_id) return;
-
-      const { data, error } = await supabase
-        .from("analysis")
-        .select("comp_analysis")
-        .eq("row_id", row_id)
-        .single();
-
-      if (error) {
-        console.log("error fetchCompetitorAnalysis", error);
-      } else if (data) {
-        console.log("data fetchCompetitorAnalysis", data);
-        setCompAnalysis(data?.comp_analysis);
-        updateProjectData({
-          isCompetitorAnalysisFetched: true,
-        });
-      }
-    };
-    fetchCompetitorAnalysis(row_id);
-  }, [row_id]);
 
   const handleEditCompAnalysis = (item) => {
     setEditCompAnalysis({ ...editCompAnalysis, [`comp${item}`]: true });
@@ -168,7 +149,7 @@ export default function CompetitorAnalysis({ index, row_id }) {
   };
 
   return (
-    <div className="">
+    <div className="p-4">
       <div className="mb-[8px] flex justify-between items-center">
         <p className="font-bold text-[24px] ">Competitor Analysis</p>
         <div className="flex gap-[8px]">

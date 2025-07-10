@@ -1,14 +1,18 @@
-import React, { useEffect, useState } from "react";
-import Loader from "./common/Loader";
+"use client";
+
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-import { useAppContext } from "@/context/AppContext";
+import { useState } from "react";
+import Loader from "./common/Loader";
 
-export default function ValueAdd({ index, row_id }) {
+export default function ValueAdd({
+  competitorAnalysisData,
+  valueAddResponseData,
+  index,
+  row_id,
+}) {
   const supabase = createClientComponentClient();
-  const { projectData, updateProjectData } = useAppContext();
-  const compAnalysis = projectData.isCompetitorAnalysisFetched;
-
-  const [valueAdd, setValueAdd] = useState("");
+  const compAnalysis = competitorAnalysisData && valueAddResponseData;
+  const [valueAdd, setValueAdd] = useState(valueAddResponseData);
   const [isGeneratingValueAdd, setIsGeneratingValueAdd] = useState(false);
   const [editedValueAdd, setEditedValueAdd] = useState("");
   const [editValueAdd, setEditValueAdd] = useState({
@@ -16,30 +20,6 @@ export default function ValueAdd({ index, row_id }) {
     comp2: false,
     comp3: false,
   });
-
-  useEffect(() => {
-    const fetchValueAdd = async () => {
-      if (!row_id) return;
-
-      const { data, error } = await supabase
-        .from("analysis")
-        .select("value_add")
-        .eq("row_id", row_id)
-        .single();
-
-      if (error) {
-        console.log("error fetchValueAdd", error);
-      } else if (data) {
-        console.log("data fetchValueAdd", data);
-        setValueAdd(data?.value_add);
-        updateProjectData({
-          isValueAddFetched: true,
-        });
-      }
-    };
-
-    fetchValueAdd();
-  }, [row_id]);
 
   const handleSaveValueAdd = async (compIndex) => {
     const { error } = await supabase.from("analysis").upsert(
@@ -165,7 +145,7 @@ export default function ValueAdd({ index, row_id }) {
   };
 
   return (
-    <div>
+    <div className="p-4">
       <div className="mb-[8px] flex justify-between items-center">
         <p className="font-bold text-[24px]">Value Add</p>
         <div className="flex gap-[8px]">
