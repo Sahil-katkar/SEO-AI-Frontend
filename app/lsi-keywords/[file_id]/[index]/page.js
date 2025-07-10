@@ -23,11 +23,6 @@ export default function Analysis() {
   const row_id = `${fileId}_${index}`;
   const supabase = createClientComponentClient();
 
-  const handleNext = () => {
-    console.log("Navigating to the next step...");
-    router.push(`/content/${fileId}/${index}`);
-  };
-
   const handleApprove = async () => {
     try {
       const { data: upsertedData, error: upsertError } = await supabase
@@ -114,79 +109,11 @@ export default function Analysis() {
     },
   ];
 
-  const [editIntent, setEditIntent] = useState({
-    comp1: false,
-    comp2: false,
-    comp3: false,
-  });
-  const [editOutline, setEditOutline] = useState({
-    comp1: false,
-    comp2: false,
-    comp3: false,
-  });
   const [editLSI, setEditLSI] = useState(false);
-  const [editWordCount, setEditWordCount] = useState({
-    comp1: false,
-    comp2: false,
-    comp3: false,
-  });
-  const [editDensity, setEditDensity] = useState({
-    comp1: false,
-    comp2: false,
-    comp3: false,
-  });
-  const [editGaps, setEditGaps] = useState({
-    comp1: false,
-    comp2: false,
-    comp3: false,
-  });
-  const [editOpportunities, setEditOpportunities] = useState({
-    comp1: false,
-    comp2: false,
-    comp3: false,
-  });
 
   const [editedLsiData, setEditedLsiData] = useState({});
 
-  const [editCompAnalysis, setEditCompAnalysis] = useState({
-    comp1: false,
-    comp2: false,
-    comp3: false,
-  });
-
-  const [editValueAdd, setEditValueAdd] = useState({
-    comp1: false,
-    comp2: false,
-    comp3: false,
-  });
-  const [editedCompAnalysis, setEditedCompAnalysis] = useState("");
-  const [editedValueAdd, setEditedValueAdd] = useState("");
-
   const [isGeneratingLSI, setIsGeneratingLSI] = useState(false);
-  const [isGeneratingAnalysis, setIsGeneratingAnalysis] = useState(false);
-  const [isGeneratingValueAdd, setIsGeneratingValueAdd] = useState(false);
-
-  //   !-----------------------------------
-  const handleEditIntent = (item) => {
-    setEditIntent({ ...editIntent, [`comp${item}`]: true });
-  };
-  const handleSaveIntent = (item) => {
-    //! save intent function call
-  };
-  const handleCancelIntent = (item) => {
-    setEditIntent({ ...editIntent, [`comp${item}`]: false });
-  };
-
-  //   !-----------------------------------
-  const handleEditOutline = (item) => {
-    setEditOutline({ ...editOutline, [`comp${item}`]: true });
-  };
-  const handleSaveOutline = () => {
-    //! save outline function call
-  };
-  const handleCancelOutline = (item) => {
-    setEditOutline({ ...editOutline, [`comp${item}`]: false });
-  };
 
   //   !-----------------------------------
   const handleEditLSI = (item) => {
@@ -283,166 +210,6 @@ export default function Analysis() {
     }
   };
 
-  const generateAnalysis = async () => {
-    setIsGeneratingAnalysis(true);
-    if (!row_id) {
-      throw new Error("Invalid or missing row_id");
-    }
-
-    const { data: lsi_keywords, error } = await supabase
-      .from("analysis")
-      .select("lsi_keywords")
-      .eq("row_id", row_id);
-
-    if (error) {
-      throw new Error(`Supabase error: ${error.message}`);
-    } else {
-      console.log("lsi_keywords", lsi_keywords);
-      if (lsi_keywords && lsi_keywords.length > 0) {
-        const jsonString = lsi_keywords[0].lsi_keywords;
-
-        try {
-          const parsedData = JSON.parse(jsonString);
-
-          const comp_contents = parsedData.map((item) => item.raw_text);
-          const url = parsedData.map((item) => item.url);
-
-          const competitorData = parsedData.map((item) => ({
-            raw_text: item.raw_text,
-            url: item.url,
-          }));
-
-          console.log("Data to send to API:", competitorData);
-
-          console.log("url", url);
-
-          console.log("Extracted Raw Texts:", comp_contents);
-
-          const payload = {
-            comp_contents: competitorData,
-          };
-
-          const response = await fetch("/api/comp-analysis", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-          });
-
-          if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(
-              errorData.error || `HTTP error: ${response.status}`
-            );
-          }
-
-          const data = await response.json();
-          setCompAnalysis(data);
-
-          const { data: lsi_data, error } = await supabase
-            .from("analysis")
-            .upsert(
-              {
-                row_id: row_id,
-                comp_analysis: data,
-              },
-              { onConflict: "row_id" }
-            );
-
-          if (lsi_data) {
-            console.log("added succesfully");
-          }
-
-          console.log("data", data);
-        } catch (parseError) {
-          console.error(
-            "Failed to parse lsi_keywords JSON string:",
-            parseError
-          );
-        }
-      }
-    }
-    setIsGeneratingAnalysis(false);
-  };
-
-  const generateValueAdd = async () => {
-    setIsGeneratingValueAdd(true);
-    try {
-      if (!row_id) {
-        throw new Error("Invalid or missing row_id");
-      }
-
-      const [analysisResult, rowDetailsResult] = await Promise.all([
-        supabase
-          .from("analysis")
-          .select("comp_analysis")
-          .eq("row_id", row_id)
-          .single(),
-        supabase
-          .from("row_details")
-          .select("mission_plan")
-          .eq("row_id", row_id)
-          .single(),
-      ]);
-
-      const { data: analysisData, error: errorAnalysis } = analysisResult;
-      const { data: rowDetailsData, error: errorMission } = rowDetailsResult;
-
-      if (errorAnalysis || errorMission) {
-        const errorMessage = [errorAnalysis?.message, errorMission?.message]
-          .filter(Boolean)
-          .join("; ");
-        throw new Error(`Supabase error: ${errorMessage}`);
-      }
-
-      if (!analysisData || !rowDetailsData) {
-        throw new Error("Required data not found for the given row_id.");
-      }
-
-      const competitive_analysis_report = analysisData.comp_analysis;
-      const mission_plan_context = rowDetailsData.mission_plan;
-
-      const payload = {
-        mission_plan_context,
-        competitive_analysis_report,
-      };
-
-      console.log("payload", payload);
-
-      const response = await fetch("/api/value_add", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || `API error: ${response.status}`);
-      }
-
-      const data = await response.json();
-      console.log("Successfully generated value add:", data);
-
-      setValueAdd(data);
-
-      const { error: upsertError } = await supabase.from("analysis").upsert(
-        {
-          row_id: row_id,
-          value_add: data,
-        },
-        { onConflict: "row_id" }
-      );
-
-      if (upsertError) {
-        throw new Error(`Failed to save analysis: ${upsertError.message}`);
-      } else {
-        console.log("Analysis saved successfully.");
-      }
-    } catch (error) {
-      console.error("Failed to generate value add:", error);
-    } finally {
-      setIsGeneratingValueAdd(false);
-    }
-  };
   const handleSaveLSI = async (compIndex) => {
     const updatedLsi = lsiData.map((item, idx) => {
       const tableEditKey = `${idx}_${item.url}`;
@@ -485,111 +252,13 @@ export default function Analysis() {
     setEditedLsiData({});
   };
 
-  //   !-------------------------------------
-  const handleEditWordCount = (item) => {
-    setEditWordCount({ ...editWordCount, [`comp${item}`]: true });
-  };
-  const handleSaveWordCount = () => {
-    //! save LSI function call
-  };
-  const handleCancelWordCount = (item) => {
-    setEditWordCount({ ...editWordCount, [`comp${item}`]: false });
-  };
-
-  //   !-------------------------------------
-  const handleEditDensity = (item) => {
-    setEditDensity({ ...editDensity, [`comp${item}`]: true });
-  };
-  const handleSaveDensity = () => {
-    //! save LSI function call
-  };
-  const handleCancelDensity = (item) => {
-    setEditDensity({ ...editDensity, [`comp${item}`]: false });
-  };
-
-  //   !-------------------------------------
-  const handleEditGaps = (item) => {
-    setEditGaps({ ...editGaps, [`comp${item}`]: true });
-  };
-  const handleSaveGaps = () => {
-    //! save Gaps function call
-  };
-  const handleCancelGaps = (item) => {
-    setEditGaps({ ...editGaps, [`comp${item}`]: false });
-  };
-
-  //   !-------------------------------------
-  const handleEditOpportunities = (item) => {
-    setEditOpportunities({ ...editOpportunities, [`comp${item}`]: true });
-  };
-  const handleSaveOpportunities = () => {
-    //! save Opportunities function call
-  };
-  const handleCancelOpportunities = (item) => {
-    setEditOpportunities({ ...editOpportunities, [`comp${item}`]: false });
-  };
-
-  const handleEditCompAnalysis = (item) => {
-    setEditCompAnalysis({ ...editCompAnalysis, [`comp${item}`]: true });
-    setEditedCompAnalysis(compAnalysis);
-  };
-
-  const handleEditValueAdd = (item) => {
-    setEditValueAdd({ ...editValueAdd, [`comp${item}`]: true });
-    setEditedValueAdd(valueAdd);
-  };
-
-  const handleSaveCompAnalysis = async (compIndex) => {
-    const { error } = await supabase.from("analysis").upsert(
-      {
-        row_id: row_id,
-        comp_analysis: editedCompAnalysis,
-      },
-      { onConflict: "row_id" }
-    );
-
-    if (error) {
-      console.error("Supabase upsert error after API call:", error);
-    } else {
-      setCompAnalysis(editedCompAnalysis);
-      setEditCompAnalysis({ ...editCompAnalysis, [`comp${compIndex}`]: false });
-    }
-  };
-
-  const handleSaveValueAdd = async (compIndex) => {
-    const { error } = await supabase.from("analysis").upsert(
-      {
-        row_id: row_id,
-        value_add: editedValueAdd,
-      },
-      { onConflict: "row_id" }
-    );
-
-    if (error) {
-      console.error("Supabase upsert error after API call:", error);
-    } else {
-      setValueAdd(editedValueAdd);
-      setEditValueAdd({ ...editValueAdd, [`comp${compIndex}`]: false });
-    }
-  };
-
-  const handleCancelCompAnalysis = (item) => {
-    setEditCompAnalysis({ ...editCompAnalysis, [`comp${item}`]: false });
-    setEditedCompAnalysis(compAnalysis);
-  };
-
-  const handleCancelValueAdd = (item) => {
-    setEditValueAdd({ ...editValueAdd, [`comp${item}`]: false });
-    setEditedValueAdd(valueAdd);
-  };
-
   useEffect(() => {
     const fetchAnalysisData = async () => {
       if (!row_id) return;
 
       const { data, error } = await supabase
         .from("analysis")
-        .select("lsi_keywords, comp_analysis")
+        .select("lsi_keywords")
         .eq("row_id", row_id)
         .single();
 
@@ -604,9 +273,6 @@ export default function Analysis() {
           } catch (e) {
             setLsiData(data.lsi_keywords);
           }
-        }
-        if (data.comp_analysis) {
-          setCompAnalysis(data.comp_analysis);
         }
       }
     };
@@ -690,43 +356,6 @@ export default function Analysis() {
                         )}
                       </div>
                     </div>
-
-                    {/* {lsiData &&
-                      lsiData.map((item, idx) => (
-                        <div key={idx} className="mb-4">
-                          <label className="block font-bold mb-1">
-                            Result {idx + 1} (Source:{" "}
-                            <a
-                              href={item.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-blue-600 hover:underline"
-                            >
-                              {item.url}
-                            </a>
-                            )
-                          </label>
-                          <textarea
-                            disabled={!editLSI[`comp${index + 1}`]}
-                            className="focus:outline-[#1abc9c] focus:outline-2 w-full p-2 border rounded"
-                            rows="8"
-                            value={
-                              editLSI[`comp${index + 1}`]
-                                ? editedLsiData[`${idx}_${item.url}`] !==
-                                  undefined
-                                  ? editedLsiData[`${idx}_${item.url}`]
-                                  : item.lsi_keywords
-                                : item.lsi_keywords
-                            }
-                            onChange={(e) => {
-                              setEditedLsiData({
-                                ...editedLsiData,
-                                [`${idx}_${item.url}`]: e.target.value,
-                              });
-                            }}
-                          />
-                        </div>
-                      ))} */}
 
                     {lsiData &&
                       lsiData.map((item, idx) => {
@@ -885,128 +514,6 @@ export default function Analysis() {
                       Approve
                     </button>
                   </div>
-
-                  {/* <div>
-                    <div className="mb-[8px] flex justify-between items-center">
-                      <p className="font-bold mb-[8px]">Outline:</p>
-                      <div className="flex gap-[8px]">
-                        {!editOutline[`comp${index + 1}`] && (
-                          <button
-                            onClick={() => {
-                              handleEditOutline(index + 1);
-                            }}
-                          >
-                            Edit
-                          </button>
-                        )}
-                        {editOutline[`comp${index + 1}`] && (
-                          <button
-                            onClick={() => {
-                              handleSaveOutline(index + 1);
-                            }}
-                          >
-                            Save
-                          </button>
-                        )}
-                        {editOutline[`comp${index + 1}`] && (
-                          <button
-                            onClick={() => {
-                              handleCancelOutline(index + 1);
-                            }}
-                          >
-                            Cancel
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                    <textarea
-                      disabled={!editOutline[`comp${index + 1}`]}
-                      className="focus:outline-[#1abc9c] focus:outline-2"
-                      rows="20"
-                      defaultValue={item.outline}
-                    />
-                  </div> */}
-
-                  {/* <div>
-                    <div className="mb-[8px] flex justify-between items-center">
-                      <p className="font-bold mb-[8px]">Word Count:</p>
-                      <div className="flex gap-[8px]">
-                        {!editWordCount[`comp${index + 1}`] && (
-                          <button
-                            onClick={() => {
-                              handleEditWordCount(index + 1);
-                            }}
-                          >
-                            Edit
-                          </button>
-                        )}
-                        {editWordCount[`comp${index + 1}`] && (
-                          <button
-                            onClick={() => {
-                              handleSaveWordCount(index + 1);
-                            }}
-                          >
-                            Save
-                          </button>
-                        )}
-                        {editWordCount[`comp${index + 1}`] && (
-                          <button
-                            onClick={() => {
-                              handleCancelWordCount(index + 1);
-                            }}
-                          >
-                            Cancel
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                    <textarea
-                      disabled={!editWordCount[`comp${index + 1}`]}
-                      className="focus:outline-[#1abc9c] focus:outline-2"
-                      rows="1"
-                      defaultValue={item.wordCount}
-                    />
-                  </div>
-                  <div>
-                    <div className="mb-[8px] flex justify-between items-center">
-                      <p className="font-bold mb-[8px]">Density:</p>
-                      <div className="flex gap-[8px]">
-                        {!editDensity[`comp${index + 1}`] && (
-                          <button
-                            onClick={() => {
-                              handleEditDensity(index + 1);
-                            }}
-                          >
-                            Edit
-                          </button>
-                        )}
-                        {editDensity[`comp${index + 1}`] && (
-                          <button
-                            onClick={() => {
-                              handleSaveDensity(index + 1);
-                            }}
-                          >
-                            Save
-                          </button>
-                        )}
-                        {editDensity[`comp${index + 1}`] && (
-                          <button
-                            onClick={() => {
-                              handleCancelDensity(index + 1);
-                            }}
-                          >
-                            Cancel
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                    <textarea
-                      disabled={!editDensity[`comp${index + 1}`]}
-                      className="focus:outline-[#1abc9c] focus:outline-2"
-                      rows="1"
-                      defaultValue={item.density}
-                    />
-                  </div> */}
                 </div>
               ))}
             </div>
