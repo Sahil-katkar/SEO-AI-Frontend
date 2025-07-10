@@ -97,7 +97,7 @@ h3 {
   margin-top: 0;
 }
 
-.next,
+.nextButton,
 button,
 .redirect-btn {
   background-color: #1abc9c;
@@ -112,6 +112,7 @@ button,
   /* margin-top: 10px; */
 }
 
+.nextButton:hover,
 button:hover {
   background-color: #16a085;
 }

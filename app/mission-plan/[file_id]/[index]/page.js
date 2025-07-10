@@ -1,315 +1,239 @@
-"use client";
-import Loader from "@/components/common/Loader";
-import React, { useEffect, useState } from "react";
-import { useRouter, useParams } from "next/navigation";
-import { useAppContext } from "@/app/context/AppContext";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-import StatusHeading from "@/components/StatusHeading";
+import MissionPlanPage from "./MissionPlanPage";
 
-export default function ContentBriefPage() {
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
-  const [responseData, setResponseData] = useState(null);
-  const [error, setError] = useState(null);
-  const [editIntent, setEditIntent] = useState({});
-  const [missionPlanValue, setMissionPlanValue] = useState("");
-  const supabase = createClientComponentClient();
-  const [status, setstatus] = useState("");
+export default async function MissionPlan({ params }) {
+  const { file_id, index } = await params;
+  const row_id = `${file_id}_${index}`;
 
-  const { projectData, updateProjectData } = useAppContext();
-  const router = useRouter();
-  const params = useParams();
-  const fileId = params.file_id;
-  const index = params.index;
-  const row_id = `${fileId}_${index}`;
+  // !-------------------------------------------
+  const missionPlanResponse = await fetch(
+    `http://localhost:3000/api/supabase/mission-plan/${row_id}`
+  );
+  if (!missionPlanResponse.ok) {
+    throw new Error("missionPlanResponse: Network response was not ok");
+  }
+  const missionPlanResponseData = await missionPlanResponse.json();
 
-  const fetchContentBrief = async () => {
-    setIsLoading(true);
-    setError(null);
-    setResponseData(null);
+  // !-------------------------------------------
+  const keywordResponse = await fetch(
+    `http://localhost:3000/api/supabase/primary-keyword/${row_id}`
+  );
+  if (!keywordResponse.ok) {
+    throw new Error("keywordResponse: Network response was not ok");
+  }
+  const keywordResponseData = await keywordResponse.json();
 
-    try {
-      if (!fileId || typeof index === "undefined") {
-        throw new Error("File ID or index not provided in URL");
-      }
+  // !-------------------------------------------
+  const bussinessGoalResponse = await fetch(
+    `http://localhost:3000/api/supabase/bussiness-goal/${row_id}`
+  );
 
-      // const file__Id = `${fileId}_${index}`;
-      console.log("Checking database for fileId:", row_id);
+  if (!bussinessGoalResponse.ok) {
+    throw new Error("bussinessGoalResponse: Network response was not ok");
+  }
+  const bussinessGoalResponseData = await bussinessGoalResponse.json();
 
-      const { data: dbData, error: dbError } = await supabase
-        .from("row_details")
-        .select("mission_plan")
-        .eq("row_id", row_id)
-        .single();
+  // !-------------------------------------------
+  const targetAudienceResponse = await fetch(
+    `http://localhost:3000/api/supabase/target-audience/${row_id}`
+  );
 
-      const { data: dataInput, error: inputError } = await supabase
-        .from("row_details")
-        .select(
-          "keyword, BUSINESS_GOAL, target_audience, intent, article_outcome, pillar, cluster,questions,faq,lsi_keywords,ai_mode,persona, outline_format"
-        )
-        .eq("row_id", row_id)
-        .single();
+  if (!targetAudienceResponse.ok) {
+    throw new Error("targetAudienceResponse: Network response was not ok");
+  }
+  const targetAudienceResponseData = await targetAudienceResponse.json();
 
-      if (inputError) {
-        console.error("Error fetching row details:", inputError);
-        throw new Error(`Failed to fetch input data: ${inputError.message}`);
-      }
+  // !-------------------------------------------
+  const intentResponse = await fetch(
+    `http://localhost:3000/api/supabase/intent/${row_id}`
+  );
 
-      if (dbError && dbError.code !== "PGRST116") {
-        console.error("Supabase query error:", dbError);
-        throw new Error(`Database query error: ${dbError.message}`);
-      }
+  if (!intentResponse.ok) {
+    throw new Error("intentResponse: Network response was not ok");
+  }
+  const intentResponseData = await intentResponse.json();
 
-      if (dbData?.mission_plan) {
-        console.log("Found mission plan in database:", dbData.mission_plan);
-        setResponseData({ generated_mission_plan: dbData.mission_plan });
-        setMissionPlanValue(dbData.mission_plan);
-        setIsLoading(false);
-        return;
-      }
+  // !-------------------------------------------
+  const articleOutcomeResponse = await fetch(
+    `http://localhost:3000/api/supabase/article-outcome/${row_id}`
+  );
 
-      const keyword = dataInput?.keyword || "";
-      const BUSINESS_GOAL = dataInput?.BUSINESS_GOAL || "";
-      const target_audience = dataInput?.target_audience || "";
-      const intent = dataInput?.intent || "";
-      const article_outcome = dataInput?.article_outcome || "";
-      const pillar = dataInput?.pillar || "";
-      const cluster = dataInput?.cluster || "";
-      const questions = dataInput?.questions || "";
-      const faq = dataInput?.faq || "";
-      const lsi_keywords = dataInput?.lsi_keywords || "";
-      const ai_mode = dataInput?.ai_mode || "";
-      const persona = dataInput?.persona || "";
-      const outline = dataInput?.outline_format || "";
+  if (!articleOutcomeResponse.ok) {
+    throw new Error("articleOutcomeResponse: Network response was not ok");
+  }
+  const articleOutcomeResponseData = await articleOutcomeResponse.json();
 
-      console.log("No mission plan in database, calling API...");
-      const response = await fetch("/api/contentBrief", {
+  // !-------------------------------------------
+  const pillarResponse = await fetch(
+    `http://localhost:3000/api/supabase/pillar/${row_id}`
+  );
+
+  if (!pillarResponse.ok) {
+    throw new Error("pillarResponse: Network response was not ok");
+  }
+  const pillarResponseData = await pillarResponse.json();
+
+  // !-------------------------------------------
+  const clusterResponse = await fetch(
+    `http://localhost:3000/api/supabase/cluster/${row_id}`
+  );
+
+  if (!clusterResponse.ok) {
+    throw new Error("clusterResponse: Network response was not ok");
+  }
+  const clusterResponseData = await clusterResponse.json();
+
+  // !-------------------------------------------
+  const questionsResponse = await fetch(
+    `http://localhost:3000/api/supabase/questions/${row_id}`
+  );
+
+  if (!questionsResponse.ok) {
+    throw new Error("questionsResponse: Network response was not ok");
+  }
+  const questionsResponseData = await questionsResponse.json();
+
+  // !-------------------------------------------
+  const faqsResponse = await fetch(
+    `http://localhost:3000/api/supabase/faqs/${row_id}`
+  );
+
+  if (!faqsResponse.ok) {
+    throw new Error("faqsResponse: Network response was not ok");
+  }
+  const faqsResponseData = await faqsResponse.json();
+
+  // !-------------------------------------------
+  const lsiKeywordsResponse = await fetch(
+    `http://localhost:3000/api/supabase/mission-plan/${row_id}`
+  );
+
+  if (!lsiKeywordsResponse.ok) {
+    throw new Error("lsiKeywordsResponse: Network response was not ok");
+  }
+  const lsiKeywordsResponseData = await lsiKeywordsResponse.json();
+
+  // !-------------------------------------------
+  const aiModeResponse = await fetch(
+    `http://localhost:3000/api/supabase/ai-mode/${row_id}`
+  );
+
+  if (!aiModeResponse.ok) {
+    throw new Error("aiModeResponse: Network response was not ok");
+  }
+  const aiModeResponseData = await aiModeResponse.json();
+
+  // !-------------------------------------------
+  const personaResponse = await fetch(
+    `http://localhost:3000/api/supabase/persona/${row_id}`
+  );
+
+  if (!personaResponse.ok) {
+    throw new Error("personaResponse: Network response was not ok");
+  }
+  const personaResponseData = await personaResponse.json();
+
+  // !-------------------------------------------
+  const outlineFormatResponse = await fetch(
+    `http://localhost:3000/api/supabase/outline-format/${row_id}`
+  );
+
+  if (!outlineFormatResponse.ok) {
+    throw new Error("outlineFormatResponse: Network response was not ok");
+  }
+  const outlineFormatResponseData = await outlineFormatResponse.json();
+
+  // !-------------------------------------------
+  const lsiKeywordsApproveResponse = await fetch(
+    `http://localhost:3000/api/supabase/lsi-keywords-approve/${row_id}`
+  );
+
+  if (!lsiKeywordsApproveResponse.ok) {
+    throw new Error("lsiKeywordsApproveResponse: Network response was not ok");
+  }
+  const lsiKeywordsApproveResponseData =
+    await lsiKeywordsApproveResponse.json();
+
+  // !-------------------------------------------
+  const competitorAnalysisResponse = await fetch(
+    `http://localhost:3000/api/supabase/competitor-analysis/${row_id}`
+  );
+  if (!competitorAnalysisResponse.ok) {
+    throw new Error("competitorAnalysisResponse: Network response was not ok");
+  }
+  const competitorAnalysisData = await competitorAnalysisResponse.json();
+
+  // !-------------------------------------------
+  const valueAddResponse = await fetch(
+    `http://localhost:3000/api/supabase/value-add/${row_id}`
+  );
+
+  if (!valueAddResponse.ok) {
+    throw new Error("valueAddResponse: Network response was not ok");
+  }
+  const valueAddResponseData = await valueAddResponse.json();
+
+  // !-------------------------------------------
+  let contentBriefResponseData;
+  if (
+    missionPlanResponse === null &&
+    keywordResponseData &&
+    bussinessGoalResponseData &&
+    targetAudienceResponseData &&
+    intentResponseData &&
+    articleOutcomeResponseData &&
+    pillarResponseData &&
+    clusterResponseData &&
+    questionsResponseData &&
+    faqsResponseData &&
+    lsiKeywordsResponseData &&
+    aiModeResponseData &&
+    personaResponseData &&
+    outlineFormatResponseData
+  ) {
+    const contentBriefResponse = await fetch(
+      "http://localhost:3000/api/contentBrief",
+      {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          business_goal: BUSINESS_GOAL,
-          target_audience: target_audience,
-          primary_keyword: keyword,
-          user_intent: intent,
-          pillar: pillar,
-          cluster: cluster,
-          Must_Answer_Questions: questions,
-          FAQs: faq,
-          lsi_terms: lsi_keywords,
-          ai_overview: ai_mode,
-          author_persona: persona,
-          article_outcome: article_outcome,
-          outline: outline,
+          primary_keyword: keywordResponseData?.keyword || "",
+          business_goal: bussinessGoalResponseData?.BUSINESS_GOAL || "",
+          target_audience: targetAudienceResponseData?.target_audience || "",
+          user_intent: intentResponseData?.intent || "",
+          article_outcome: articleOutcomeResponseData?.article_outcome || "",
+          pillar: pillarResponseData?.pillar || "",
+          cluster: clusterResponseData?.cluster || "",
+          Must_Answer_Questions: questionsResponseData?.questions || "",
+          FAQs: faqsResponseData?.faq || "",
+          lsi_terms: lsiKeywordsResponseData?.lsi_keywords || "",
+          ai_overview: aiModeResponseData?.ai_mode || "",
+          author_persona: personaResponseData?.persona || "",
+          outline: outlineFormatResponseData?.outline_format || "",
         }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
       }
+    );
 
-      const data = await response.json();
-      console.log("API Response:", data);
-
-      const missionPlan =
-        data.generated_mission_plan ||
-        data.mission_plan ||
-        (typeof data === "string" ? data : "");
-      if (!missionPlan) {
-        throw new Error("No mission plan found in API response");
-      }
-
-      setResponseData({ generated_mission_plan: missionPlan });
-      setMissionPlanValue(missionPlan);
-
-      const { error: upsertError } = await supabase.from("row_details").upsert(
-        {
-          row_id: row_id,
-          mission_plan: missionPlan,
-        },
-        { onConflict: "row_id" }
-      );
-
-      if (upsertError) {
-        console.error("Supabase upsert error:", upsertError);
-      } else {
-        console.log(
-          "Successfully saved mission plan to Supabase:",
-          missionPlan
-        );
-      }
-    } catch (error) {
-      setError(error.message || "An unexpected error occurred");
-    } finally {
-      setIsLoading(false);
+    if (!contentBriefResponse.ok) {
+      throw new Error("contentBriefResponse: Network response was not ok");
     }
-  };
+    contentBriefResponseData = await contentBriefResponse.json();
+  }
 
-  useEffect(() => {
-    const fetchStatus = async () => {
-      const { data, error } = await supabase
-        .from("analysis")
-        .select("status")
-        .eq("row_id", row_id);
-
-      console.log("status", data[0]?.status);
-
-      if (data) {
-        setstatus(data[0]?.status);
-      } else {
-        console.log("error", error);
-      }
-    };
-
-    fetchStatus();
-  }, [row_id]);
-
-  useEffect(() => {
-    fetchContentBrief();
-  }, [fileId, index]);
-
-  const handleEditIntent = (compIndex) => {
-    setEditIntent({ [`comp${compIndex}`]: true });
-    setMissionPlanValue(responseData?.generated_mission_plan || "");
-  };
-
-  const handleCancelIntent = (compIndex) => {
-    setEditIntent({ [`comp${compIndex}`]: false });
-    setMissionPlanValue(responseData?.generated_mission_plan || "");
-  };
-
-  const handleSaveIntent = async () => {
-    setIsSaving(true);
-    setError(null);
-
-    // const row_id = `${fileId}_${index}`;
-
-    try {
-      const { error: upsertError } = await supabase.from("row_details").upsert(
-        {
-          row_id: row_id,
-          mission_plan: missionPlanValue,
-        },
-        { onConflict: "row_id" }
-      );
-
-      if (upsertError) {
-        throw new Error(`Failed to save to database: ${upsertError.message}`);
-      }
-
-      setResponseData((prev) => ({
-        ...prev,
-        generated_mission_plan: missionPlanValue,
-      }));
-
-      setEditIntent({ [`comp${index + 1}`]: false });
-      console.log("Mission plan saved successfully.");
-    } catch (error) {
-      console.error("Save Error:", error);
-      setError(error.message);
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleNext = () => {
-    console.log("Navigating to the next step...");
-    router.push(`/analysis/${fileId}/${index}`);
-  };
-
-  const isEditing = editIntent[`comp${index + 1}`];
+  const nextHref = `/analysis/${file_id}/${index}`;
 
   return (
-    <div className="container px-4 py-6">
-      <main className="main-content step-component">
-        <StatusHeading status={status} />
-        <h3 className="text-xl font-semibold mb-6 text-blue-600">
-          Mission Plan Generator:
-        </h3>
-
-        {isLoading && <Loader />}
-
-        {error && (
-          <div className="text-red-600 mb-4 p-3 bg-red-100 border border-red-400 rounded">
-            <strong>Error:</strong> {error}
-            <button
-              onClick={fetchContentBrief}
-              className="ml-4 bg-blue-600 text-white px-2 py-1 rounded text-sm"
-            >
-              Retry
-            </button>
-          </div>
-        )}
-
-        {!isLoading && !error && responseData && (
-          <>
-            <div className="mb-2 flex justify-between items-center">
-              <p className="font-bold">Mission Plan:</p>
-              <div className="flex gap-2">
-                {!isEditing && (
-                  <button
-                    onClick={() => handleEditIntent(index + 1)}
-                    className="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600 transition-colors"
-                    disabled={
-                      !responseData ||
-                      !responseData.generated_mission_plan ||
-                      responseData.generated_mission_plan.trim() === ""
-                    }
-                    title={
-                      !responseData ||
-                      !responseData.generated_mission_plan ||
-                      responseData.generated_mission_plan.trim() === ""
-                        ? "No mission plan to edit. Generate or fetch first."
-                        : "Edit Mission Plan"
-                    }
-                  >
-                    Edit
-                  </button>
-                )}
-                {isEditing && (
-                  <>
-                    <button
-                      onClick={handleSaveIntent}
-                      className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition-colors disabled:bg-blue-300"
-                      disabled={isSaving}
-                    >
-                      {isSaving ? "Saving..." : "Save"}
-                    </button>
-                    <button
-                      onClick={() => handleCancelIntent(index + 1)}
-                      className="bg-gray-500 text-white px-3 py-1 rounded hover:bg-gray-600 transition-colors"
-                      disabled={isSaving}
-                    >
-                      Cancel
-                    </button>
-                  </>
-                )}
-              </div>
-            </div>
-            <textarea
-              disabled={!isEditing || isSaving}
-              className="w-full border p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
-              rows="10"
-              value={missionPlanValue}
-              onChange={(e) => setMissionPlanValue(e.target.value)}
-            />
-
-            {/* --- NEW: "Next" button section --- */}
-            <div className="mt-6 flex justify-end">
-              <button
-                onClick={handleNext}
-                className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                disabled={isEditing} // Optional: disable "Next" while editing
-              >
-                Next
-              </button>
-            </div>
-            {/* --- End of "Next" button section --- */}
-          </>
-        )}
-        <div className="overflow-x-auto mt-4">
-          <div className="flex flex-col gap-[30px]"></div>
-        </div>
-      </main>
-    </div>
+    <>
+      <MissionPlanPage
+        missionPlanResponseData={missionPlanResponseData.mission_plan}
+        lsiKeywordsApproveResponseData={
+          lsiKeywordsApproveResponseData[0].status
+        }
+        competitorAnalysisData={competitorAnalysisData.comp_analysis}
+        valueAddResponseData={valueAddResponseData.value_add}
+        contentBriefResponseData={contentBriefResponseData}
+        row_id={row_id}
+        nextHref={nextHref}
+      />
+    </>
   );
 }

@@ -104,13 +104,10 @@ export default function AnalysisPage({
           <div className="mt-6 flex justify-end">
             <Link
               href={`/content/${fileId}/${index}`}
-              // onClick={handleNext}
-              className="next block text-white px-6 py-2 rounded-lg font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-              disabled={
-                !projectData.isCompetitorAnalysisFetched &&
-                !projectData.isValueAddFetched &&
-                !projectData.isMissionPlanFetched
-              }
+              className={`${false ? "hover:!cursor-not-allowed !pointer-events-none !bg-[#bdc3c7]" : ""} nextButton text-white px-6 py-2 rounded-lg font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2`}
+              // className={isDisabled ? "pointer-events-none" : ""}
+              // aria-disabled={true}
+              // tabIndex={true ? -1 : undefined}
             >
               Next
             </Link>

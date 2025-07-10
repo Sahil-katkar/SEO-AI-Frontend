@@ -7,9 +7,10 @@ export async function GET(request, { params }) {
   const { row_id } = await params;
 
   const { data, error } = await supabase
-    .from("analysis")
-    .select("status")
-    .eq("row_id", row_id);
+    .from("row_details")
+    .select("keyword")
+    .eq("row_id", row_id)
+    .single();
 
   if (error) {
     return new Response(JSON.stringify({ error: error }), {

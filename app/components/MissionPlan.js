@@ -7,10 +7,13 @@ export default function MissionPlan({
   competitorAnalysisData,
   valueAddResponseData,
   missionPlanResponseData,
+  contentBriefResponseData,
   row_id,
 }) {
   const supabase = createClientComponentClient();
-  const [missionPlan, setMissionPlan] = useState(missionPlanResponseData);
+  const [missionPlan, setMissionPlan] = useState(
+    missionPlanResponseData ? missionPlanResponseData : contentBriefResponseData
+  );
   const [isEditingMP, setIsEditingMP] = useState(false);
   const [isEditingMissionPlan, setIsEditingMissionPlan] = useState(false);
 
