@@ -1,21 +1,26 @@
 "use client";
 
 import Loader from "@/components/common/Loader";
-import React, { useState, useEffect } from "react";
-import { Pencil } from "lucide-react";
-import { usePathname, useRouter, useParams } from "next/navigation";
+import React, { useState, useEffect, useRef } from "react";
+import { Pencil, Save, X, PlusCircle, MinusCircle } from "lucide-react";
+import { useRouter, useParams } from "next/navigation";
 import { useAppContext } from "@/context/AppContext";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import { getData } from "../../../../utils/dbQueries";
 
 export default function Analysis() {
   const [isLoading, setIsLoading] = useState(false);
   const { updateProjectData } = useAppContext();
+  const [lsiData, setLsiData] = useState([]);
+  const [currentLsiPairs, setCurrentLsiPairs] = useState({});
 
-  const [lsiData, setLsiData] = useState("");
+  const [isEditingLSI, setIsEditingLSI] = useState(false);
+  const [isGeneratingLSI, setIsGeneratingLSI] = useState(false);
+
   const [compAnalysis, setCompAnalysis] = useState("");
   const [valueAdd, setValueAdd] = useState("");
-  const [updatedLsiKeywords, setUpdatedLsiKeywords] = useState({});
 
   const router = useRouter();
   const params = useParams();
@@ -24,12 +29,15 @@ export default function Analysis() {
   const row_id = `${fileId}_${index}`;
   const supabase = createClientComponentClient();
 
+  const originalCurrentLsiPairsRef = useRef({});
+
   const handleNext = () => {
     console.log("Navigating to the next step...");
     router.push(`/content/${fileId}/${index}`);
   };
 
   const handleApprove = async () => {
+    setIsLoading(true);
     try {
       const { data: upsertedData, error: upsertError } = await supabase
         .from("analysis")
@@ -60,287 +68,204 @@ export default function Analysis() {
         }
       );
     } finally {
+      setIsLoading(false);
     }
   };
 
-  const analysisArr = [
-    {
-      intent: "This is some intent 1",
-      outline: `# Contentful Explained: A Comprehensive Headless CMS Comparison Guide
-                * [Contentful Explained: A Comprehensive Headless CMS Comparison Guide](#contentful-explained-a-comprehensive-headless-cms-comparison-guide)
-                * [What is Contentful? Demystifying a Modern Content Platform](#what-is-contentful-demystifying-a-modern-content-platform)
-                * [Traditional vs. Headless: Understanding Core CMS Differences](#traditional-vs-headless-understanding-core-cms-differences)
-                    * [The Architecture of a Traditional (Monolithic) CMS](#the-architecture-of-a-traditional-monolithic-cms)
-                    * [The Rise of Headless CMS: Decoupled Content Delivery](#the-rise-of-headless-cms-decoupled-content-delivery)
-                    * [Key Distinctions: Headless CMS vs. Traditional CMS (Image: Comparison Chart)](#key-distinctions-headless-cms-vs-traditional-cms-image-comparison-chart)
-                * [Why Choose a Headless CMS Like Contentful?](#why-choose-a-headless-cms-like-contentful)
-                    * [Advantages of Adopting a Headless Architecture (Video: Explainer)](#advantages-of-adopting-a-headless-architecture-video-explainer)
-                    * [How Contentful Works: Powering Digital Experiences](#how-contentful-works-powering-digital-experiences)
-                * [Key Features and Benefits of the Contentful Platform](#key-features-and-benefits-of-the-contentful-platform)
-                    * [Contentful's Unique Capabilities for Developers and Marketers](#contentfuls-unique-capabilities-for-developers-and-marketers)
-                    * [Delivering Omnichannel Experiences with Contentful](#delivering-omnichannel-experiences-with-contentful)
-                * [Who is Contentful Best For? Making the 'Better Option' Choice](#who-is-contentful-best-for-making-the-better-option-choice)
-                    * [Use Cases for Contentful: From Marketing Sites to Headless Commerce (Image: Use Case Icons)](#use-cases-for-contentful-from-marketing-sites-to-headless-commerce-image-use-case-icons)
-                    * [When is Contentful the Better Option for Your Business?](#when-is-contentful-the-better-option-for-your-business)
-                * [Contentful FAQs: Your Questions About Headless CMS Answered](#contentful-faqs-your-questions-about-headless-cms-answered)
-                    * [Is Contentful truly a CMS, or something different?](#is-contentful-truly-a-cms-or-something-different)
-                    * [What are the main advantages and disadvantages of traditional CMS platforms?](#what-are-the-main-advantages-and-disadvantages-of-traditional-cms-platforms)
-                    * [Should I use a headless CMS or a traditional CMS for my next project?](#should-i-use-a-headless-cms-or-a-traditional-cms-for-my-next-project)
-                * [Conclusion: Is Contentful the Right CMS for You?](#conclusion-is-contentful-the-right-cms-for-you)`,
-      LSI: [
-        "strapi headless cms",
-        "cms strapi",
-        "headless cms strapi",
-        "strapi cms review",
-        "strapi cms ecommerce",
-        "strapi cms tutorial",
-        "what is strapi cms",
-        "why strapi is the best headless cms",
-        "pros strapi cms",
-        "strapi",
-        "what is strapi",
-        "strapi documentation",
-        "strapi tutorial",
-        "strapi open source",
-        "strapi examples",
-        "strapi getting started",
-        "strapi example",
-        "strapi performance",
-        "strapi features",
-      ],
-      wordCount: 2000,
-      density: 50,
-      gaps: "These are some gaps 1",
-      opportunities: "These are some opportunities 1",
-    },
-  ];
-
-  const [editLSI, setEditLSI] = useState(false);
-
-  const [editedLsiData, setEditedLsiData] = useState({});
-
-  const [editedCompAnalysis, setEditedCompAnalysis] = useState("");
-  const [editedValueAdd, setEditedValueAdd] = useState("");
-
-  const [isGeneratingLSI, setIsGeneratingLSI] = useState(false);
-
-  //   !-----------------------------------
-  const handleEditLSI = (item) => {
-    const newEditedLsiData = { ...editedLsiData };
-    lsiData.forEach((lsi, idx) => {
-      const baseKeywords = String(lsi.lsi_keywords || "");
-      const parts = baseKeywords.split(",");
-      const pairs = [];
-      for (let i = 0; i < parts.length; i += 2) {
-        const keyword = parts[i] ? parts[i].trim() : "";
-        const value = parts[i + 1] ? parts[i + 1].trim() : "";
-        if (keyword) {
-          pairs.push({ keyword, value, isNew: false });
-        }
-      }
-      newEditedLsiData[`${idx}_${lsi.url}`] = pairs;
-    });
-    setEditedLsiData(newEditedLsiData);
-    setEditLSI(true);
-  };
-
   const generateLsi = async () => {
-    console.log("generateLsi called");
     setIsGeneratingLSI(true);
     try {
       if (!row_id) {
         throw new Error("Invalid or missing row_id");
       }
 
-      const { data: article, error } = await supabase
+      const { data: articleRows, error: fetchError } = await supabase
         .from("row_details")
         .select("comp_url")
         .eq("row_id", row_id);
 
-      if (error) {
-        throw new Error(`Supabase error: ${error.message}`);
+      if (fetchError) {
+        throw new Error(`Supabase fetch error: ${fetchError.message}`);
       }
-      updateProjectData({
-        selectedFileId: fileId,
-        selectedRowIndex: index,
-      });
 
-      const urls = article
+      const urls = articleRows
         .filter((item) => typeof item.comp_url === "string" && item.comp_url)
         .flatMap((item) => item.comp_url.split("\n").map((url) => url.trim()))
         .filter((url) => url);
 
       if (urls.length === 0) {
-        throw new Error("No valid competitor URLs found");
+        toast.warn("No valid competitor URLs found to generate LSI.", {
+          position: "top-right",
+        });
+        return;
       }
 
-      console.log("Competitor URLs:", urls);
+      updateProjectData({
+        selectedFileId: fileId,
+        selectedRowIndex: index,
+      });
 
-      const backendPayload = {
-        urls,
-      };
+      const backendPayload = { urls };
 
-      console.log("backendPayload", backendPayload);
+      const response = await fetch("/api/lsi-keywords", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(backendPayload),
+      });
 
-      try {
-        const response = await fetch("/api/lsi-keywords", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(backendPayload),
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `HTTP error: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      setLsiData(data);
+
+      let newCurrentLsiPairs = {};
+
+      const { data: fileLists } = await getData(
+        "analysis",
+        ["updated_lsi_keywords"],
+        "row_id",
+        row_id
+      );
+
+      if (
+        fileLists &&
+        fileLists.length > 0 &&
+        fileLists[0].updated_lsi_keywords
+      ) {
+        const updatedLsiObj = JSON.parse(fileLists[0].updated_lsi_keywords);
+        Object.entries(updatedLsiObj).forEach(([key, pairs]) => {
+          newCurrentLsiPairs[key] = pairs;
         });
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || `HTTP error: ${response.status}`);
-        }
+      }
 
-        const data = await response.json();
-        setLsiData(data);
-        const { data: lsi_data } = await supabase.from("analysis").upsert(
-          {
-            row_id: row_id,
-            lsi_keywords: data,
-          },
-          { onConflict: "row_id" }
-        );
+      setCurrentLsiPairs(newCurrentLsiPairs);
+      originalCurrentLsiPairsRef.current = newCurrentLsiPairs;
+      const { error: upsertError } = await supabase.from("analysis").upsert(
+        {
+          row_id: row_id,
+          lsi_keywords: data,
+        },
+        { onConflict: "row_id" }
+      );
 
-        if (lsi_data) {
-          console.error("Supabase upsert error after API call:", upsertError);
-        } else {
-          console.log("added to db ");
-        }
-        console.log("Scraped data:", data);
-      } catch (networkError) {
-        toast.error(`Server Not Started`, { position: "top-right" });
+      if (upsertError) {
+        console.error("Supabase upsert error after API call:", upsertError);
+        toast.error("Failed to save generated LSI to database.", {
+          position: "top-right",
+        });
+      } else {
+        toast.success("LSI keywords generated successfully!", {
+          position: "bottom-right",
+        });
       }
     } catch (error) {
       console.error("Error generating LSI:", error);
+      toast.error(`Error generating LSI: ${error.message}`, {
+        position: "top-right",
+      });
     } finally {
       setIsGeneratingLSI(false);
     }
   };
 
-  const handleSaveLSI = async (compIndex) => {
-    const updatedLsi = lsiData.map((item, idx) => {
-      const tableEditKey = `${idx}_${item.url}`;
-      let lsi_keywords = item.lsi_keywords;
+  const handleEditLSI = () => {
+    originalCurrentLsiPairsRef.current = { ...currentLsiPairs }; // Save current state for cancel
+    setIsEditingLSI(true);
+  };
 
-      if (editedLsiData[tableEditKey]) {
-        lsi_keywords = editedLsiData[tableEditKey]
-          .map((pair) => `${pair.keyword},${pair.value}`)
-          .join(",");
+  const handleSaveLSI = async () => {
+    setIsLoading(true);
+    try {
+      const cleanedLsiPairs = {};
+      for (const key in currentLsiPairs) {
+        cleanedLsiPairs[key] = currentLsiPairs[key].filter(
+          (pair) => pair.keyword.trim() !== ""
+        );
       }
 
-      return {
-        ...item,
-        lsi_keywords,
-      };
-    });
+      const { error } = await supabase.from("analysis").upsert(
+        {
+          row_id: row_id,
+          updated_lsi_keywords: JSON.stringify(cleanedLsiPairs), // Save the entire currentLsiPairs object
+        },
+        { onConflict: "row_id" }
+      );
 
-    updateProjectData({
-      selectedFileId: fileId,
-      selectedRowIndex: index,
-    });
+      if (error) {
+        throw error;
+      }
 
-    const { error } = await supabase.from("analysis").upsert(
-      {
-        row_id: row_id,
-        lsi_keywords: updatedLsi,
-      },
-      { onConflict: "row_id" }
-    );
-
-    if (error) {
-      console.error("Supabase upsert error after API call:", error);
-    } else {
-      setLsiData(updatedLsi);
-      setEditLSI(false);
-    }
-  };
-  const handleCancelLSI = (item) => {
-    setEditLSI(false);
-    setEditedLsiData({});
-  };
-
-  const handleAddRow = (idx, url) => {
-    const tableEditKey = `${idx}_${url}`;
-    const currentPairs =
-      (updatedLsiKeywords && updatedLsiKeywords[tableEditKey]) || [];
-    const newPairs = [...currentPairs, { keyword: "", value: "", isNew: true }];
-    setUpdatedLsiKeywords({
-      ...(updatedLsiKeywords || {}),
-      [tableEditKey]: newPairs,
-    });
-  };
-
-  const handleRemoveRow = (idx, url, pairIdx) => {
-    const tableEditKey = `${idx}_${url}`;
-    const currentPairs = updatedLsiKeywords[tableEditKey] || [];
-    const newPairs = currentPairs.filter((_, i) => i !== pairIdx);
-    setUpdatedLsiKeywords({
-      ...updatedLsiKeywords,
-      [tableEditKey]: newPairs,
-    });
-  };
-
-  const handleSaveUpdatedLSI = async (idx, url) => {
-    const tableEditKey = `${idx}_${url}`;
-    const newPairs = updatedLsiKeywords[tableEditKey] || [];
-
-    let existingObj = {};
-    const { data, error: fetchError } = await supabase
-      .from("analysis")
-      .select("updated_lsi_keywords")
-      .eq("row_id", row_id)
-      .single();
-
-    if (data && data.updated_lsi_keywords) {
-      let parsed = data.updated_lsi_keywords;
-      if (typeof parsed === "string") {
-        try {
-          parsed = JSON.parse(parsed);
-        } catch (e) {
-          parsed = {};
+      setIsEditingLSI(false);
+      originalCurrentLsiPairsRef.current = { ...cleanedLsiPairs }; // Update ref with saved state
+      setCurrentLsiPairs(cleanedLsiPairs); // Ensure state is updated after save
+      toast.success("LSI keywords saved successfully!", {
+        position: "bottom-right",
+      });
+    } catch (error) {
+      console.error("Error saving LSI:", error.message || error);
+      toast.error(
+        `Failed to save LSI keywords: ${error.message || "Unknown error"}`,
+        {
+          position: "top-right",
         }
-      }
-      if (parsed && typeof parsed === "object") {
-        existingObj = parsed;
-      }
+      );
+    } finally {
+      setIsLoading(false);
     }
+  };
 
-    const filteredNewPairs = newPairs.filter(
-      (pair) => pair.keyword && pair.value !== ""
-    );
+  const handleCancelLSI = () => {
+    setCurrentLsiPairs(originalCurrentLsiPairsRef.current); // Revert to saved state
+    setIsEditingLSI(false);
+  };
 
-    const updatedObj = {
-      ...existingObj,
-      [tableEditKey]: filteredNewPairs,
-    };
+  const handleKeywordChange = (tableKey, pairIdx, field, value) => {
+    const updatedPairs = [...currentLsiPairs[tableKey]];
+    updatedPairs[pairIdx][field] = value;
+    setCurrentLsiPairs({
+      ...currentLsiPairs,
+      [tableKey]: updatedPairs,
+    });
+  };
 
-    const { error } = await supabase.from("analysis").upsert(
-      {
-        row_id: row_id,
-        updated_lsi_keywords: JSON.stringify(updatedObj),
-      },
-      { onConflict: "row_id" }
-    );
+  const handleAddRow = (tableKey) => {
+    const existingPairs = currentLsiPairs[tableKey] || [];
+    setCurrentLsiPairs({
+      ...currentLsiPairs,
+      [tableKey]: [...existingPairs, { keyword: "", value: "", isNew: true }],
+    });
+  };
 
-    if (error) {
-      toast.error("Failed to save updated LSI keywords");
-    } else {
-      toast.success("Updated LSI keywords saved!");
-      setUpdatedLsiKeywords(updatedObj);
-    }
+  const handleRemoveRow = (tableKey, pairIdx) => {
+    const existingPairs = currentLsiPairs[tableKey] || [];
+    const newPairs = existingPairs.filter((_, i) => i !== pairIdx);
+    setCurrentLsiPairs({
+      ...currentLsiPairs,
+      [tableKey]: newPairs,
+    });
   };
 
   useEffect(() => {
     const fetchAnalysisData = async () => {
       if (!row_id) return;
 
+      setIsLoading(true);
       const { data, error } = await supabase
         .from("analysis")
-        .select("lsi_keywords, comp_analysis")
+        .select("lsi_keywords, updated_lsi_keywords, comp_analysis")
         .eq("row_id", row_id)
         .single();
+
+      if (error) {
+        // console.error("Error fetching analysis data:", error);
+        toast.error("Start Server", { position: "top-right" });
+        setIsLoading(false);
+        return;
+      }
 
       if (data) {
         if (data.lsi_keywords) {
@@ -351,384 +276,397 @@ export default function Analysis() {
                 : data.lsi_keywords
             );
           } catch (e) {
-            setLsiData(data.lsi_keywords);
+            console.error("Error parsing lsi_keywords:", e);
+            setLsiData([]);
+          }
+        } else {
+          setLsiData([]);
+        }
+
+        let displayPairs = {};
+
+        console.log("shivani", data.updated_lsi_keywords);
+
+        if (data) {
+          if (data.updated_lsi_keywords === null) {
+            console.log("inside shivani");
+            displayPairs = {};
+          } else if (data.updated_lsi_keywords) {
+            // Changed to else if
+            try {
+              // This block runs if data.updated_lsi_keywords is not null
+              // and also not undefined/falsey, which is implicitly handled
+              // by the prior `=== null` check and this `else if`.
+              displayPairs =
+                typeof data.updated_lsi_keywords === "string"
+                  ? JSON.parse(data.updated_lsi_keywords)
+                  : data.updated_lsi_keywords;
+
+              console.log("displayPairs", displayPairs);
+            } catch (e) {
+              console.error("Error parsing updated_lsi_keywords:", e);
+              displayPairs = {};
+            }
+          }
+          // This 'else if' will execute if the above 'if' and 'else if' conditions were false.
+          // So, if updated_lsi_keywords was NOT null, AND it was NOT a parseable string/object (or didn't exist),
+          // THEN it checks for lsi_keywords.
+          else if (data.lsi_keywords) {
+            // Corrected: removed semicolon, added 'else'
+            console.log("inside lsi");
+
+            // The inner `if (data.lsi_keywords)` is now redundant because `else if (data.lsi_keywords)` already ensures it's truthy.
+            const parsedLsi =
+              typeof data.lsi_keywords === "string"
+                ? JSON.parse(data.lsi_keywords)
+                : data.lsi_keywords;
+
+            console.log("parsedLsi", parsedLsi);
+
+            if (Array.isArray(parsedLsi)) {
+              parsedLsi.forEach((item, idx) => {
+                const baseKeywords = String(item.lsi_keywords || "");
+                const pairs = [];
+                const parts = baseKeywords.split(",");
+                for (let i = 0; i < parts.length; i += 2) {
+                  const keyword = parts[i] ? parts[i].trim() : "";
+                  const value = parts[i + 1] ? parts[i + 1].trim() : "";
+                  if (keyword) {
+                    pairs.push({ keyword, value, isNew: false });
+                  }
+                }
+                displayPairs[`${idx}_${item.url}`] = pairs;
+              });
+            }
           }
         }
+
+        setCurrentLsiPairs(displayPairs);
+        originalCurrentLsiPairsRef.current = displayPairs;
+
         if (data.comp_analysis) {
           setCompAnalysis(data.comp_analysis);
         }
       }
+      setIsLoading(false);
     };
 
     fetchAnalysisData();
   }, [row_id]);
 
-  useEffect(() => {
-    const fetchUpdatedData = async () => {
-      if (!row_id) return;
-
-      const { data, error } = await supabase
-        .from("analysis")
-        .select("updated_lsi_keywords")
-        .eq("row_id", row_id)
-        .single();
-
-      if (data) {
-        let parsed = data.updated_lsi_keywords;
-        if (typeof parsed === "string") {
-          try {
-            parsed = JSON.parse(parsed);
-          } catch (e) {
-            parsed = {};
-          }
-        }
-        if (Array.isArray(parsed)) {
-          // Use the correct key for your table
-          setUpdatedLsiKeywords({
-            [`0_${lsiData[0]?.url || "custom"}`]: parsed,
-          });
-        } else if (parsed && typeof parsed === "object") {
-          setUpdatedLsiKeywords(parsed);
-        } else {
-          setUpdatedLsiKeywords({});
-        }
-      } else {
-        setUpdatedLsiKeywords({});
-      }
-    };
-
-    fetchUpdatedData();
-  }, [row_id, lsiData]);
+  const hasCurrentLsiDataToDisplay = Object.keys(currentLsiPairs).length > 0;
 
   return (
     <>
       <ToastContainer />
-      <div className="container px-4 py-6">
+      <div className="container px-4 py-6 mx-auto">
         <main className="main-content step-component">
-          <h3 className="text-xl font-semibold mb-6 text-blue-600">
-            2.LSI Keywords
+          <h3 className="text-2xl font-bold mb-8 text-blue-700">
+            2. LSI Keywords Analysis
           </h3>
-
           {isLoading && <Loader />}
-
-          <div className="overflow-x-auto">
-            <div className="flex flex-col gap-[30px]">
-              {analysisArr.map((item, index) => (
-                <div
-                  key={index}
-                  className="flex flex-col gap-[30px] rounded-[12px] border-[1px] border-gray-200 py-3 px-4 text-sm hover:bg-gray-50 transition"
+          <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
+            <div className="flex justify-between items-center mb-6">
+              <h4 className="text-xl font-semibold text-gray-800">
+                Manage LSI Keywords
+              </h4>
+              <div className="flex space-x-3">
+                <button
+                  onClick={generateLsi}
+                  disabled={isGeneratingLSI || isLoading}
+                  className={`px-5 py-2 rounded-lg font-medium transition-colors ${
+                    isGeneratingLSI || isLoading
+                      ? "bg-gray-300 text-gray-600 cursor-not-allowed"
+                      : "bg-purple-600 text-white hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
+                  }`}
                 >
-                  <div>
-                    <div className="mb-[8px] flex justify-between items-center">
-                      <p className="font-bold text-[24px] ">LSI:</p>
-                      <div className="flex gap-[8px]">
-                        <button
-                          onClick={async () => {
-                            await generateLsi();
-                          }}
-                          disabled={isGeneratingLSI}
-                        >
-                          {isGeneratingLSI ? (
-                            <Loader size={20} />
-                          ) : (
-                            "Generate LSI"
-                          )}
-                        </button>
-                        {!editLSI && (
-                          <button
-                            onClick={() => {
-                              handleEditLSI(index + 1);
-                            }}
-                            className="p-1 text-gray-600 hover:text-black"
-                            disabled={
-                              !lsiData ||
-                              !Array.isArray(lsiData) ||
-                              lsiData.length === 0
-                            }
-                            title={
-                              !lsiData ||
-                              !Array.isArray(lsiData) ||
-                              lsiData.length === 0
-                                ? "Generate LSI data first"
-                                : "Edit LSI"
-                            }
-                          >
-                            <Pencil className="h-5 w-5" />
-                          </button>
+                  {isGeneratingLSI ? (
+                    <Loader size={20} className="inline-block mr-2" />
+                  ) : (
+                    "Generate New LSI"
+                  )}
+                </button>
+
+                {!isEditingLSI ? (
+                  <button
+                    onClick={handleEditLSI}
+                    className="p-2 text-blue-600 hover:text-blue-800 transition-colors rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    title="Edit All Current LSI Keywords"
+                  >
+                    <Pencil className="h-5 w-5" />
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      onClick={handleSaveLSI}
+                      className="p-2 text-green-600 hover:text-green-800 transition-colors rounded-full focus:outline-none focus:ring-2 focus:ring-green-500"
+                      title="Save All Changes"
+                      disabled={isLoading}
+                    >
+                      <Save className="h-5 w-5" />
+                    </button>
+                    <button
+                      onClick={handleCancelLSI}
+                      className="p-2 text-red-600 hover:text-red-800 transition-colors rounded-full focus:outline-none focus:ring-2 focus:ring-red-500"
+                      title="Cancel All Editing"
+                      disabled={isLoading}
+                    >
+                      <X className="h-5 w-5" />
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {lsiData.length === 0 && !isGeneratingLSI && (
+              <div className="text-center py-10 text-gray-500 text-lg">
+                No LSI keywords available. Please click "Generate New LSI" to
+                get started.
+              </div>
+            )}
+
+            {lsiData.map((item, idx) => {
+              const tableKey = `${idx}_${item.url}`;
+
+              const originalKeywordValuePairs = [];
+
+              const baseKeywords = String(item.lsi_keywords || "");
+
+              const parts = baseKeywords.split(",");
+
+              for (let i = 0; i < parts.length; i += 2) {
+                const keyword = parts[i] ? parts[i].trim() : "";
+
+                const value = parts[i + 1]
+                  ? parseFloat(parts[i + 1].trim())
+                  : null;
+                if (keyword) {
+                  originalKeywordValuePairs.push({
+                    keyword,
+                    value: isNaN(value) ? null : value,
+                  });
+                }
+              }
+
+              const currentKeywordPairsToDisplay =
+                currentLsiPairs[tableKey] || [];
+              console.log(
+                "Rendering editable LSI pairs for",
+                tableKey,
+                currentLsiPairs[tableKey]
+              );
+
+              return (
+                <div
+                  key={`competitor-lsi-${idx}`}
+                  className="mb-8 p-5 border border-gray-200 rounded-lg bg-gray-50"
+                >
+                  <p className="font-bold text-gray-800 text-lg mb-4">
+                    Competitor {idx + 1}:{" "}
+                    <a
+                      href={item.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:underline"
+                    >
+                      {item.url}
+                    </a>
+                  </p>
+
+                  {/* ORIGINAL LSI KEYWORDS (READ-ONLY) TABLE */}
+                  <h5 className="font-semibold text-gray-700 mb-2">
+                    Original Generated LSI:
+                  </h5>
+                  <div className="overflow-x-auto mb-6">
+                    <table className="min-w-full table-auto border-collapse border border-gray-300 text-sm">
+                      <thead className="bg-gray-100">
+                        <tr>
+                          <th className="px-4 py-2 text-left border border-gray-300 w-2/3">
+                            Keyword
+                          </th>
+                          <th className="px-4 py-2 text-left border border-gray-300 w-1/3">
+                            Value
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {originalKeywordValuePairs.length > 0 ? (
+                          originalKeywordValuePairs.map((pair, pairIdx) => (
+                            <tr
+                              key={`original-pair-${idx}-${pairIdx}`}
+                              className="border-b border-gray-200 last:border-0 hover:bg-white"
+                            >
+                              <td className="px-4 py-2 border border-gray-300">
+                                {pair.keyword}
+                              </td>
+                              <td className="px-4 py-2 border border-gray-300">
+                                {!isNaN(Number(pair.value)) && pair.value !== ""
+                                  ? Number(pair.value).toFixed(10)
+                                  : pair.value || "N/A"}
+                              </td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td
+                              colSpan="2"
+                              className="px-4 py-2 text-center text-gray-500 border border-gray-300"
+                            >
+                              No original keywords found for this source.
+                            </td>
+                          </tr>
                         )}
-                        {editLSI && (
-                          <button
-                            onClick={() => {
-                              handleSaveLSI(index + 1);
-                            }}
-                          >
-                            Save
-                          </button>
-                        )}
-                        {editLSI && (
-                          <button
-                            onClick={() => {
-                              handleCancelLSI(index + 1);
-                            }}
-                          >
-                            Cancel
-                          </button>
-                        )}
-                      </div>
-                    </div>
-
-                    {lsiData &&
-                      lsiData.map((item, idx) => {
-                        const baseKeywords = String(item.lsi_keywords || "");
-
-                        const transformedKeywordsForTextarea = baseKeywords
-                          .split(",")
-                          .map((s) => s.trim())
-                          .filter((s) => s)
-                          .join("\n");
-
-                        const keywordValuePairs = [];
-                        const parts = baseKeywords.split(",");
-                        for (let i = 0; i < parts.length; i += 2) {
-                          const keyword = parts[i] ? parts[i].trim() : "";
-                          const value = parts[i + 1]
-                            ? parseFloat(parts[i + 1].trim())
-                            : null;
-
-                          if (keyword) {
-                            keywordValuePairs.push({
-                              keyword,
-                              value: isNaN(value) ? null : value,
-                            });
-                          }
-                        }
-
-                        const isEditing = editLSI;
-
-                        const tableEditKey = `${idx}_${item.url}`;
-                        const editedPairs =
-                          (updatedLsiKeywords &&
-                            updatedLsiKeywords[tableEditKey]) ||
-                          [];
-
-                        return (
-                          <div
-                            key={idx}
-                            className="mb-4 p-4 border border-gray-200 rounded-md"
-                          >
-                            <label className="block font-bold mb-2">
-                              Result {idx + 1} (Source:{" "}
-                              <a
-                                href={item.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-blue-600 hover:underline"
-                              >
-                                {item.url}
-                              </a>
-                              )
-                            </label>
-
-                            {/* FIRST TABLE: READ-ONLY */}
-                            <div className="overflow-x-auto mt-2 mb-4">
-                              <table className="min-w-full table-auto border-collapse border border-gray-300 text-sm">
-                                <thead className="bg-gray-50">
-                                  <tr>
-                                    <th className="px-3 py-1 text-left border border-gray-300">
-                                      Keyword
-                                    </th>
-                                    <th className="px-3 py-1 text-left border border-gray-300">
-                                      Value
-                                    </th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {keywordValuePairs.length > 0 ? (
-                                    keywordValuePairs.map((pair, pairIdx) => (
-                                      <tr
-                                        key={pairIdx}
-                                        className="border-b border-gray-200 last:border-0"
-                                      >
-                                        <td className="px-3 py-1 border border-gray-300">
-                                          {pair.keyword}
-                                        </td>
-                                        <td className="px-3 py-1 border border-gray-300">
-                                          {!isNaN(Number(pair.value)) &&
-                                          pair.value !== ""
-                                            ? Number(pair.value).toFixed(10)
-                                            : pair.value || "N/A"}
-                                        </td>
-                                      </tr>
-                                    ))
-                                  ) : (
-                                    <tr>
-                                      <td
-                                        colSpan="2"
-                                        className="px-3 py-1 text-center text-gray-500 border border-gray-300"
-                                      >
-                                        No keywords found.
-                                      </td>
-                                    </tr>
-                                  )}
-                                </tbody>
-                              </table>
-                            </div>
-
-                            {/* SECOND TABLE: EDITABLE */}
-                            <div className="overflow-x-auto mt-2">
-                              <table className="min-w-full table-auto border-collapse border border-gray-300 text-sm">
-                                <thead className="bg-gray-50">
-                                  <tr>
-                                    <th className="px-3 py-1 text-left border border-gray-300">
-                                      Keyword
-                                    </th>
-                                    <th className="px-3 py-1 text-left border border-gray-300">
-                                      Value2
-                                    </th>
-                                    {isEditing && (
-                                      <th className="px-3 py-1 text-left border border-gray-300">
-                                        <button
-                                          onClick={() =>
-                                            handleAddRow(idx, item.url)
-                                          }
-                                          className="text-green-600 font-bold text-lg"
-                                          title="Add new row"
-                                        >
-                                          +
-                                        </button>
-                                        <button
-                                          onClick={() =>
-                                            handleSaveUpdatedLSI(idx, item.url)
-                                          }
-                                          className="ml-2 text-blue-600 font-bold text-lg"
-                                          title="Save new LSI keywords"
-                                        >
-                                          Save Inside
-                                        </button>
-                                      </th>
-                                    )}
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {editedPairs.length > 0 ? (
-                                    editedPairs.map((pair, pairIdx) => (
-                                      <tr
-                                        key={pairIdx}
-                                        className="border-b border-gray-200 last:border-0"
-                                      >
-                                        <td className="px-3 py-1 border border-gray-300">
-                                          {isEditing ? (
-                                            <input
-                                              type="text"
-                                              value={pair.keyword}
-                                              onChange={(e) => {
-                                                const newPairs = [
-                                                  ...editedPairs,
-                                                ];
-                                                newPairs[pairIdx].keyword =
-                                                  e.target.value;
-                                                setUpdatedLsiKeywords({
-                                                  ...updatedLsiKeywords,
-                                                  [tableEditKey]: newPairs,
-                                                });
-                                              }}
-                                              className="w-full border rounded px-1"
-                                              disabled={!isEditing}
-                                            />
-                                          ) : (
-                                            pair.keyword
-                                          )}
-                                        </td>
-                                        <td className="px-3 py-1 border border-gray-300">
-                                          {isEditing ? (
-                                            <input
-                                              type="number"
-                                              value={pair.value ?? ""}
-                                              onChange={(e) => {
-                                                const newPairs = [
-                                                  ...editedPairs,
-                                                ];
-                                                const val = e.target.value;
-                                                newPairs[pairIdx].value =
-                                                  val === "" ? "" : Number(val);
-                                                setUpdatedLsiKeywords({
-                                                  ...updatedLsiKeywords,
-                                                  [tableEditKey]: newPairs,
-                                                });
-                                              }}
-                                              className="w-full border rounded px-1"
-                                              disabled={!isEditing}
-                                            />
-                                          ) : !isNaN(Number(pair.value)) &&
-                                            pair.value !== "" ? (
-                                            Number(pair.value).toFixed(10)
-                                          ) : (
-                                            pair.value || "N/A"
-                                          )}
-                                        </td>
-                                        {isEditing && pair.isNew && (
-                                          <td className="px-3 py-1 border border-gray-300">
-                                            <button
-                                              onClick={() =>
-                                                handleRemoveRow(
-                                                  idx,
-                                                  item.url,
-                                                  pairIdx
-                                                )
-                                              }
-                                              className="text-red-600 font-bold"
-                                              title="Remove row"
-                                            >
-                                              ×
-                                            </button>
-                                          </td>
-                                        )}
-                                        {isEditing && !pair.isNew && (
-                                          <td className="px-3 py-1 border border-gray-300"></td>
-                                        )}
-                                      </tr>
-                                    ))
-                                  ) : (
-                                    <tr>
-                                      <td
-                                        colSpan={isEditing ? 3 : 2}
-                                        className="px-3 py-1 text-center text-gray-500 border border-gray-300"
-                                      >
-                                        No data available.
-                                      </td>
-                                    </tr>
-                                  )}
-                                </tbody>
-                              </table>
-                            </div>
-                          </div>
-                        );
-                      })}
+                      </tbody>
+                    </table>
                   </div>
 
-                  <div className="mt-6 flex justify-end">
-                    <button
-                      onClick={handleApprove}
-                      className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                      disabled={
-                        !lsiData ||
-                        !Array.isArray(lsiData) ||
-                        lsiData.length === 0
-                      }
-                      title={
-                        !lsiData ||
-                        !Array.isArray(lsiData) ||
-                        lsiData.length === 0
-                          ? "Generate LSI data first"
-                          : "Approve LSI keywords"
-                      }
-                    >
-                      Approve
-                    </button>
+                  {/* CURRENT / EDITED LSI KEYWORDS TABLE */}
+                  <h5 className="font-semibold text-gray-700 mb-2">
+                    Your Current LSI Keywords (Editable):
+                  </h5>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full table-auto border-collapse border border-gray-300 text-sm">
+                      <thead className="bg-gray-100">
+                        <tr>
+                          <th className="px-4 py-2 text-left border border-gray-300 w-2/3">
+                            Keyword
+                          </th>
+                          <th className="px-4 py-2 text-left border border-gray-300 w-1/3">
+                            Value
+                          </th>
+                          {isEditingLSI && (
+                            <th className="px-4 py-2 text-center border border-gray-300 w-24">
+                              Actions
+                            </th>
+                          )}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {currentKeywordPairsToDisplay.length > 0 ? (
+                          currentKeywordPairsToDisplay.map((pair, pairIdx) => (
+                            <tr
+                              key={`editable-pair-${idx}-${pairIdx}`}
+                              className="border-b border-gray-200 last:border-0 hover:bg-white"
+                            >
+                              <td className="px-4 py-2 border border-gray-300">
+                                {isEditingLSI ? (
+                                  <input
+                                    type="text"
+                                    value={pair.keyword}
+                                    onChange={(e) =>
+                                      handleKeywordChange(
+                                        tableKey,
+                                        pairIdx,
+                                        "keyword",
+                                        e.target.value
+                                      )
+                                    }
+                                    className="w-full p-1 border border-gray-300 rounded focus:ring-blue-400 focus:border-blue-400"
+                                  />
+                                ) : (
+                                  pair.keyword
+                                )}
+                              </td>
+                              <td className="px-4 py-2 border border-gray-300">
+                                {isEditingLSI ? (
+                                  <input
+                                    type="number"
+                                    step="any"
+                                    value={pair.value ?? ""}
+                                    onChange={(e) =>
+                                      handleKeywordChange(
+                                        tableKey,
+                                        pairIdx,
+                                        "value",
+                                        e.target.value === ""
+                                          ? ""
+                                          : parseFloat(e.target.value)
+                                      )
+                                    }
+                                    className="w-full p-1 border border-gray-300 rounded focus:ring-blue-400 focus:border-blue-400"
+                                  />
+                                ) : !isNaN(Number(pair.value)) &&
+                                  pair.value !== "" ? (
+                                  Number(pair.value).toFixed(10)
+                                ) : (
+                                  pair.value || "N/A"
+                                )}
+                              </td>
+                              {isEditingLSI && (
+                                <td className="px-4 py-2 text-center border border-gray-300">
+                                  <button
+                                    onClick={() =>
+                                      handleRemoveRow(tableKey, pairIdx)
+                                    }
+                                    className="text-red-500 hover:text-red-700 p-1 rounded-full"
+                                    title="Remove row"
+                                  >
+                                    <MinusCircle className="h-5 w-5" />
+                                  </button>
+                                </td>
+                              )}
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td
+                              colSpan={isEditingLSI ? 3 : 2}
+                              className="px-4 py-2 text-center text-gray-500 border border-gray-300"
+                            >
+                              No current keywords found for this source.
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                      {isEditingLSI && (
+                        <tfoot>
+                          <tr>
+                            <td
+                              colSpan={3}
+                              className="px-4 py-2 border border-gray-300 text-right"
+                            >
+                              <button
+                                onClick={() => handleAddRow(tableKey)}
+                                className="text-blue-600 hover:text-blue-800 font-medium py-1 px-3 rounded-md inline-flex items-center space-x-1"
+                              >
+                                <PlusCircle className="h-5 w-5" />
+                                <span>Add New Keyword</span>
+                              </button>
+                            </td>
+                          </tr>
+                        </tfoot>
+                      )}
+                    </table>
                   </div>
                 </div>
-              ))}
-            </div>
+              );
+            })}
+          </div>{" "}
+          {/* End of global LSI Management block */}
+          <div className="flex justify-between items-center mt-8 pt-6 border-t border-gray-200">
+            <button
+              onClick={handleApprove}
+              className="bg-green-600 text-white px-7 py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+              disabled={
+                !hasCurrentLsiDataToDisplay || isEditingLSI || isLoading
+              }
+              title={
+                !hasCurrentLsiDataToDisplay
+                  ? "Generate LSI data first"
+                  : isEditingLSI
+                  ? "Save or cancel edits before approving"
+                  : "Approve LSI keywords"
+              }
+            >
+              Approve LSI Keywords
+            </button>
+
+            <button
+              onClick={handleNext}
+              className="bg-blue-600 text-white px-7 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+            >
+              Next Step
+            </button>
           </div>
         </main>
       </div>
