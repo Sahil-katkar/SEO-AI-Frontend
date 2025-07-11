@@ -50,7 +50,9 @@ export default async function Analysis({ params }) {
         competitorAnalysisData={competitorAnalysisData.comp_analysis}
         valueAddResponseData={valueAddResponseData.value_add}
         missionPlanResponseData={missionPlanResponseData.mission_plan}
-        lsiKeywordsApproveResponseData={lsiKeywordsApproveResponseData[0].status}
+        lsiKeywordsApproveResponseData={
+          lsiKeywordsApproveResponseData[0].status
+        }
       />
     </>
   );

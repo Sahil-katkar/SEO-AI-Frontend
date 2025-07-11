@@ -169,7 +169,7 @@ export default function CompetitorAnalysis({
               {isGeneratingAnalysis ? (
                 <Loader size={20} />
               ) : (
-                "Generate Analysisssss"
+                "Generate Analysis"
               )}
             </button>
           )}

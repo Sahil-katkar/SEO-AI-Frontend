@@ -14,6 +14,12 @@ export default function ValueAdd({
 }) {
   const supabase = createClientComponentClient();
   const compAnalysis = competitorAnalysisData && valueAddResponseData;
+  // console.log("competitorAnalysisData", competitorAnalysisData);
+
+  const compAnalysisData = competitorAnalysisData;
+  const valuAddData = valueAddResponseData;
+  // const valueAddResponseData = valueAddResponseData;
+
   const [valueAdd, setValueAdd] = useState(valueAddResponseData);
   const [isGeneratingValueAdd, setIsGeneratingValueAdd] = useState(false);
   const [editedValueAdd, setEditedValueAdd] = useState("");
@@ -171,7 +177,7 @@ export default function ValueAdd({
           {!valueAdd && (
             <button
               onClick={generateValueAdd}
-              // disabled={!compAnalysis || isGeneratingValueAdd}
+              disabled={!compAnalysisData || isGeneratingValueAdd}
             >
               {isGeneratingValueAdd ? (
                 <Loader size={20} />

@@ -37,10 +37,10 @@ export default function AnalysisPage({
         <StatusHeading status={lsiKeywordsApproveResponseData} />
 
         <h3 className="text-xl font-semibold mb-6 text-blue-600">Analysis</h3>
-
+        {/* 
         {(!competitorAnalysisData ||
           !valueAddResponseData ||
-          !missionPlanResponseData) && <Loader />}
+          !missionPlanResponseData) && <Loader />} */}
 
         <div className="flex flex-col gap-[16px]">
           {/* Step 1: Competitor Analysis */}
