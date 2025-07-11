@@ -104,7 +104,11 @@ export default function AnalysisPage({
           <div className="mt-6 flex justify-end">
             <Link
               href={`/content/${fileId}/${index}`}
-              className={`${false ? "hover:!cursor-not-allowed !pointer-events-none !bg-[#bdc3c7]" : ""} nextButton text-white px-6 py-2 rounded-lg font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2`}
+              className={`${
+                false
+                  ? "hover:!cursor-not-allowed !pointer-events-none !bg-[#bdc3c7]"
+                  : ""
+              } nextButton text-white px-6 py-2 rounded-lg font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2`}
               // className={isDisabled ? "pointer-events-none" : ""}
               // aria-disabled={true}
               // tabIndex={true ? -1 : undefined}

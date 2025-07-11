@@ -2,6 +2,8 @@
 
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { useState } from "react";
+import { ToastContainer, toast } from "react-toastify";
+
 import Loader from "./common/Loader";
 
 export default function ValueAdd({
@@ -85,40 +87,57 @@ export default function ValueAdd({
       const mission_plan_context = rowDetailsData.mission_plan;
 
       try {
+        if (
+          mission_plan_context === null ||
+          mission_plan_context === undefined
+        ) {
+          toast.error("Mission plan is not generated ");
+          return;
+        }
+
+        if (
+          competitive_analysis_report === null ||
+          competitive_analysis_report === undefined
+        ) {
+          toast.error("Competitor Analysis report is not generated");
+          return;
+        }
+
         const payload = {
           mission_plan_context,
           competitive_analysis_report,
         };
 
-        console.log("payload", payload);
-        const response = await fetch("/api/value_add", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
+        try {
+          const response = await fetch("/api/value_add", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
 
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || `API error: ${response.status}`);
-        }
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || `API error: ${response.status}`);
+          }
 
-        const data = await response.json();
-        console.log("Successfully generated value add:", data);
+          const data = await response.json();
 
-        setValueAdd(data);
+          setValueAdd(data);
 
-        const { error: upsertError } = await supabase.from("analysis").upsert(
-          {
-            row_id: row_id,
-            value_add: data,
-          },
-          { onConflict: "row_id" }
-        );
-
-        if (upsertError) {
-          throw new Error(`Failed to save analysis: ${upsertError.message}`);
-        } else {
-          console.log("Analysis saved successfully.");
+          const { error: upsertError } = await supabase.from("analysis").upsert(
+            {
+              row_id: row_id,
+              value_add: data,
+            },
+            { onConflict: "row_id" }
+          );
+          if (upsertError) {
+            throw new Error(`Failed to save analysis: ${upsertError.message}`);
+          } else {
+            console.log("Analysis saved successfully.");
+          }
+        } catch (e) {
+          toast.error("Error: Check Backend Server");
         }
       } catch (e) {
         let msg = e.message || "";
@@ -152,7 +171,7 @@ export default function ValueAdd({
           {!valueAdd && (
             <button
               onClick={generateValueAdd}
-              disabled={!compAnalysis || isGeneratingValueAdd}
+              // disabled={!compAnalysis || isGeneratingValueAdd}
             >
               {isGeneratingValueAdd ? (
                 <Loader size={20} />
@@ -196,6 +215,7 @@ export default function ValueAdd({
         }
         onChange={(e) => setEditedValueAdd(e.target.value)}
       />
+      <ToastContainer />
     </div>
   );
 }

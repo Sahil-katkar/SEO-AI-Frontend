@@ -3,6 +3,7 @@
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { useState } from "react";
 import Loader from "./common/Loader";
+import { ToastContainer, toast } from "react-toastify";
 
 export default function CompetitorAnalysis({
   competitorAnalysisData,
@@ -13,6 +14,7 @@ export default function CompetitorAnalysis({
   const [isGeneratingAnalysis, setIsGeneratingAnalysis] = useState(false);
   const [editedCompAnalysis, setEditedCompAnalysis] = useState("");
   const [compAnalysis, setCompAnalysis] = useState(competitorAnalysisData);
+  const [isAnalysisGenerated, setIsAnalysisGenerated] = useState(false);
 
   const [editCompAnalysis, setEditCompAnalysis] = useState({
     comp1: false,
@@ -64,6 +66,11 @@ export default function CompetitorAnalysis({
       throw new Error(`Supabase error: ${error.message}`);
     } else {
       console.log("lsi_keywords", lsi_keywords);
+      if (lsi_keywords === null || lsi_keywords === undefined) {
+        toast.error("Raw Text or Competitor URL is missing");
+        return;
+      }
+
       if (lsi_keywords && lsi_keywords.length > 0) {
         const jsonString = lsi_keywords[0].lsi_keywords;
 
@@ -71,16 +78,13 @@ export default function CompetitorAnalysis({
           const parsedData = JSON.parse(jsonString);
 
           const comp_contents = parsedData.map((item) => item.raw_text);
+
           const url = parsedData.map((item) => item.url);
 
           const competitorData = parsedData.map((item) => ({
             raw_text: item.raw_text,
             url: item.url,
           }));
-
-          console.log("Data to send to API:", competitorData);
-          console.log("url", url);
-          console.log("Extracted Raw Texts:", comp_contents);
 
           const payload = {
             comp_contents: competitorData,
@@ -98,13 +102,20 @@ export default function CompetitorAnalysis({
               let errorMsg = `HTTP error: ${response.status}`;
               try {
                 const errorData = await response.json();
+
+                console.log("errorData", errorData);
+
                 errorMsg = errorData.error || errorMsg;
               } catch (jsonErr) {
                 errorMsg = response.statusText || errorMsg;
               }
               throw new Error(errorMsg);
             } else {
-              data = await response.json();
+              let compAnalysisText = await response.json();
+              console.log("comp_data", data);
+
+              data = compAnalysisText.competitor_analysis;
+              console.log("compAnalysisText (extracted string):", data);
             }
 
             setCompAnalysis(data);
@@ -138,7 +149,7 @@ export default function CompetitorAnalysis({
             toast.error(msg, { position: "top-right" });
           }
         } catch (parseError) {
-          toast.error("Error ", {
+          toast.error("Errorsssssssssssssss ", {
             position: "top-right",
           });
         }
@@ -158,7 +169,7 @@ export default function CompetitorAnalysis({
               {isGeneratingAnalysis ? (
                 <Loader size={20} />
               ) : (
-                "Generate Analysis"
+                "Generate Analysisssss"
               )}
             </button>
           )}
@@ -198,6 +209,7 @@ export default function CompetitorAnalysis({
         }
         onChange={(e) => setEditedCompAnalysis(e.target.value)}
       />
+      <ToastContainer />
     </div>
   );
 }
