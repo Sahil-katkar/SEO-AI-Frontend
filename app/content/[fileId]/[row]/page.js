@@ -27,9 +27,132 @@ export default function FileRow() {
   const [showPreviousArticlesTable, setShowPreviousArticlesTable] =
     useState(false);
 
-  // Helper function to toggle visibility
-  const toggleTableVisibility = () => {
+  const [density, setDensity] = useState(null);
+
+  // Ensure these are declared outside if you need them globally or later in the function
+  let competitorContents = [];
+  let competitorUrls = [];
+  let allCompetitorData = [];
+
+  const toggleTableVisibility = async () => {
     setShowPreviousArticlesTable((prevState) => !prevState);
+
+    const { data: articleData, error: articleError } = await supabase
+      .from("article")
+      .select("updated_article")
+      .eq("row_id", row_id);
+
+    const { data: lsiData, error: lsiError } = await supabase // Renamed for clarity, `lsiData` is the array of objects
+      .from("analysis")
+      .select("lsi_keywords") // This selects the column named 'lsi_keywords'
+      .eq("row_id", row_id);
+
+    if (lsiError) {
+      console.error("Supabase LSI fetch error:", lsiError);
+      toast.error("Failed to fetch LSI keyword data.");
+      return;
+    }
+
+    // Supabase returns an empty array if no data, not null/undefined
+    if (!lsiData || lsiData.length === 0) {
+      toast.error("No LSI keyword data found for this article.");
+      // Optionally return, or proceed with empty arrays
+      return;
+    }
+
+    // We expect lsiData to be an array like: [{ lsi_keywords: "..." }]
+    // So, we need to access the first item and its 'lsi_keywords' property
+    const lsiItem = lsiData[0];
+
+    if (!lsiItem || !lsiItem.lsi_keywords) {
+      toast.error("LSI keyword data structure is incomplete.");
+      return;
+    }
+
+    const jsonStringFromDb = lsiItem.lsi_keywords; // This is the stringified JSON from your DB
+
+    let parsedLsiContent = [];
+    try {
+      const tempParsed = JSON.parse(jsonStringFromDb);
+
+      // Now, handle the different potential formats of 'tempParsed':
+      if (Array.isArray(tempParsed)) {
+        // This is the ideal case: an array of objects
+        parsedLsiContent = tempParsed;
+      } else if (
+        typeof tempParsed === "object" &&
+        tempParsed !== null &&
+        tempParsed.lsi_keyword === "failed to generate lsi keywords"
+      ) {
+        // This is the "failed to generate" object
+        console.warn("LSI keyword generation failed for this entry.");
+        toast.info("LSI keywords could not be generated for some entries.");
+        // parsedLsiContent remains an empty array as intended
+      } else {
+        // Any other unexpected format after parsing (e.g., a simple string that's not JSON)
+        console.warn(
+          "Unexpected format for parsed LSI keywords:",
+          tempParsed,
+          "Raw string:",
+          jsonStringFromDb
+        );
+        toast.error("LSI keyword data is in an unexpected format.");
+        return;
+      }
+    } catch (parseError) {
+      console.error("Error parsing LSI keywords JSON:", parseError);
+      toast.error(
+        "Failed to process LSI keyword data. Data might be corrupted."
+      );
+      return;
+    }
+
+    let extractedLsiKeywords = []; // Use a clearer name for the final array of keywords
+
+    if (parsedLsiContent.length > 0) {
+      // Use flatMap to get all lsi_keywords arrays and flatten them into a single array
+      extractedLsiKeywords = parsedLsiContent.flatMap((item) => {
+        // Ensure item.lsi_keywords is an array before returning it.
+        // Based on the previous robust parsing, it should already be an array (or empty array).
+        return Array.isArray(item.lsi_keywords) ? item.lsi_keywords : [];
+      });
+    } else {
+      console.log("No valid LSI content to extract.");
+    }
+
+    console.log("Extracted LSI Keywords:", extractedLsiKeywords);
+
+    const keywordsAsObject = extractedLsiKeywords.reduce((acc, currentItem) => {
+      // currentItem will be an array like ['channels need', 0.020831228248328962]
+      const keyword = currentItem[0];
+      const value = currentItem[1];
+      acc[keyword] = value; // Add the key-value pair to the accumulator object
+      return acc; // Return the updated accumulator for the next iteration
+    }, {}); // Initialize the accumulator as an empty object {}
+
+    const backendPayload = {
+      text_content: articleData[0].updated_article,
+      keywords: keywordsAsObject,
+    };
+
+    console.log("backendPayload", backendPayload);
+
+    const apiResponse = await fetch(`/api/keyword_density/`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(backendPayload),
+    });
+
+    const data = await apiResponse.json();
+    setDensity(data);
+
+    if (apiResponse.ok) {
+      console.log("FastAPI response:", data);
+    } else {
+      console.log("errror");
+    }
   };
 
   const [isLoading, setIsLoading] = useState(false);
@@ -1338,86 +1461,56 @@ export default function FileRow() {
 
                     {/* Conditional rendering for the table section */}
                     {showPreviousArticlesTable && (
-                      <div className="md:w-1/2 w-full bg-gray-50 p-6 rounded-xl shadow-md border border-gray-200">
+                      <div className="md:w-full w-full bg-gray-50 p-6 rounded-xl shadow-md border border-gray-200">
                         <h4 className="text-lg font-semibold text-black-700 mb-4">
                           Previous Articles
                         </h4>
 
-                        <div className="overflow-x-auto">
-                          <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-gray-100">
-                              <tr>
-                                <th
-                                  scope="col"
-                                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                                >
-                                  ID
-                                </th>
-                                <th
-                                  scope="col"
-                                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                                >
-                                  Content Preview
-                                </th>
-                                <th
-                                  scope="col"
-                                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                                >
-                                  Last Modified
-                                </th>
-                                <th
-                                  scope="col"
-                                  className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
-                                >
-                                  Actions
-                                </th>
-                              </tr>
-                            </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
-                              {/* Ensure articledataUpdated is an array before mapping */}
-                              {Array.isArray(articledataUpdated) &&
-                              articledataUpdated.length > 0 ? (
-                                articledataUpdated.map((article, index) => (
-                                  <tr key={article.id || `article-${index}`}>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                      {article.id || `Article ${index + 1}`}
-                                    </td>
-                                    <td className="px-6 py-4 text-sm text-gray-500 max-w-xs overflow-hidden text-ellipsis">
-                                      {article.content
-                                        ? article.content.substring(0, 100) +
-                                          "..."
-                                        : "No content"}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                      {article.lastModified
-                                        ? new Date(
-                                            article.lastModified
-                                          ).toLocaleDateString()
-                                        : "N/A"}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                      <button className="text-indigo-600 hover:text-indigo-900 mr-2">
-                                        View
-                                      </button>
-                                      <button className="text-red-600 hover:text-red-900">
-                                        Delete
-                                      </button>
-                                    </td>
-                                  </tr>
-                                ))
-                              ) : (
+                        {density && typeof density === "object" && (
+                          <div className="mt-4">
+                            <h5 className="text-md font-bold mb-2">
+                              Keyword Density Table
+                            </h5>
+                            <table className="min-w-full divide-y divide-gray-200">
+                              <thead className="bg-gray-100">
                                 <tr>
-                                  <td
-                                    colSpan="4"
-                                    className="px-6 py-4 text-center text-sm text-gray-500"
-                                  >
-                                    No previous articles to display.
-                                  </td>
+                                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                                    Keyword
+                                  </th>
+                                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                                    Count
+                                  </th>
+                                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                                    Density
+                                  </th>
+                                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                                    Percentage
+                                  </th>
                                 </tr>
-                              )}
-                            </tbody>
-                          </table>
-                        </div>
+                              </thead>
+                              <tbody className="bg-white divide-y divide-gray-200">
+                                {Object.entries(density).map(
+                                  ([keyword, values], index) => (
+                                    <tr key={index}>
+                                      <td className="px-6 py-4 text-sm text-gray-900">
+                                        {keyword}
+                                      </td>
+                                      <td className="px-6 py-4 text-sm text-gray-500">
+                                        {values[0]}
+                                      </td>
+                                      <td className="px-6 py-4 text-sm text-gray-500">
+                                        {parseFloat(values[1]).toFixed(4)}
+                                      </td>
+                                      <td className="px-6 py-4 text-sm text-gray-500">
+                                        {parseFloat(values[2]).toFixed(2)}%
+                                      </td>
+                                    </tr>
+                                  )
+                                )}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
