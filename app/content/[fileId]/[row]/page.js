@@ -24,6 +24,14 @@ export default function FileRow() {
 
   console.log("activeModalTab", activeModalTab);
 
+  const [showPreviousArticlesTable, setShowPreviousArticlesTable] =
+    useState(false);
+
+  // Helper function to toggle visibility
+  const toggleTableVisibility = () => {
+    setShowPreviousArticlesTable((prevState) => !prevState);
+  };
+
   const [isLoading, setIsLoading] = useState(false);
   const [status, setstatus] = useState("");
 
@@ -604,12 +612,34 @@ export default function FileRow() {
       .select("new_outline")
       .eq("row_id", row_id);
 
+    console.log(
+      "row_details",
+      Array.isArray(row_details[0].lsi_keywords)
+        ? row_details[0].lsi_keywords // If it's already an array, use it directly
+        : typeof row_details[0].lsi_keywords === "string" &&
+          row_details[0].lsi_keywords.trim() !== ""
+        ? row_details[0].lsi_keywords
+            .split(",")
+            .map((s) => s.trim())
+            .filter((s) => s) // If it's a non-empty string, split it by comma
+        : []
+    );
+
     const payload = {
       missionPlan: row_details[0].mission_plan,
       gapsAndOpportunities: valueAdd?.[0]?.value_add || "", // extract string
+      // lsi_keywords: Array.isArray(row_details[0].lsi_keywords)
+      //   ? row_details[0].lsi_keywords
+      //   : [], // ensure array
       lsi_keywords: Array.isArray(row_details[0].lsi_keywords)
+        ? row_details[0].lsi_keywords // If it's already an array, use it directly
+        : typeof row_details[0].lsi_keywords === "string" &&
+          row_details[0].lsi_keywords.trim() !== ""
         ? row_details[0].lsi_keywords
-        : [], // ensure array
+            .split(",")
+            .map((s) => s.trim())
+            .filter((s) => s) // If it's a non-empty string, split it by comma
+        : [],
       persona: row_details[0].persona,
       outline: outline?.[0]?.new_outline || "", // extract string
       section: String(section), // ensure string
@@ -633,10 +663,10 @@ export default function FileRow() {
       body: JSON.stringify(payload),
     });
     const data = await response.json();
-    console.log("dataaaaaaaaaaa", data);
+    console.log("dataaaaaaaaaaa", data.article_data);
 
     setArticleSections((prev) =>
-      Array.isArray(prev) ? [...prev, data] : [data]
+      Array.isArray(prev) ? [...prev, data.article_data] : [data.article_data]
     );
     // articleArr.push(data);
     setArticleSectionGenerateCount(articleSectionGenerateCount + 1);
@@ -1221,6 +1251,7 @@ export default function FileRow() {
 
               {projectData.activeModalTab === "Article" && (
                 <div className="flex flex-col md:flex-row gap-6">
+                  {/* Generated Article Section (Existing) */}
                   <div
                     className={`${
                       articledataUpdated.length > 0 ? "md:w-1/2" : "w-full"
@@ -1231,27 +1262,6 @@ export default function FileRow() {
                     </h4>
 
                     <div className="grid ">
-                      {/* {articleSectionCount > 0 &&
-                        Array.from({ length: articleSectionCount }).map(
-                          (_, index) => {
-                            return (
-                              <div key={index} className="">
-                                <textarea
-                                  className=""
-                                  defaultValue={articleSections}
-                                />
-
-                                <button
-                                  onClick={() => {
-                                    generateArticleSection(index + 1);
-                                  }}
-                                >
-                                  Generate section {index + 1}
-                                </button>
-                              </div>
-                            );
-                          }
-                        )} */}
                       <textarea
                         rows="10"
                         className="w-full p-3 border border-gray-200 rounded-md bg-gray-50 focus:outline-[#1abc9c] focus:outline-2"
@@ -1263,10 +1273,12 @@ export default function FileRow() {
                         }
                       />
 
-                      <div className="ml-auto flex gap-2">
+                      <div className="ml-auto flex gap-2 mt-4">
+                        {" "}
+                        {/* Added mt-4 for spacing */}
                         {articleSectionGenerateCount < articleSectionCount && (
                           <button
-                            className=""
+                            className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
                             disabled={sectionIsGenerating}
                             onClick={() => {
                               generateArticleSection(
@@ -1282,10 +1294,9 @@ export default function FileRow() {
                             {articleSectionCount}
                           </button>
                         )}
-
                         <button
                           disabled={sectionIsGenerating}
-                          className=""
+                          className="px-4 py-2 text-white rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50"
                           style={{ backgroundColor: "#4CAF50" }} // Material Design green
                           onClick={() => {
                             handleSaveArticle(
@@ -1297,10 +1308,9 @@ export default function FileRow() {
                         >
                           Save
                         </button>
-
                         <button
                           disabled={sectionIsGenerating}
-                          className=""
+                          className="px-4 py-2 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 disabled:opacity-50"
                           style={{ backgroundColor: "#3478F6" }} // A common, vibrant action blue
                           onClick={() => handleSaveGdrive()}
                         >
@@ -1311,46 +1321,106 @@ export default function FileRow() {
                     </div>
                   </div>
 
-                  {/* {articledataUpdated.length > 0 && (
-                    <div className="w-full md:w-1/2 bg-blue-50 p-6 rounded-xl shadow-md border border-blue-300">
-                      <h4 className="text-lg font-semibold text-blue-700 mb-4">
-                        Updated Article
-                      </h4>
-                      {articledataUpdated.map((item, index) => {
-                        const content = item.updated_content || "";
-                        let parsedArticle;
+                  {/* New Table Section - Renders only if articledataUpdated has items */}
 
-                        try {
-                          parsedArticle =
-                            typeof content === "string"
-                              ? JSON.parse(content)
-                              : content;
-                        } catch {
-                          parsedArticle = content;
-                        }
+                  <div>
+                    {/* Other parts of your component */}
 
-                        return (
-                          <div key={`updated-${index}`} className="mb-6">
-                            {typeof parsedArticle === "string" ? (
-                              <p className="text-black-600 whitespace-pre-line">
-                                {parsedArticle}
-                              </p>
-                            ) : (
-                              <ul className="list-disc pl-6 text-black-600">
-                                {Object.entries(parsedArticle).map(
-                                  ([key, value]) => (
-                                    <li key={key} className="mb-2">
-                                      <strong>{key}:</strong> {value}
-                                    </li>
-                                  )
-                                )}
-                              </ul>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )} */}
+                    {/* Button to show/hide the Density Table */}
+                    <button
+                      onClick={toggleTableVisibility}
+                      className="mb-4 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                    >
+                      {showPreviousArticlesTable
+                        ? "Hide Density Table"
+                        : "Show Density Table"}
+                    </button>
+
+                    {/* Conditional rendering for the table section */}
+                    {showPreviousArticlesTable && (
+                      <div className="md:w-1/2 w-full bg-gray-50 p-6 rounded-xl shadow-md border border-gray-200">
+                        <h4 className="text-lg font-semibold text-black-700 mb-4">
+                          Previous Articles
+                        </h4>
+
+                        <div className="overflow-x-auto">
+                          <table className="min-w-full divide-y divide-gray-200">
+                            <thead className="bg-gray-100">
+                              <tr>
+                                <th
+                                  scope="col"
+                                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                >
+                                  ID
+                                </th>
+                                <th
+                                  scope="col"
+                                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                >
+                                  Content Preview
+                                </th>
+                                <th
+                                  scope="col"
+                                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                >
+                                  Last Modified
+                                </th>
+                                <th
+                                  scope="col"
+                                  className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                >
+                                  Actions
+                                </th>
+                              </tr>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-200">
+                              {/* Ensure articledataUpdated is an array before mapping */}
+                              {Array.isArray(articledataUpdated) &&
+                              articledataUpdated.length > 0 ? (
+                                articledataUpdated.map((article, index) => (
+                                  <tr key={article.id || `article-${index}`}>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                      {article.id || `Article ${index + 1}`}
+                                    </td>
+                                    <td className="px-6 py-4 text-sm text-gray-500 max-w-xs overflow-hidden text-ellipsis">
+                                      {article.content
+                                        ? article.content.substring(0, 100) +
+                                          "..."
+                                        : "No content"}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                      {article.lastModified
+                                        ? new Date(
+                                            article.lastModified
+                                          ).toLocaleDateString()
+                                        : "N/A"}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                      <button className="text-indigo-600 hover:text-indigo-900 mr-2">
+                                        View
+                                      </button>
+                                      <button className="text-red-600 hover:text-red-900">
+                                        Delete
+                                      </button>
+                                    </td>
+                                  </tr>
+                                ))
+                              ) : (
+                                <tr>
+                                  <td
+                                    colSpan="4"
+                                    className="px-6 py-4 text-center text-sm text-gray-500"
+                                  >
+                                    No previous articles to display.
+                                  </td>
+                                </tr>
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
