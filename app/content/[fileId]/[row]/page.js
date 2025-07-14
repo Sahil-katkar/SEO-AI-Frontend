@@ -718,9 +718,14 @@ export default function FileRow() {
   const generateArticleSection = async (section) => {
     setSectionIsGenerating(true);
     console.log("section", section);
-    const { data: row_details } = await supabase
+    const { data: row_details_data } = await supabase
       .from("row_details")
-      .select("mission_plan,lsi_keywords,persona")
+      .select("mission_plan,persona,lsi_keywords")
+      .eq("row_id", row_id);
+
+    const { data: row_details } = await supabase
+      .from("analysis")
+      .select("lsi_keywords")
       .eq("row_id", row_id);
 
     console.log("row id", row_id);
@@ -735,8 +740,210 @@ export default function FileRow() {
       .select("new_outline")
       .eq("row_id", row_id);
 
+    const { data: updatedLsi } = await supabase
+      .from("analysis")
+      .select("updated_lsi_keywords")
+      .eq("row_id", row_id);
+
+    // console.log(
+    //   "row_details",
+    //   Array.isArray(row_details[0].lsi_keywords)
+    //     ? row_details[0].lsi_keywords // If it's already an array, use it directly
+    //     : typeof row_details[0].lsi_keywords === "string" &&
+    //       row_details[0].lsi_keywords.trim() !== ""
+    //     ? row_details[0].lsi_keywords
+    //         .split(",")
+    //         .map((s) => s.trim())
+    //         .filter((s) => s) // If it's a non-empty string, split it by comma
+    //     : []
+    // );
+
+    // 1. Normalize updated LSI format
+    // Step 1: Normalize updated LSI keywords
+
+    // Step 1: Parse updated keywords
+    const updatedKeywords = JSON.parse(
+      updatedLsi?.[0]?.updated_lsi_keywords || "{}"
+    );
+    console.log("✅ updatedKeywords:", updatedKeywords);
+
+    const updatedEntries = Object.entries(updatedKeywords);
+    console.log("✅ updatedEntries:", updatedEntries);
+
+    // Step 2: Prepare base structure from row_details
+    console.log("🧠 row_details:", row_details);
+    const rawLsiText = row_details?.[0]?.lsi_keywords;
+
+    if (!row_details || !row_details[0] || typeof rawLsiText !== "string") {
+      console.error("❌ row_details missing or lsi_keywords is not a string");
+      return;
+    }
+
+    const baseEntry = {
+      url: Object.keys(updatedKeywords)[0]?.split("_").slice(1).join("_") || "", // fallback url
+      raw_text: row_details[0].mission_plan || "",
+      lsi_keywords: rawLsiText
+        .split("\n")
+        .map((keyword) => [keyword.trim(), 0]) // initialize with score 0
+        .filter(([k]) => k.length > 0),
+    };
+
+    const structuredLsi = [baseEntry];
+
+    console.log("✅ Converted lsi_keywords to structured:", structuredLsi);
+
+    // Step 3: Merge updated entries
+    updatedEntries.forEach(([key, value]) => {
+      const [indexStr, ...urlParts] = key.split("_");
+      const index = parseInt(indexStr, 10);
+      const url = urlParts.join("_");
+
+      if (!Array.isArray(value) || typeof value[0] !== "string") {
+        console.warn(`⚠️ Unexpected format in ${key}:`, value);
+        return;
+      }
+
+      const [raw] = value;
+      const [keyword, scoreRaw] = raw.split(":");
+
+      // Convert to float, preserving decimal places properly
+      const score = parseFloat(
+        scoreRaw.length >= 3
+          ? `0.${scoreRaw.replace(/^0+/, "")}` // e.g., "010" → 0.10
+          : scoreRaw
+      );
+
+      if (!keyword || isNaN(score)) {
+        console.warn(`⚠️ Invalid keyword or score in ${key}:`, raw);
+        return;
+      }
+
+      // Ensure entry exists
+      if (!structuredLsi[index]) {
+        structuredLsi[index] = {
+          url,
+          raw_text: "",
+          lsi_keywords: [],
+        };
+      }
+
+      const existing = structuredLsi[index].lsi_keywords;
+      const alreadyExists = existing.some(([k]) => k === keyword);
+
+      if (!alreadyExists) {
+        existing.push([keyword, score]);
+      }
+    });
+
+    // Step 4: Log final merged LSI structure
     console.log(
-      "row_details",
+      "✅ Final Merged LSI Object:",
+      JSON.stringify(structuredLsi, null, 2)
+    );
+
+    const finalLSIReports = []; // This will hold the output in the desired new format
+
+    if (Array.isArray(structuredLsi)) {
+      structuredLsi.forEach((lsiEntry) => {
+        const url = lsiEntry.url;
+        const extractedKeywordsForCurrentURL = []; // To collect keywords for this specific URL's report
+
+        // --- Start existing LSI keyword extraction logic ---
+        if (lsiEntry && Array.isArray(lsiEntry.lsi_keywords)) {
+          lsiEntry.lsi_keywords.forEach((keywordItem) => {
+            if (Array.isArray(keywordItem) && keywordItem.length > 0) {
+              let firstElement = keywordItem[0];
+
+              // Case 1: Nested stringified JSON (needs parsing and cleaning)
+              if (
+                typeof firstElement === "string" &&
+                firstElement.startsWith("[") &&
+                firstElement.endsWith("]")
+              ) {
+                // Attempt to clean the malformed URL part within the string
+                const malformedUrlRegex =
+                  /("url":")\{"([^"]+?)":\["[^"]+"\]\}"/g;
+                if (malformedUrlRegex.test(firstElement)) {
+                  firstElement = firstElement.replace(
+                    malformedUrlRegex,
+                    '$1$2"'
+                  );
+                }
+
+                try {
+                  const parsedInnerArray = JSON.parse(firstElement);
+                  if (Array.isArray(parsedInnerArray)) {
+                    parsedInnerArray.forEach((innerObj) => {
+                      if (innerObj && Array.isArray(innerObj.lsi_keywords)) {
+                        extractedKeywordsForCurrentURL.push(
+                          ...innerObj.lsi_keywords
+                        );
+                      }
+                    });
+                  }
+                } catch (e) {
+                  console.warn(
+                    `🚫 Parsing failed for nested LSI keyword string for URL ${url}. Error:`,
+                    e
+                  );
+                }
+              }
+              // Case 2: Direct [string, number] keyword pair
+              else if (
+                typeof firstElement === "string" &&
+                typeof keywordItem[1] === "number"
+              ) {
+                extractedKeywordsForCurrentURL.push(keywordItem);
+              }
+            }
+          });
+        }
+        // --- End existing LSI keyword extraction logic ---
+
+        // Determine the 'lsi_keywords' value for the final output object for this URL
+        const lsiKeywordsForOutput =
+          extractedKeywordsForCurrentURL.length === 0
+            ? { lsi_keyword: "failed to generate lsi keywords" }
+            : extractedKeywordsForCurrentURL;
+
+        // Add this structured object (for the current URL) to the final array for the API
+        finalLSIReports.push({
+          url: url,
+          lsi_keywords: lsiKeywordsForOutput,
+        });
+      });
+    }
+
+    // Instead of stringifying, keep finalLSIReports as an object for the API request
+    // Send it directly as JSON in the fetch/axios request
+    console.log(
+      "✅ Final Merged LSI Reports for Backend (Desired Format):",
+      finalLSIReports
+    );
+
+    const payload = {
+      missionPlan: row_details_data[0].mission_plan,
+      gapsAndOpportunities: valueAdd?.[0]?.value_add || "", // extract string
+      // lsi_keywords: Array.isArray(row_details[0].lsi_keywords)
+      //   ? row_details[0].lsi_keywords
+      //   : [], // ensure array
+      // lsi_keywords: Array.isArray(row_details[0].lsi_keywords)
+      //   ? row_details[0].lsi_keywords // If it's already an array, use it directly
+      //   : typeof row_details[0].lsi_keywords === "string" &&
+      //     row_details[0].lsi_keywords.trim() !== ""
+      //   ? row_details[0].lsi_keywords
+      //       .split(",")
+      //       .map((s) => s.trim())
+      //       .filter((s) => s) // If it's a non-empty string, split it by comma
+      //   : [],
+      lsi_keywords: finalLSIReports,
+      persona: row_details_data[0].persona,
+      outline: outline?.[0]?.new_outline || "", // extract string
+      section: String(section), // ensure string
+    };
+
+    console.log(
+      "lsisssssss",
       Array.isArray(row_details[0].lsi_keywords)
         ? row_details[0].lsi_keywords // If it's already an array, use it directly
         : typeof row_details[0].lsi_keywords === "string" &&
@@ -747,26 +954,6 @@ export default function FileRow() {
             .filter((s) => s) // If it's a non-empty string, split it by comma
         : []
     );
-
-    const payload = {
-      missionPlan: row_details[0].mission_plan,
-      gapsAndOpportunities: valueAdd?.[0]?.value_add || "", // extract string
-      // lsi_keywords: Array.isArray(row_details[0].lsi_keywords)
-      //   ? row_details[0].lsi_keywords
-      //   : [], // ensure array
-      lsi_keywords: Array.isArray(row_details[0].lsi_keywords)
-        ? row_details[0].lsi_keywords // If it's already an array, use it directly
-        : typeof row_details[0].lsi_keywords === "string" &&
-          row_details[0].lsi_keywords.trim() !== ""
-        ? row_details[0].lsi_keywords
-            .split(",")
-            .map((s) => s.trim())
-            .filter((s) => s) // If it's a non-empty string, split it by comma
-        : [],
-      persona: row_details[0].persona,
-      outline: outline?.[0]?.new_outline || "", // extract string
-      section: String(section), // ensure string
-    };
 
     // const calculateSectionCount = async (outline) => {
     //   const lines = outline.split("\n");
