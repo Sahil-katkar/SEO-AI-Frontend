@@ -47,93 +47,117 @@ export default function FileRow() {
       .select("lsi_keywords") // This selects the column named 'lsi_keywords'
       .eq("row_id", row_id);
 
+    const { data: lsiUpdated, error: lsiUpdatedErr } = await supabase // Renamed for clarity, `lsiData` is the array of objects
+      .from("analysis")
+      .select("updated_lsi_keywords") // This selects the column named 'lsi_keywords'
+      .eq("row_id", row_id);
+
+    console.log("lsiData", lsiData);
+    console.log("lsiUpdated", lsiUpdated);
+
+    // 1. Parse the original LSI data
+    const originalLsi = JSON.parse(lsiData?.[0]?.lsi_keywords || "[]");
+
+    // 2. Parse the updated LSI keywords
+    const updatedLsi = JSON.parse(
+      lsiUpdated?.[0]?.updated_lsi_keywords || "{}"
+    );
+
+    // 3. Prepare the final merged LSI array
+    const finalMergedLsi = originalLsi.map((entry, index) => {
+      const key = `${index}_${entry.url}`; // Create the key like '0_url', '1_url'
+      const updatedKeywords = updatedLsi[key] || [];
+
+      // Format updated keywords back to the format in original: "keyword,value"
+      const parsedUpdatedKeywords = updatedKeywords.map(
+        (item) => `${item.keyword},${item.value}`
+      );
+
+      // Combine old string + new entries
+      const originalKeywordsStr = entry.lsi_keywords || "";
+      const finalLsiKeywordsStr = [
+        originalKeywordsStr,
+        ...parsedUpdatedKeywords,
+      ].join(",");
+
+      return {
+        url: entry.url,
+        lsi_keywords: finalLsiKeywordsStr,
+      };
+    });
+
+    console.log("✅ Only lsi_keywords:", finalMergedLsi);
+
+    const formattedLsi = finalMergedLsi.map((item) => {
+      const { url, lsi_keywords } = item;
+
+      if (typeof lsi_keywords === "string") {
+        const splitArray = lsi_keywords.split(",");
+        const keywordPairs = [];
+
+        for (let i = 0; i < splitArray.length; i += 2) {
+          const keyword = splitArray[i]?.trim();
+          const value = parseFloat(splitArray[i + 1]);
+
+          // You can optionally add a check here to filter out garbage keywords/values
+          if (keyword && !isNaN(value)) {
+            keywordPairs.push([keyword, value]);
+          }
+        }
+
+        return {
+          url,
+          lsi_keywords: keywordPairs,
+        };
+      }
+
+      // Optional fallback in case of unexpected format
+      return {
+        url,
+        lsi_keywords: {
+          lsi_keyword: "failed to generate lsi keywords",
+        },
+      };
+    });
+
+    // Convert to flat { keyword: value } format
+    const keywordsAsObject = {};
+
+    formattedLsi.forEach((item) => {
+      if (Array.isArray(item.lsi_keywords)) {
+        item.lsi_keywords.forEach(([keyword, value]) => {
+          if (keyword && !isNaN(value)) {
+            keywordsAsObject[keyword] = value;
+          }
+        });
+      }
+    });
+
+    // Create backend payload
+    const backendPayload = {
+      text_content: articleData[0].updated_article,
+      keywords: keywordsAsObject, // ✅ Send as object, not JSON string
+    };
+
+    console.log("✅ Payload to Backend:", backendPayload);
+
+    console.log(
+      "✅ Formatted LSI Keywords:",
+      JSON.stringify(formattedLsi, null, 2)
+    );
+
     if (lsiError) {
       console.error("Supabase LSI fetch error:", lsiError);
       toast.error("Failed to fetch LSI keyword data.");
       return;
     }
 
-    // Supabase returns an empty array if no data, not null/undefined
-    if (!lsiData || lsiData.length === 0) {
-      toast.error("No LSI keyword data found for this article.");
-      // Optionally return, or proceed with empty arrays
-      return;
-    }
+    // console.log("keywordsAsObject", keywordsAsObject);
 
-    // We expect lsiData to be an array like: [{ lsi_keywords: "..." }]
-    // So, we need to access the first item and its 'lsi_keywords' property
-    const lsiItem = lsiData[0];
-
-    if (!lsiItem || !lsiItem.lsi_keywords) {
-      toast.error("LSI keyword data structure is incomplete.");
-      return;
-    }
-
-    const jsonStringFromDb = lsiItem.lsi_keywords; // This is the stringified JSON from your DB
-
-    let parsedLsiContent = [];
-    try {
-      const tempParsed = JSON.parse(jsonStringFromDb);
-
-      // Now, handle the different potential formats of 'tempParsed':
-      if (Array.isArray(tempParsed)) {
-        // This is the ideal case: an array of objects
-        parsedLsiContent = tempParsed;
-      } else if (
-        typeof tempParsed === "object" &&
-        tempParsed !== null &&
-        tempParsed.lsi_keyword === "failed to generate lsi keywords"
-      ) {
-        // This is the "failed to generate" object
-        console.warn("LSI keyword generation failed for this entry.");
-        toast.info("LSI keywords could not be generated for some entries.");
-        // parsedLsiContent remains an empty array as intended
-      } else {
-        // Any other unexpected format after parsing (e.g., a simple string that's not JSON)
-        console.warn(
-          "Unexpected format for parsed LSI keywords:",
-          tempParsed,
-          "Raw string:",
-          jsonStringFromDb
-        );
-        toast.error("LSI keyword data is in an unexpected format.");
-        return;
-      }
-    } catch (parseError) {
-      console.error("Error parsing LSI keywords JSON:", parseError);
-      toast.error(
-        "Failed to process LSI keyword data. Data might be corrupted."
-      );
-      return;
-    }
-
-    let extractedLsiKeywords = []; // Use a clearer name for the final array of keywords
-
-    if (parsedLsiContent.length > 0) {
-      // Use flatMap to get all lsi_keywords arrays and flatten them into a single array
-      extractedLsiKeywords = parsedLsiContent.flatMap((item) => {
-        // Ensure item.lsi_keywords is an array before returning it.
-        // Based on the previous robust parsing, it should already be an array (or empty array).
-        return Array.isArray(item.lsi_keywords) ? item.lsi_keywords : [];
-      });
-    } else {
-      console.log("No valid LSI content to extract.");
-    }
-
-    console.log("Extracted LSI Keywords:", extractedLsiKeywords);
-
-    const keywordsAsObject = extractedLsiKeywords.reduce((acc, currentItem) => {
-      // currentItem will be an array like ['channels need', 0.020831228248328962]
-      const keyword = currentItem[0];
-      const value = currentItem[1];
-      acc[keyword] = value; // Add the key-value pair to the accumulator object
-      return acc; // Return the updated accumulator for the next iteration
-    }, {}); // Initialize the accumulator as an empty object {}
-
-    const backendPayload = {
-      text_content: articleData[0].updated_article,
-      keywords: keywordsAsObject,
-    };
+    // const backendPayload = {
+    //   text_content: articleData[0].updated_article,
+    //   keywords: JSON.stringify(formattedLsi, null, 2),
+    // };
 
     console.log("backendPayload", backendPayload);
 
@@ -150,6 +174,21 @@ export default function FileRow() {
 
     if (apiResponse.ok) {
       console.log("FastAPI response:", data);
+
+      const { data: upsertedData, error: upsertError } = await supabase
+        .from("article")
+        .upsert(
+          {
+            row_id: row_id,
+            density: data,
+          },
+          { onConflict: "row_id" }
+        )
+        .select();
+
+      if (upsertError) {
+        throw upsertError;
+      }
     } else {
       console.log("errror");
     }
