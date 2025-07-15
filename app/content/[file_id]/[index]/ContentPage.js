@@ -1,16 +1,15 @@
 "use client";
 
-import React from "react";
+import Article from "@/components/Article";
+import CitableSummary from "@/components/CitableSummary";
 import Loader from "@/components/common/Loader";
+import Outline from "@/components/Outline";
+import StatusHeading from "@/components/StatusHeading";
 import { useAppContext } from "@/context/AppContext";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast, ToastContainer } from "react-toastify";
-import StatusHeading from "@/components/StatusHeading";
-import Outline from "@/components/Outline";
-import CitableSummary from "@/components/CitableSummary";
-import Article from "@/components/Article";
 
 export default function ContentPage({
   missionPlanResponseData,
@@ -29,12 +28,8 @@ export default function ContentPage({
   const [isLoading, setIsLoading] = useState(false);
   const [apiError, setApiError] = useState(null);
   const [citabledata, setCitableData] = useState(citableSummaryResponseData);
-
-  const params = useParams();
-  // const fileId = params.fileId;
   const searchParams = useSearchParams();
   const keyword = searchParams.get("keyword");
-  // const row = params.row;
   const router = useRouter();
   const supabase = createClientComponentClient();
   const [outlineLoading, setOutlineLoading] = useState(false);
@@ -43,248 +38,11 @@ export default function ContentPage({
   const [outlineData, setOutlineData] = useState(newOutlineResponseData);
   const [articleSectionCount, setArticleSectionCount] = useState(0);
 
-  // const handleSaveEditedOutline = async () => {
-  //   setSaveEditedOutline(true);
-
-  //   const payload = {
-  //     user_id: row_id,
-  //     Mainkeyword: keyword,
-  //     edit_content: {
-  //       outline: editedOutline,
-  //     },
-  //   };
-
-  //   console.log("Saving new outline payload:", payload);
-
-  //   try {
-  //     const res = await fetch("/api/contentEdit", {
-  //       method: "POST",
-  //       headers: {
-  //         "Content-Type": "application/json",
-  //       },
-  //       body: JSON.stringify(payload),
-  //     });
-
-  //     if (res.ok) {
-  //       toast.success("Updated Article generated successfully!", {
-  //         position: "bottom-right",
-  //       });
-  //       // Update the main display state with the new content
-  //       setParsedOutline(editedOutline);
-  //       setEditOutline(false); // Exit edit mode
-  //       setSaveStatus(true); // This will trigger fetchDataUpdated to get the new article
-  //     } else {
-  //       const errorRes = await res.json();
-  //       toast.error(
-  //         errorRes.message || "Failed to regenerate content from outline.",
-  //         {
-  //           position: "top-right",
-  //         }
-  //       );
-  //     }
-  //   } catch (err) {
-  //     toast.error("An error occurred while saving the outline.", {
-  //       position: "top-right",
-  //     });
-  //   } finally {
-  //     setSaveEditedOutline(false); // Hide loader
-  //   }
-  // };
+  const [test1, setTest1] = useState(newOutlineResponseData);
 
   const handleTabChange = (tabName) => {
     updateProjectData({ activeModalTab: tabName });
   };
-
-  const handleKeyDown = (e) => {
-    if (e.key === "Enter" || e.key === " ") {
-      e.preventDefault();
-      router.back();
-    }
-  };
-
-  // const handleCancelEditedIntent = () => {
-  //   setEditedIntent(parsedContentState);
-  //   setEditedExplanation(parsedContentState.explanation || "");
-  //   setEditIntent(false);
-  // };
-
-  // const handleSaveEditedIntent = async () => {
-  //   const updatedContent = {
-  //     intent: editedIntent,
-  //   };
-
-  //   // Upsert API response to database
-  //   if (editedIntent) {
-  //     const { data: intent_Data } = await supabase.from("row_details").upsert(
-  //       {
-  //         row_id: row_id,
-  //         intent: intent_Data,
-  //       },
-  //       { onConflict: "row_id" }
-  //     );
-
-  //     if (upsertError) {
-  //       console.error("Supabase upsert error after API call:", upsertError);
-  //     }
-  //   }
-
-  //   // const stringifiedIntent = JSON.stringify(updatedContent, null, 4);
-
-  //   // const payload = {
-  //   //   user_id: `${fileId}_${row}`,
-  //   //   Mainkeyword: keyword,
-  //   //   edit_content: {
-  //   //     intent: stringifiedIntent,
-  //   //   },
-  //   // };
-
-  //   // console.log("payloadd", payload);
-
-  //   // setSaveEditedIntent(true);
-  //   // try {
-  //   //   const res = await fetch("/api/contentEdit", {
-  //   //     method: "POST",
-  //   //     headers: {
-  //   //       "Content-Type": "application/json",
-  //   //     },
-  //   //     body: JSON.stringify(payload),
-  //   //   });
-
-  //   //   if (res.ok) {
-  //   //     toast.success("Updated Outline and Article generated successfully!", {
-  //   //       position: "bottom-right",
-  //   //     });
-  //   //     setParsedContentState(updatedContent);
-  //   //     setEditIntent(false);
-  //   //     setSaveStatus(true);
-  //   //     await fetchDataUpdated();
-  //   //   } else {
-  //   //     const errorRes = await res.json();
-  //   //     toast.error(errorRes.message || "Something went wrong", {
-  //   //       position: "top-right",
-  //   //     });
-  //   //   }
-  //   // } catch (err) {
-  //   //   toast.error("An error occurred while saving intent", {
-  //   //     position: "top-right",
-  //   //   });
-  //   // } finally {
-  //   //   setSaveEditedIntent(false);
-  //   // }
-  // };
-
-  // const handleSaveEditedIntent = async () => {
-  //   setSaveEditedIntent(true);
-
-  //   try {
-  //     const { data: upsertedData, error: upsertError } = await supabase
-  //       .from("row_details")
-  //       .upsert(
-  //         {
-  //           row_id: row_id,
-  //           intent: editedIntent,
-  //         },
-  //         { onConflict: "row_id" }
-  //       )
-  //       .select();
-
-  //     if (upsertError) {
-  //       throw upsertError;
-  //     }
-
-  //     console.log("Intent saved to database successfully:", upsertedData);
-  //     toast.success("Intent saved successfully", {
-  //       position: "bottom-right",
-  //     });
-
-  //     const payload = {
-  //       user_id: row_id,
-  //       Mainkeyword: keyword,
-  //       edit_content: {
-  //         intent: editedIntent,
-  //       },
-  //     };
-
-  //     const res = await fetch("/api/contentEdit", {
-  //       method: "POST",
-  //       headers: {
-  //         "Content-Type": "application/json",
-  //       },
-  //       body: JSON.stringify(payload),
-  //     });
-  //   } catch (err) {
-  //     console.error(
-  //       "An error occurred during the save/regeneration process:",
-  //       err
-  //     );
-  //     toast.error(err.message || "Something went wrong.", {
-  //       position: "top-right",
-  //     });
-  //   } finally {
-  //     setSaveEditedIntent(false);
-  //   }
-  // };
-
-  // const getOutline = async () => {
-  //   const { data: outline } = await supabase
-  //     .from("outline")
-  //     .select("new_outline")
-  //     .eq("row_id", row_id);
-
-  //   return outline;
-  // };
-
-  // const outline = getOutline();
-
-  // useEffect(() => {
-  //   const calculateSectionCount = async (outline) => {
-  //     const lines = outline.split("\n");
-  //     // Match lines that start with 4 spaces and an asterisk, but not more
-  //     const count = lines.filter((line) => /^ {4}\*/.test(line)).length;
-  //     console.log("count", count);
-  //     setArticleSectionCount(count);
-  //     // return count;
-  //   };
-  //   calculateSectionCount(outline);
-  // }, [outline]);
-
-  // function getSectionHeadings(toc, n) {
-  //   const lines = toc.split("\n");
-  //   // console.log("toc", toc);
-  //   let currentH2 = 0;
-  //   let collecting = false;
-  //   let result = [];
-
-  //   for (let line of lines) {
-  //     const trimmed = line.trimStart();
-  //     if (trimmed.startsWith("* [")) {
-  //       currentH2++;
-  //       if (currentH2 === n) {
-  //         collecting = true;
-  //         console.log("line 1", line);
-
-  //         result.push(line);
-  //       } else if (collecting) {
-  //         // Next h2 found, stop collecting
-  //         break;
-  //       }
-  //     } else if (collecting && trimmed.startsWith("*")) {
-  //       // Only collect h3/h4 (indented, but still start with '*')
-  //       console.log("line 2", line);
-
-  //       result.push(line);
-  //     } else if (collecting && trimmed.startsWith("")) {
-  //       // If it's an empty line, skip
-  //       continue;
-  //     }
-  //   }
-  //   return result.join("\n");
-  // }
-
-  // const section = getSectionHeadings(testoutline, 4);
-  // console.log("section", section);
-
-  // const articleArr = [];
 
   useEffect(() => {
     if (projectData.activeModalTab === "Outline") {
@@ -509,7 +267,6 @@ export default function ContentPage({
           <span
             className="p-2 text-blue-500 hover:text-blue-600 text-xl rounded-full hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
             onClick={() => router.back()}
-            onKeyDown={handleKeyDown}
             tabIndex={0}
             role="button"
             aria-label="Go back"
@@ -541,25 +298,44 @@ export default function ContentPage({
             </div>
 
             <div className="modal-tab-content">
-              {projectData.activeModalTab === "Outline" && (
-                <Outline
-                  row_id={row_id}
-                  newOutlineResponseData={newOutlineResponseData}
-                />
-              )}
+              <div
+                className={`${
+                  projectData.activeModalTab === "Outline" ? "block" : "hidden"
+                }`}
+              >
+                <Outline row_id={row_id} newOutlineResponseData={test1} />
+              </div>
+              {/* {projectData.activeModalTab === "Outline" && (
+              )} */}
 
-              {projectData.activeModalTab === "Citable Summary" && (
+              <div
+                className={`${
+                  projectData.activeModalTab === "Citable Summary"
+                    ? "block"
+                    : "hidden"
+                }`}
+              >
                 <CitableSummary
                   citableSummaryResponseData={citableSummaryResponseData}
                 />
-              )}
+              </div>
 
-              {projectData.activeModalTab === "Article" && (
+              {/* {projectData.activeModalTab === "Citable Summary" && (
+              )} */}
+
+              <div
+                className={`${
+                  projectData.activeModalTab === "Article" ? "block" : "hidden"
+                }`}
+              >
                 <Article
                   newOutlineResponseData={newOutlineResponseData}
                   updatedArticleResponseData={updatedArticleResponseData}
                 />
-              )}
+              </div>
+
+              {/* {projectData.activeModalTab === "Article" && (
+              )} */}
             </div>
           </div>
         )}

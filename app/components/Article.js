@@ -138,7 +138,7 @@ export default function Article({
       <div
         className={`${
           articledataUpdated ? "md:w-1/2" : "w-full"
-        } w-full bg-gray-50 p-6 rounded-xl shadow-md border border-gray-200`}
+        } w-full p-6 rounded-xl shadow-md border border-gray-200`}
       >
         <h4 className="text-lg font-semibold text-black-700 mb-4">
           Generated Article
