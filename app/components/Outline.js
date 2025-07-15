@@ -7,7 +7,7 @@ export default function Outline({ row_id, newOutlineResponseData }) {
   const supabase = createClientComponentClient();
 
   const [outlineLoading, setOutlineLoading] = useState(false);
-  const [outlineData, setOutlineData] = useState(newOutlineResponseData);
+  const [outlineData, setOutlineData] = useState(newOutlineResponseData || "");
   const [editOutline, setEditOutline] = useState(false);
   const [editedOutline, setEditedOutline] = useState("");
   const [saveEditedOutline, setSaveEditedOutline] = useState(false);
