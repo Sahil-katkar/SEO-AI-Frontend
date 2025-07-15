@@ -104,7 +104,7 @@ export default async function MissionPlan({ params }) {
 
   // !-------------------------------------------
   const lsiKeywordsResponse = await fetch(
-    `http://localhost:3000/api/supabase/mission-plan/${row_id}`
+    `http://localhost:3000/api/supabase/lsi-keywords/${row_id}`
   );
 
   if (!lsiKeywordsResponse.ok) {
@@ -172,8 +172,11 @@ export default async function MissionPlan({ params }) {
   }
   const valueAddResponseData = await valueAddResponse.json();
 
+  console.log("missionPlanResponse", missionPlanResponse);
+
   // !-------------------------------------------
   let contentBriefResponseData;
+
   if (
     missionPlanResponse === null &&
     keywordResponseData &&
@@ -190,6 +193,8 @@ export default async function MissionPlan({ params }) {
     personaResponseData &&
     outlineFormatResponseData
   ) {
+    console.log("called mission -plan");
+
     const contentBriefResponse = await fetch(
       "http://localhost:3000/api/contentBrief",
       {

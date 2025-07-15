@@ -79,6 +79,15 @@ export default function Analysis() {
 
   const generateLsi = async () => {
     setIsGeneratingLSI(true);
+    // Clear previous data immediately
+    setLsiData([]);
+    setCurrentLsiPairs({});
+    originalCurrentLsiPairsRef.current = {};
+    setIsEditingLSI(false); // Ensure editing mode is off during generation
+
+    let accumulatedLsiData = []; // Local accumulator for original LSI data
+    let accumulatedCurrentLsiPairs = {}; // Local accumulator for editable LSI data
+
     try {
       if (!row_id) {
         throw new Error("Invalid or missing row_id");
@@ -125,46 +134,65 @@ export default function Analysis() {
         return;
       }
 
-      const newLsiDataAccumulator = []; // Accumulate results for lsiData state (Original section)
-
-      // 2. Iterate through each scraped data item and call the API
+      // 2. Iterate through each scraped data item and call the API sequentially
       for (let i = 0; i < parsedData.length; i++) {
         const item = parsedData[i];
         const raw_text = item.raw_text;
         const url = item.url || `Competitor ${i + 1}`; // Use URL from data_scrape or a generic name
+        const tableKey = `${i}_${url}`; // Unique key for this competitor's data
 
         if (!raw_text || raw_text.trim() === "") {
           console.warn(
-            `Skipping LSI generation for Competitor ${i + 1
+            `Skipping LSI generation for Competitor ${
+              i + 1
             } (URL: ${url}) due to empty raw_text.`
           );
+          // Add empty entries to accumulators to maintain structure if needed, or just skip
+          // For now, let's just skip, which means the UI won't show an entry for this one.
           continue;
         }
 
-        console.log(
-          `Sending raw_text for Competitor ${i + 1} (URL: ${url}):`,
-          raw_text.substring(0, 100) + "..."
-        );
+        toast.info(`Generating LSI for Competitor ${i + 1} (${url})...`, {
+          position: "top-right",
+          autoClose: 2000,
+        });
 
         const backendPayload = {
           extracted_data: raw_text,
           embedding_model_name: "spacy", // Or your desired model
         };
 
-        const response = await fetch("/api/lsi-keywords", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(backendPayload),
-        });
+        let response;
+        try {
+          response = await fetch("/api/lsi-keywords", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(backendPayload),
+          });
+        } catch (fetchError) {
+          console.error(
+            `Network or API unreachable for Competitor ${i + 1} (URL: ${url}):`,
+            fetchError
+          );
+          toast.error(
+            `Network error for Competitor ${
+              i + 1
+            }. Please check your connection.`,
+            { position: "top-right" }
+          );
+          continue; // Continue to next item
+        }
 
         if (!response.ok) {
           const errorDetail = await response.text();
           console.error(
-            `API call failed for Competitor ${i + 1} (URL: ${url}): ${response.status
+            `API call failed for Competitor ${i + 1} (URL: ${url}): ${
+              response.status
             } ${response.statusText} - ${errorDetail}`
           );
           toast.error(
-            `LSI generation failed for Competitor ${i + 1
+            `LSI generation failed for Competitor ${
+              i + 1
             }. Error: ${errorDetail.substring(0, 100)}...`,
             { position: "top-right" }
           );
@@ -173,84 +201,93 @@ export default function Analysis() {
 
         const result = await response.json();
         console.log(`Raw API Response for Competitor ${i + 1}:`, result);
-        console.log(
-          `Structure of result.lsi_keyword for Competitor ${i + 1}:`,
-          result.lsi_keyword
-        );
 
-        // Assuming result.lsi_keyword is an array where EACH ELEMENT is a string like "keyword,value"
         if (result && Array.isArray(result.lsi_keyword)) {
-          const currentItemLsiKeywordsForDB = []; // To store as "kw1,val1,kw2,val2" string for DB
+          const currentItemLsiKeywordsForDB = []; // For original_lsi (string format)
+          const parsedForEditable = []; // For updated_lsi (object array format)
 
           result.lsi_keyword.forEach((pairString) => {
-            // Each pairString is expected to be "keyword,value"
             const parts = String(pairString).split(",");
             const keyword = parts[0] ? parts[0].trim() : "";
-            const value = parts[1] ? parseFloat(parts[1].trim()) : null; // Parse value as float
+            const value = parts[1] ? parseFloat(parts[1].trim()) : null;
 
             if (keyword) {
-              // Format for storing in 'lsi_keywords' column in DB
               currentItemLsiKeywordsForDB.push(
                 `${keyword},${value !== null ? value : ""}`
               );
+              parsedForEditable.push({
+                keyword,
+                value: value !== null ? value : "",
+                isNew: false,
+              });
             }
           });
 
-          newLsiDataAccumulator.push({
+          // Update local accumulators
+          accumulatedLsiData.push({
             url: url,
-            lsi_keywords: currentItemLsiKeywordsForDB.join(","), // Store the joined string
+            lsi_keywords: currentItemLsiKeywordsForDB.join(","),
           });
+          accumulatedCurrentLsiPairs[tableKey] = parsedForEditable;
+
+          // Update UI state to show progress
+          setLsiData([...accumulatedLsiData]); // Spread to ensure new array reference for re-render
+          setCurrentLsiPairs({ ...accumulatedCurrentLsiPairs }); // Spread to ensure new object reference for re-render
+
+          // Immediately save the accumulated data to the database
+          const { error: upsertError } = await supabase.from("analysis").upsert(
+            {
+              row_id: row_id,
+              lsi_keywords: JSON.stringify(accumulatedLsiData),
+              updated_lsi_keywords: JSON.stringify(accumulatedCurrentLsiPairs),
+            },
+            { onConflict: "row_id" }
+          );
+
+          if (upsertError) {
+            console.error(
+              `Supabase upsert error for Competitor ${i + 1}:`,
+              upsertError
+            );
+            toast.error(
+              `Failed to save LSI for Competitor ${i + 1} to database.`,
+              { position: "top-right" }
+            );
+          } else {
+            toast.success(
+              `LSI generated for Competitor ${i + 1} successfully!`,
+              {
+                position: "bottom-right",
+                autoClose: 1500,
+              }
+            );
+          }
         } else {
           console.warn(
-            `API response for Competitor ${i + 1
+            `API response for Competitor ${
+              i + 1
             } (URL: ${url}) did not contain a valid 'lsi_keyword' array or expected format.`,
             result
           );
           toast.warn(
-            `No valid LSI keywords returned for Competitor ${i + 1
+            `No valid LSI keywords returned for Competitor ${
+              i + 1
             } in the expected 'keyword,value' format.`,
             { position: "top-right" }
           );
         }
-      }
+      } // End of for loop
 
-      // 3. Update state and save to database
-      setLsiData(newLsiDataAccumulator); // Set the new original LSI data
+      // After the loop finishes (all competitors processed or skipped)
+      // Update the originalCurrentLsiPairsRef with the final state
+      originalCurrentLsiPairsRef.current = { ...accumulatedCurrentLsiPairs };
 
-      // *** IMPORTANT: Clear the editable LSI section when generating new data ***
-      setCurrentLsiPairs({});
-      originalCurrentLsiPairsRef.current = {};
-      setIsEditingLSI(false); // Ensure editing mode is off after generation
-
-      const { error: upsertError } = await supabase.from("analysis").upsert(
-        {
-          row_id: row_id,
-          // Store the accumulated lsiData array as a JSON string in the 'lsi_keywords' column
-          lsi_keywords: JSON.stringify(newLsiDataAccumulator),
-          // When generating new LSI, we explicitly clear the user's previously
-          // edited LSI keywords in the `updated_lsi_keywords` column.
-          // This ensures a clean slate for the editable section.
-          updated_lsi_keywords: null,
-        },
-        { onConflict: "row_id" }
-      );
-
-      if (upsertError) {
-        console.error("Supabase upsert error after API calls:", upsertError);
-        toast.error("Failed to save generated LSI to database.", {
-          position: "top-right",
-        });
-      } else {
-        toast.success(
-          "LSI keywords generated and database updated successfully!",
-          {
-            position: "bottom-right",
-          }
-        );
-      }
+      toast.success("LSI keyword generation process completed!", {
+        position: "bottom-right",
+      });
     } catch (error) {
-      console.error("Error generating LSI:", error);
-      toast.error(`Error generating LSI: ${error.message}`, {
+      console.error("Error during LSI generation process:", error);
+      toast.error(`Error during LSI generation: ${error.message}`, {
         position: "top-right",
       });
     } finally {
@@ -395,21 +432,14 @@ export default function Analysis() {
             displayPairs = {}; // Reset if parsing fails
           }
         }
-        // If data.updated_lsi_keywords is null or invalid, displayPairs remains {},
-        // which correctly makes the editable section blank. No fallback to lsi_keywords here.
         setCurrentLsiPairs(displayPairs);
         originalCurrentLsiPairsRef.current = displayPairs;
-
-        // If you need to set compAnalysis from the DB:
-        // if (data.comp_analysis) {
-        //   setCompAnalysis(data.comp_analysis);
-        // }
       }
       setIsLoading(false);
     };
 
     fetchAnalysisData();
-  }, [row_id]); // Dependency on row_id is correct
+  }, [row_id]);
 
   // Determines if the "Approve" button should be enabled.
   // It's enabled if there's *any* data in the editable section (currentLsiPairs)
@@ -436,10 +466,11 @@ export default function Analysis() {
                 <button
                   onClick={generateLsi}
                   disabled={isGeneratingLSI || isLoading}
-                  className={`px-5 py-2 rounded-lg font-medium transition-colors ${isGeneratingLSI || isLoading
-                    ? "bg-gray-300 text-gray-600 cursor-not-allowed"
-                    : "bg-purple-600 text-white hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
-                    }`}
+                  className={`px-5 py-2 rounded-lg font-medium transition-colors ${
+                    isGeneratingLSI || isLoading
+                      ? "bg-gray-300 text-gray-600 cursor-not-allowed"
+                      : "bg-purple-600 text-white hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
+                  }`}
                 >
                   {isGeneratingLSI ? (
                     <Loader size={20} className="inline-block mr-2" />
@@ -558,7 +589,7 @@ export default function Analysis() {
                                 </td>
                                 <td className="px-4 py-2 border border-gray-300">
                                   {!isNaN(Number(pair.value)) &&
-                                    pair.value !== null
+                                  pair.value !== null
                                     ? Number(pair.value).toFixed(10) // Display with high precision
                                     : "N/A"}
                                 </td>
@@ -673,8 +704,11 @@ export default function Analysis() {
                                 colSpan={isEditingLSI ? 3 : 2}
                                 className="px-4 py-2 text-center text-gray-500 border border-gray-300"
                               >
-                                No current keywords found for this source. Add
-                                new keywords above.
+                                {isGeneratingLSI
+                                  ? `Generating keywords for ${
+                                      item.url || `Competitor ${idx + 1}`
+                                    }...`
+                                  : "No current keywords found for this source. Add new keywords above."}
                               </td>
                             </tr>
                           )}
@@ -715,8 +749,8 @@ export default function Analysis() {
                 !hasCurrentLsiDataToDisplay
                   ? "Add keywords in the editable section or load saved keywords before approving"
                   : isEditingLSI
-                    ? "Save or cancel edits before approving"
-                    : "Approve LSI keywords"
+                  ? "Save or cancel edits before approving"
+                  : "Approve LSI keywords"
               }
             >
               Approve LSI Keywords

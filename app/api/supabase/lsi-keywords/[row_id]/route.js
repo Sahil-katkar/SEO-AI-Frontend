@@ -8,7 +8,7 @@ export async function GET(request, { params }) {
 
   const { data, error } = await supabase
     .from("analysis")
-    .select("comp_analysis")
+    .select("lsi_keywords")
     .eq("row_id", row_id)
     .single();
 
