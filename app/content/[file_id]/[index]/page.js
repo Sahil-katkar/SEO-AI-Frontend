@@ -792,140 +792,140 @@ export default function FileRow() {
       return;
     }
 
-    // const baseEntry = {
-    //   url: Object.keys(updatedKeywords)[0]?.split("_").slice(1).join("_") || "", // fallback url
-    //   raw_text: row_details[0].mission_plan || "",
-    //   lsi_keywords: rawLsiText
-    //     .split("\n")
-    //     .map((keyword) => [keyword.trim(), 0]) // initialize with score 0
-    //     .filter(([k]) => k.length > 0),
-    // };
+    const baseEntry = {
+      url: Object.keys(updatedKeywords)[0]?.split("_").slice(1).join("_") || "", // fallback url
+      raw_text: row_details[0].mission_plan || "",
+      lsi_keywords: rawLsiText
+        .split("\n")
+        .map((keyword) => [keyword.trim(), 0]) // initialize with score 0
+        .filter(([k]) => k.length > 0),
+    };
 
-    // const structuredLsi = [baseEntry];
+    const structuredLsi = [baseEntry];
 
-    // console.log("✅ Converted lsi_keywords to structured:", structuredLsi);
+    console.log("✅ Converted lsi_keywords to structured:", structuredLsi);
 
     // Step 3: Merge updated entries
-    // updatedEntries.forEach(([key, value]) => {
-    //   const [indexStr, ...urlParts] = key.split("_");
-    //   const index = parseInt(indexStr, 10);
-    //   const url = urlParts.join("_");
+    updatedEntries.forEach(([key, value]) => {
+      const [indexStr, ...urlParts] = key.split("_");
+      const index = parseInt(indexStr, 10);
+      const url = urlParts.join("_");
 
-    //   if (!Array.isArray(value) || typeof value[0] !== "string") {
-    //     console.warn(`⚠️ Unexpected format in ${key}:`, value);
-    //     return;
-    //   }
+      if (!Array.isArray(value) || typeof value[0] !== "string") {
+        console.warn(`⚠️ Unexpected format in ${key}:`, value);
+        return;
+      }
 
-    //   const [raw] = value;
-    //   const [keyword, scoreRaw] = raw.split(":");
+      const [raw] = value;
+      const [keyword, scoreRaw] = raw.split(":");
 
-    //   // Convert to float, preserving decimal places properly
-    //   const score = parseFloat(
-    //     scoreRaw.length >= 3
-    //       ? `0.${scoreRaw.replace(/^0+/, "")}` // e.g., "010" → 0.10
-    //       : scoreRaw
-    //   );
+      // Convert to float, preserving decimal places properly
+      const score = parseFloat(
+        scoreRaw.length >= 3
+          ? `0.${scoreRaw.replace(/^0+/, "")}` // e.g., "010" → 0.10
+          : scoreRaw
+      );
 
-    //   if (!keyword || isNaN(score)) {
-    //     console.warn(`⚠️ Invalid keyword or score in ${key}:`, raw);
-    //     return;
-    //   }
+      if (!keyword || isNaN(score)) {
+        console.warn(`⚠️ Invalid keyword or score in ${key}:`, raw);
+        return;
+      }
 
-    //   // Ensure entry exists
-    //   if (!structuredLsi[index]) {
-    //     structuredLsi[index] = {
-    //       url,
-    //       raw_text: "",
-    //       lsi_keywords: [],
-    //     };
-    //   }
+      // Ensure entry exists
+      if (!structuredLsi[index]) {
+        structuredLsi[index] = {
+          url,
+          raw_text: "",
+          lsi_keywords: [],
+        };
+      }
 
-    //   const existing = structuredLsi[index].lsi_keywords;
-    //   const alreadyExists = existing.some(([k]) => k === keyword);
+      const existing = structuredLsi[index].lsi_keywords;
+      const alreadyExists = existing.some(([k]) => k === keyword);
 
-    //   if (!alreadyExists) {
-    //     existing.push([keyword, score]);
-    //   }
-    // });
+      if (!alreadyExists) {
+        existing.push([keyword, score]);
+      }
+    });
 
     // Step 4: Log final merged LSI structure
-    // console.log(
-    //   "✅ Final Merged LSI Object:",
-    //   JSON.stringify(structuredLsi, null, 2)
-    // );
+    console.log(
+      "✅ Final Merged LSI Object:",
+      JSON.stringify(structuredLsi, null, 2)
+    );
 
-    // const finalLSIReports = []; // This will hold the output in the desired new format
+    const finalLSIReports = []; // This will hold the output in the desired new format
 
-    // if (Array.isArray(structuredLsi)) {
-    //   structuredLsi.forEach((lsiEntry) => {
-    //     const url = lsiEntry.url;
-    //     const extractedKeywordsForCurrentURL = []; // To collect keywords for this specific URL's report
+    if (Array.isArray(structuredLsi)) {
+      structuredLsi.forEach((lsiEntry) => {
+        const url = lsiEntry.url;
+        const extractedKeywordsForCurrentURL = []; // To collect keywords for this specific URL's report
 
-    //     // --- Start existing LSI keyword extraction logic ---
-    //     if (lsiEntry && Array.isArray(lsiEntry.lsi_keywords)) {
-    //       lsiEntry.lsi_keywords.forEach((keywordItem) => {
-    //         if (Array.isArray(keywordItem) && keywordItem.length > 0) {
-    //           let firstElement = keywordItem[0];
+        // --- Start existing LSI keyword extraction logic ---
+        if (lsiEntry && Array.isArray(lsiEntry.lsi_keywords)) {
+          lsiEntry.lsi_keywords.forEach((keywordItem) => {
+            if (Array.isArray(keywordItem) && keywordItem.length > 0) {
+              let firstElement = keywordItem[0];
 
-    //           // Case 1: Nested stringified JSON (needs parsing and cleaning)
-    //           if (
-    //             typeof firstElement === "string" &&
-    //             firstElement.startsWith("[") &&
-    //             firstElement.endsWith("]")
-    //           ) {
-    //             // Attempt to clean the malformed URL part within the string
-    //             const malformedUrlRegex =
-    //               /("url":")\{"([^"]+?)":\["[^"]+"\]\}"/g;
-    //             if (malformedUrlRegex.test(firstElement)) {
-    //               firstElement = firstElement.replace(
-    //                 malformedUrlRegex,
-    //                 '$1$2"'
-    //               );
-    //             }
+              // Case 1: Nested stringified JSON (needs parsing and cleaning)
+              if (
+                typeof firstElement === "string" &&
+                firstElement.startsWith("[") &&
+                firstElement.endsWith("]")
+              ) {
+                // Attempt to clean the malformed URL part within the string
+                const malformedUrlRegex =
+                  /("url":")\{"([^"]+?)":\["[^"]+"\]\}"/g;
+                if (malformedUrlRegex.test(firstElement)) {
+                  firstElement = firstElement.replace(
+                    malformedUrlRegex,
+                    '$1$2"'
+                  );
+                }
 
-    //             try {
-    //               const parsedInnerArray = JSON.parse(firstElement);
-    //               if (Array.isArray(parsedInnerArray)) {
-    //                 parsedInnerArray.forEach((innerObj) => {
-    //                   if (innerObj && Array.isArray(innerObj.lsi_keywords)) {
-    //                     extractedKeywordsForCurrentURL.push(
-    //                       ...innerObj.lsi_keywords
-    //                     );
-    //                   }
-    //                 });
-    //               }
-    //             } catch (e) {
-    //               console.warn(
-    //                 `🚫 Parsing failed for nested LSI keyword string for URL ${url}. Error:`,
-    //                 e
-    //               );
-    //             }
-    //           }
-    //           // Case 2: Direct [string, number] keyword pair
-    //           else if (
-    //             typeof firstElement === "string" &&
-    //             typeof keywordItem[1] === "number"
-    //           ) {
-    //             extractedKeywordsForCurrentURL.push(keywordItem);
-    //           }
-    //         }
-    //       });
-    //     }
-    //     // --- End existing LSI keyword extraction logic ---
+                try {
+                  const parsedInnerArray = JSON.parse(firstElement);
+                  if (Array.isArray(parsedInnerArray)) {
+                    parsedInnerArray.forEach((innerObj) => {
+                      if (innerObj && Array.isArray(innerObj.lsi_keywords)) {
+                        extractedKeywordsForCurrentURL.push(
+                          ...innerObj.lsi_keywords
+                        );
+                      }
+                    });
+                  }
+                } catch (e) {
+                  console.warn(
+                    `🚫 Parsing failed for nested LSI keyword string for URL ${url}. Error:`,
+                    e
+                  );
+                }
+              }
+              // Case 2: Direct [string, number] keyword pair
+              else if (
+                typeof firstElement === "string" &&
+                typeof keywordItem[1] === "number"
+              ) {
+                extractedKeywordsForCurrentURL.push(keywordItem);
+              }
+            }
+          });
+        }
+        // --- End existing LSI keyword extraction logic ---
 
-    //     // Determine the 'lsi_keywords' value for the final output object for this URL
-    //     const lsiKeywordsForOutput =
-    //       extractedKeywordsForCurrentURL.length === 0
-    //         ? { lsi_keyword: "failed to generate lsi keywords" }
-    //         : extractedKeywordsForCurrentURL;
+        // Determine the 'lsi_keywords' value for the final output object for this URL
+        const lsiKeywordsForOutput =
+          extractedKeywordsForCurrentURL.length === 0
+            ? { lsi_keyword: "failed to generate lsi keywords" }
+            : extractedKeywordsForCurrentURL;
 
-    //     // Add this structured object (for the current URL) to the final array for the API
-    //     finalLSIReports.push({
-    //       url: url,
-    //       lsi_keywords: lsiKeywordsForOutput,
-    //     });
-    //   });
-    // }
+        // Add this structured object (for the current URL) to the final array for the API
+        finalLSIReports.push({
+          url: url,
+          lsi_keywords: lsiKeywordsForOutput,
+        });
+      });
+    }
 
     // Instead of stringifying, keep finalLSIReports as an object for the API request
     // Send it directly as JSON in the fetch/axios request
@@ -934,39 +934,39 @@ export default function FileRow() {
       finalLSIReports
     );
 
-    // const payload = {
-    //   missionPlan: row_details_data[0].mission_plan,
-    //   gapsAndOpportunities: valueAdd?.[0]?.value_add || "", // extract string
-    //   // lsi_keywords: Array.isArray(row_details[0].lsi_keywords)
-    //   //   ? row_details[0].lsi_keywords
-    //   //   : [], // ensure array
-    //   // lsi_keywords: Array.isArray(row_details[0].lsi_keywords)
-    //   //   ? row_details[0].lsi_keywords // If it's already an array, use it directly
-    //   //   : typeof row_details[0].lsi_keywords === "string" &&
-    //   //     row_details[0].lsi_keywords.trim() !== ""
-    //   //   ? row_details[0].lsi_keywords
-    //   //       .split(",")
-    //   //       .map((s) => s.trim())
-    //   //       .filter((s) => s) // If it's a non-empty string, split it by comma
-    //   //   : [],
-    //   lsi_keywords: finalLSIReports,
-    //   persona: row_details_data[0].persona,
-    //   outline: outline?.[0]?.new_outline || "", // extract string
-    //   section: String(section), // ensure string
-    // };
+    const payload = {
+      missionPlan: row_details_data[0].mission_plan,
+      gapsAndOpportunities: valueAdd?.[0]?.value_add || "", // extract string
+      // lsi_keywords: Array.isArray(row_details[0].lsi_keywords)
+      //   ? row_details[0].lsi_keywords
+      //   : [], // ensure array
+      // lsi_keywords: Array.isArray(row_details[0].lsi_keywords)
+      //   ? row_details[0].lsi_keywords // If it's already an array, use it directly
+      //   : typeof row_details[0].lsi_keywords === "string" &&
+      //     row_details[0].lsi_keywords.trim() !== ""
+      //   ? row_details[0].lsi_keywords
+      //       .split(",")
+      //       .map((s) => s.trim())
+      //       .filter((s) => s) // If it's a non-empty string, split it by comma
+      //   : [],
+      lsi_keywords: finalLSIReports,
+      persona: row_details_data[0].persona,
+      outline: outline?.[0]?.new_outline || "", // extract string
+      section: String(section), // ensure string
+    };
 
-    // console.log(
-    //   "lsisssssss",
-    //   Array.isArray(row_details[0].lsi_keywords)
-    //     ? row_details[0].lsi_keywords // If it's already an array, use it directly
-    //     : typeof row_details[0].lsi_keywords === "string" &&
-    //       row_details[0].lsi_keywords.trim() !== ""
-    //     ? row_details[0].lsi_keywords
-    //         .split(",")
-    //         .map((s) => s.trim())
-    //         .filter((s) => s) // If it's a non-empty string, split it by comma
-    //     : []
-    // );
+    console.log(
+      "lsisssssss",
+      Array.isArray(row_details[0].lsi_keywords)
+        ? row_details[0].lsi_keywords // If it's already an array, use it directly
+        : typeof row_details[0].lsi_keywords === "string" &&
+          row_details[0].lsi_keywords.trim() !== ""
+        ? row_details[0].lsi_keywords
+            .split(",")
+            .map((s) => s.trim())
+            .filter((s) => s) // If it's a non-empty string, split it by comma
+        : []
+    );
 
     // const calculateSectionCount = async (outline) => {
     //   const lines = outline.split("\n");
@@ -979,21 +979,21 @@ export default function FileRow() {
     // };
     // calculateSectionCount(payload?.outline);
 
-    // console.log("payload", payload);
+    console.log("payload", payload);
 
-    // const response = await fetch(`/api/generate-article`, {
-    //   method: "POST",
-    //   body: JSON.stringify(payload),
-    // });
-    // const data = await response.json();
-    // console.log("dataaaaaaaaaaa", data.article_data);
+    const response = await fetch(`/api/generate-article`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+    const data = await response.json();
+    console.log("dataaaaaaaaaaa", data.article_data);
 
-    // setArticleSections((prev) =>
-    //   Array.isArray(prev) ? [...prev, data.article_data] : [data.article_data]
-    // );
-    // // articleArr.push(data);
-    // setArticleSectionGenerateCount(articleSectionGenerateCount + 1);
-    // setSectionIsGenerating(false);
+    setArticleSections((prev) =>
+      Array.isArray(prev) ? [...prev, data.article_data] : [data.article_data]
+    );
+    // articleArr.push(data);
+    setArticleSectionGenerateCount(articleSectionGenerateCount + 1);
+    setSectionIsGenerating(false);
     // setArticleSections();
   };
   // In your React Component
