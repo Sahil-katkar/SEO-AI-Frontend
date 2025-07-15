@@ -305,7 +305,7 @@ export default function FileRow() {
         toast.error(`Error: ${errorMessage}`);
         console.error("API Error Response:", data);
       }
-    } catch (e) {}
+    } catch (e) { }
   };
 
   useEffect(() => {
@@ -1000,11 +1000,11 @@ export default function FileRow() {
         ? row_details[0].lsi_keywords // If it's already an array, use it directly
         : typeof row_details[0].lsi_keywords === "string" &&
           row_details[0].lsi_keywords.trim() !== ""
-        ? row_details[0].lsi_keywords
+          ? row_details[0].lsi_keywords
             .split(",")
             .map((s) => s.trim())
             .filter((s) => s) // If it's a non-empty string, split it by comma
-        : []
+          : []
     );
 
     // const calculateSectionCount = async (outline) => {
@@ -1289,6 +1289,75 @@ export default function FileRow() {
     }
   }, [projectData.activeModalTab, row_id]);
 
+  useEffect(() => {
+    if (projectData.activeModalTab === "Article") {
+      const fetchOrGenerateArticle = async () => {
+        setSectionIsGenerating(true);
+        try {
+          // 1. Check if article exists in the database
+          const { data: articleDataFromDB, error: articleError } = await supabase
+            .from("article")
+            .select("updated_article")
+            .eq("row_id", row_id)
+            .single();
+
+          if (articleError && articleError.code !== "PGRST116") {
+            throw articleError;
+          }
+
+          if (
+            articleDataFromDB &&
+            articleDataFromDB.updated_article &&
+            articleDataFromDB.updated_article.trim() !== ""
+          ) {
+            // Article exists, use it
+            setArticleSections([articleDataFromDB.updated_article]);
+          } else {
+            // Article does not exist, call the API to generate it
+            // (You may need to construct the payload as in your generateArticleSection function)
+            const payload = {
+              // ...construct your payload here...
+            };
+
+            const res = await fetch("/api/generate-article", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(payload),
+            });
+
+            if (!res.ok) {
+              const errorData = await res.json();
+              throw new Error(
+                errorData.error || `Server responded with ${res.status}`
+              );
+            }
+
+            const data = await res.json();
+
+            // Save the new article to the database
+            await supabase.from("article").upsert(
+              {
+                row_id: row_id,
+                updated_article: data.article_data,
+              },
+              { onConflict: "row_id" }
+            );
+
+            setArticleSections([data.article_data]);
+          }
+        } catch (err) {
+          toast.error(err.message || "An unexpected error occurred.");
+        } finally {
+          setSectionIsGenerating(false);
+        }
+      };
+
+      fetchOrGenerateArticle();
+    }
+  }, [projectData.activeModalTab, row_id]);
+
   const handleSaveArticle = async (savedArticle) => {
     setSectionIsGenerating(true);
     const { data: article, error } = await supabase.from("article").upsert(
@@ -1359,9 +1428,8 @@ export default function FileRow() {
               {["Outline", "Citable Summary", "Article"].map((tabName) => (
                 <button
                   key={tabName}
-                  className={`modal-tab-button ${
-                    projectData.activeModalTab === tabName ? "active" : ""
-                  }`}
+                  className={`modal-tab-button ${projectData.activeModalTab === tabName ? "active" : ""
+                    }`}
                   onClick={() => handleTabChange(tabName)}
                 >
                   {tabName}
@@ -1636,9 +1704,8 @@ export default function FileRow() {
                 <div className="flex flex-col md:flex-row gap-6">
                   {/* Generated Article Section (Existing) */}
                   <div
-                    className={`${
-                      articledataUpdated.length > 0 ? "md:w-1/2" : "w-full"
-                    } w-full bg-gray-50 p-6 rounded-xl shadow-md border border-gray-200`}
+                    className={`${articledataUpdated.length > 0 ? "md:w-1/2" : "w-full"
+                      } w-full bg-gray-50 p-6 rounded-xl shadow-md border border-gray-200`}
                   >
                     <h4 className="text-lg font-semibold text-black-700 mb-4">
                       Generated Article
