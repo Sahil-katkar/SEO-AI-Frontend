@@ -128,7 +128,7 @@ export default function Article({
       setArticleSectionCount(count);
       // return count;
     };
-    calculateSectionCount(newOutlineResponseData);
+    calculateSectionCount(newOutlineResponseData || "");
 
     console.log("outlineData", newOutlineResponseData);
   }, [newOutlineResponseData]);
