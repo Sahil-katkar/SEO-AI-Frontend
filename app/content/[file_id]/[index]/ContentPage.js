@@ -8,7 +8,7 @@ import StatusHeading from "@/components/StatusHeading";
 import { useAppContext } from "@/context/AppContext";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { toast, ToastContainer } from "react-toastify";
 
 export default function ContentPage({
@@ -303,7 +303,9 @@ export default function ContentPage({
                   projectData.activeModalTab === "Outline" ? "block" : "hidden"
                 }`}
               >
-                <Outline row_id={row_id} newOutlineResponseData={test1} />
+                <Suspense fallback={"Loading.."}>
+                  <Outline row_id={row_id} newOutlineResponseData={test1} />
+                </Suspense>
               </div>
               {/* {projectData.activeModalTab === "Outline" && (
               )} */}
