@@ -135,8 +135,7 @@ export default function Analysis() {
 
         if (!raw_text || raw_text.trim() === "") {
           console.warn(
-            `Skipping LSI generation for Competitor ${
-              i + 1
+            `Skipping LSI generation for Competitor ${i + 1
             } (URL: ${url}) due to empty raw_text.`
           );
           continue;
@@ -161,13 +160,11 @@ export default function Analysis() {
         if (!response.ok) {
           const errorDetail = await response.text();
           console.error(
-            `API call failed for Competitor ${i + 1} (URL: ${url}): ${
-              response.status
+            `API call failed for Competitor ${i + 1} (URL: ${url}): ${response.status
             } ${response.statusText} - ${errorDetail}`
           );
           toast.error(
-            `LSI generation failed for Competitor ${
-              i + 1
+            `LSI generation failed for Competitor ${i + 1
             }. Error: ${errorDetail.substring(0, 100)}...`,
             { position: "top-right" }
           );
@@ -205,14 +202,12 @@ export default function Analysis() {
           });
         } else {
           console.warn(
-            `API response for Competitor ${
-              i + 1
+            `API response for Competitor ${i + 1
             } (URL: ${url}) did not contain a valid 'lsi_keyword' array or expected format.`,
             result
           );
           toast.warn(
-            `No valid LSI keywords returned for Competitor ${
-              i + 1
+            `No valid LSI keywords returned for Competitor ${i + 1
             } in the expected 'keyword,value' format.`,
             { position: "top-right" }
           );
@@ -441,11 +436,10 @@ export default function Analysis() {
                 <button
                   onClick={generateLsi}
                   disabled={isGeneratingLSI || isLoading}
-                  className={`px-5 py-2 rounded-lg font-medium transition-colors ${
-                    isGeneratingLSI || isLoading
-                      ? "bg-gray-300 text-gray-600 cursor-not-allowed"
-                      : "bg-purple-600 text-white hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
-                  }`}
+                  className={`px-5 py-2 rounded-lg font-medium transition-colors ${isGeneratingLSI || isLoading
+                    ? "bg-gray-300 text-gray-600 cursor-not-allowed"
+                    : "bg-purple-600 text-white hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
+                    }`}
                 >
                   {isGeneratingLSI ? (
                     <Loader size={20} className="inline-block mr-2" />
@@ -564,7 +558,7 @@ export default function Analysis() {
                                 </td>
                                 <td className="px-4 py-2 border border-gray-300">
                                   {!isNaN(Number(pair.value)) &&
-                                  pair.value !== null
+                                    pair.value !== null
                                     ? Number(pair.value).toFixed(10) // Display with high precision
                                     : "N/A"}
                                 </td>
@@ -637,7 +631,7 @@ export default function Analysis() {
                                       <input
                                         type="number"
                                         step="any" // Allows decimal values
-                                        value="" // Use nullish coalescing for empty input
+                                        value={pair.value ?? ""} // Use the current value, or empty string if undefined/null
                                         onChange={(e) =>
                                           handleKeywordChange(
                                             tableKey,
@@ -721,8 +715,8 @@ export default function Analysis() {
                 !hasCurrentLsiDataToDisplay
                   ? "Add keywords in the editable section or load saved keywords before approving"
                   : isEditingLSI
-                  ? "Save or cancel edits before approving"
-                  : "Approve LSI keywords"
+                    ? "Save or cancel edits before approving"
+                    : "Approve LSI keywords"
               }
             >
               Approve LSI Keywords
