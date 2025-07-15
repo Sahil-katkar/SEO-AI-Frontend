@@ -5,36 +5,19 @@ const FASTAPI_BACKEND_URL =
 
 export async function POST(request) {
   try {
-    console.log("Request received for /save_to_gdrive/"); // More descriptive log
-
-    // Safely parse the JSON body
+    console.log("Request received for /save_to_gdrive/");
     const requestBody = await request.json();
-
-    // Extract values and explicitly convert them to strings
-    // Using String() ensures that even if they are numbers, booleans, or null,
-    // they become their string representation.
     const test_content_string = String(requestBody.test_content_string);
     const row_folder_name = String(requestBody.row_folder_name);
-
-    console.log(
-      "Processed string values:",
-      test_content_string,
-      row_folder_name
-    );
-
     const backendPayload = {
-      test_content_string: test_content_string, // These are now guaranteed strings
-      row_folder_name: row_folder_name, // These are now guaranteed strings
+      test_content_string: test_content_string,
+      row_folder_name: row_folder_name,
     };
-
-    console.log("Backend payload:", backendPayload);
-
     const apiResponse = await fetch(`${FASTAPI_BACKEND_URL}/save_to_gdrive/`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      // IMPORTANT: Convert the JavaScript object to a JSON string for the fetch body
       body: JSON.stringify(backendPayload),
     });
 
@@ -43,9 +26,8 @@ export async function POST(request) {
 
     if (!apiResponse.ok) {
       // If FastAPI returns an error, it usually sends a JSON object with a 'detail' field.
-      // We pass that detail back to the client.
       return NextResponse.json(
-        { error: data.detail || "Backend error" },
+        { error: data.detail || "Backend error at save-to-gdrive" },
         { status: apiResponse.status }
       );
     }
@@ -53,7 +35,6 @@ export async function POST(request) {
     return NextResponse.json(data, { status: 200 });
   } catch (error) {
     console.error("Error in Next.js API route:", error);
-    // Provide a more specific error message if JSON parsing failed
     let errorMessage = "An internal server error occurred.";
     if (error instanceof SyntaxError && error.message.includes("JSON")) {
       errorMessage = "Invalid JSON in request body.";
