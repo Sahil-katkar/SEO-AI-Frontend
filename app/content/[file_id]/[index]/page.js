@@ -279,9 +279,12 @@ export default function FileRow() {
   const handleSaveGdrive = async () => {
     try {
       const backendPayload = {
-        test_content_string: articleSections,
-        row_folder_name: row_id,
+        article_content: articleSections,
+        folder_name: row_id,
       };
+
+      console.log("backendPayload", backendPayload);
+
       const apiResponse = await fetch(`/api/save-to-gdrive/`, {
         method: "POST",
         headers: {
@@ -305,7 +308,7 @@ export default function FileRow() {
         toast.error(`Error: ${errorMessage}`);
         console.error("API Error Response:", data);
       }
-    } catch (e) { }
+    } catch (e) {}
   };
 
   useEffect(() => {
@@ -1000,11 +1003,11 @@ export default function FileRow() {
         ? row_details[0].lsi_keywords // If it's already an array, use it directly
         : typeof row_details[0].lsi_keywords === "string" &&
           row_details[0].lsi_keywords.trim() !== ""
-          ? row_details[0].lsi_keywords
+        ? row_details[0].lsi_keywords
             .split(",")
             .map((s) => s.trim())
             .filter((s) => s) // If it's a non-empty string, split it by comma
-          : []
+        : []
     );
 
     // const calculateSectionCount = async (outline) => {
@@ -1295,11 +1298,12 @@ export default function FileRow() {
         setSectionIsGenerating(true);
         try {
           // 1. Check if article exists in the database
-          const { data: articleDataFromDB, error: articleError } = await supabase
-            .from("article")
-            .select("updated_article")
-            .eq("row_id", row_id)
-            .single();
+          const { data: articleDataFromDB, error: articleError } =
+            await supabase
+              .from("article")
+              .select("updated_article")
+              .eq("row_id", row_id)
+              .single();
 
           if (articleError && articleError.code !== "PGRST116") {
             throw articleError;
@@ -1398,6 +1402,52 @@ export default function FileRow() {
     console.log("outlineData", outlineData);
   }, [outlineData]);
 
+  const [editArticle, setEditArticle] = useState(false);
+  const [editedArticle, setEditedArticle] = useState("");
+  const [saveEditedArticle, setSaveEditedArticle] = useState(false);
+
+  const handleEditArticle = () => {
+    setEditArticle(true);
+    setEditedArticle(
+      Array.isArray(articleSections)
+        ? articleSections.join("\n")
+        : articleSections || ""
+    );
+  };
+
+  const handleCancelEditedArticle = () => {
+    setEditArticle(false);
+    setEditedArticle("");
+  };
+
+  const handleSaveEditedArticle = async () => {
+    setSaveEditedArticle(true);
+    try {
+      // Save to database
+      const { error } = await supabase.from("article").upsert(
+        {
+          row_id: row_id,
+          updated_article: editedArticle,
+        },
+        { onConflict: "row_id" }
+      );
+      if (error) throw error;
+
+      // Update UI
+      setArticleSections([editedArticle]);
+      setEditArticle(false);
+      toast.success("Article saved successfully!", {
+        position: "bottom-right",
+      });
+    } catch (err) {
+      toast.error(err.message || "Failed to save article.", {
+        position: "top-right",
+      });
+    } finally {
+      setSaveEditedArticle(false);
+    }
+  };
+
   return (
     <div className="container">
       <main className="main-content step-component">
@@ -1428,8 +1478,9 @@ export default function FileRow() {
               {["Outline", "Citable Summary", "Article"].map((tabName) => (
                 <button
                   key={tabName}
-                  className={`modal-tab-button ${projectData.activeModalTab === tabName ? "active" : ""
-                    }`}
+                  className={`modal-tab-button ${
+                    projectData.activeModalTab === tabName ? "active" : ""
+                  }`}
                   onClick={() => handleTabChange(tabName)}
                 >
                   {tabName}
@@ -1704,68 +1755,75 @@ export default function FileRow() {
                 <div className="flex flex-col md:flex-row gap-6">
                   {/* Generated Article Section (Existing) */}
                   <div
-                    className={`${articledataUpdated.length > 0 ? "md:w-1/2" : "w-full"
-                      } w-full bg-gray-50 p-6 rounded-xl shadow-md border border-gray-200`}
+                    className={`${
+                      articledataUpdated.length > 0 ? "md:w-1/2" : "w-full"
+                    } w-full bg-gray-50 p-6 rounded-xl shadow-md border border-gray-200`}
                   >
                     <h4 className="text-lg font-semibold text-black-700 mb-4">
                       Generated Article
                     </h4>
 
-                    <div className="grid ">
-                      <textarea
-                        rows="10"
-                        className="w-full p-3 border border-gray-200 rounded-md bg-gray-50 focus:outline-[#1abc9c] focus:outline-2"
-                        disabled={sectionIsGenerating}
-                        defaultValue={
-                          Array.isArray(articleSections)
-                            ? articleSections.join("\n")
-                            : articleSections || ""
-                        }
-                      />
+                    <div className="grid">
+                      {editArticle ? (
+                        <textarea
+                          rows="10"
+                          className="w-full p-3 border border-gray-200 rounded-md bg-gray-50 focus:outline-[#1abc9c] focus:outline-2"
+                          disabled={saveEditedArticle}
+                          value={editedArticle}
+                          onChange={(e) => setEditedArticle(e.target.value)}
+                        />
+                      ) : (
+                        <textarea
+                          rows="10"
+                          className="w-full p-3 border border-gray-200 rounded-md bg-gray-50 focus:outline-[#1abc9c] focus:outline-2"
+                          disabled={sectionIsGenerating}
+                          value={
+                            Array.isArray(articleSections)
+                              ? articleSections.join("\n")
+                              : articleSections || ""
+                          }
+                          readOnly
+                        />
+                      )}
 
                       <div className="ml-auto flex gap-2 mt-4">
-                        {" "}
-                        {/* Added mt-4 for spacing */}
-                        {articleSectionGenerateCount < articleSectionCount && (
-                          <button
-                            className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
-                            disabled={sectionIsGenerating}
-                            onClick={() => {
-                              generateArticleSection(
-                                articleSectionGenerateCount
-                              );
-                              console.log(
-                                "articleSectionGenerateCount",
-                                articleSectionGenerateCount
-                              );
-                            }}
-                          >
-                            Generate section {articleSectionGenerateCount} /{" "}
-                            {articleSectionCount}
-                          </button>
+                        {!editArticle && (
+                          <>
+                            <button
+                              className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600"
+                              onClick={handleEditArticle}
+                            >
+                              Edit
+                            </button>
+                            <button
+                              disabled={sectionIsGenerating}
+                              className="px-4 py-2 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 disabled:opacity-50"
+                              style={{ backgroundColor: "#3478F6" }}
+                              onClick={handleSaveGdrive}
+                            >
+                              Save to Google Drive
+                            </button>
+                          </>
                         )}
-                        <button
-                          disabled={sectionIsGenerating}
-                          className="px-4 py-2 text-white rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50"
-                          style={{ backgroundColor: "#4CAF50" }} // Material Design green
-                          onClick={() => {
-                            handleSaveArticle(
-                              Array.isArray(articleSections)
-                                ? articleSections.join("\n")
-                                : articleSections || ""
-                            );
-                          }}
-                        >
-                          Save
-                        </button>
-                        <button
-                          disabled={sectionIsGenerating}
-                          className="px-4 py-2 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 disabled:opacity-50"
-                          style={{ backgroundColor: "#3478F6" }} // A common, vibrant action blue
-                          onClick={() => handleSaveGdrive()}
-                        >
-                          Save to Google Drive
-                        </button>
+                        {editArticle && (
+                          <>
+                            <button
+                              className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600"
+                              onClick={handleSaveEditedArticle}
+                              disabled={saveEditedArticle}
+                            >
+                              {saveEditedArticle ? "Saving..." : "Save"}
+                            </button>
+                            <button
+                              className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600"
+                              onClick={handleCancelEditedArticle}
+                              disabled={saveEditedArticle}
+                            >
+                              Cancel
+                            </button>
+                          </>
+                        )}
+                        {/* ...existing Generate/Save/Save to GDrive buttons... */}
                       </div>
                       {sectionIsGenerating && <Loader />}
                     </div>

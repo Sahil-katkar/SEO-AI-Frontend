@@ -7,19 +7,25 @@ export async function POST(request) {
   try {
     console.log("Request received for /save_to_gdrive/");
     const requestBody = await request.json();
-    const test_content_string = String(requestBody.test_content_string);
-    const row_folder_name = String(requestBody.row_folder_name);
+    const article_content = String(requestBody.article_content);
+    const folder_name = String(requestBody.folder_name);
     const backendPayload = {
-      test_content_string: test_content_string,
-      row_folder_name: row_folder_name,
+      article_content: article_content,
+      folder_name: folder_name,
     };
-    const apiResponse = await fetch(`${FASTAPI_BACKEND_URL}/save_to_gdrive/`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(backendPayload),
-    });
+
+    console.log("backendPayload server", backendPayload);
+
+    const apiResponse = await fetch(
+      `${FASTAPI_BACKEND_URL}/create_google_doc/`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(backendPayload),
+      }
+    );
 
     const data = await apiResponse.json();
     console.log("FastAPI response:", data);
