@@ -52,12 +52,22 @@ export default async function Content({ params }) {
 
   // !-------------------------------------------
   const intentResponse = await fetch(
-    `http://localhost:3000/api/supabase/article-outcome/${row_id}`
+    `http://localhost:3000/api/supabase/intent/${row_id}`
   );
   if (!intentResponse.ok) {
     throw new Error("intentResponse: Network response was not ok");
   }
   const intentResponseData = await intentResponse.json();
+
+  // !-------------------------------------------
+  const updatedArticleResponse = await fetch(
+    `http://localhost:3000/api/supabase/updated-article/${row_id}`
+  );
+  if (!intentResponse.ok) {
+    throw new Error("updatedArticleResponse: Network response was not ok");
+  }
+  const updatedArticleResponseData = await updatedArticleResponse.json();
+  
 
   return (
     <>
@@ -72,6 +82,8 @@ export default async function Content({ params }) {
         index={index}
         citableSummaryResponseData={citableSummaryResponseData.citable_answer}
         articleOutcomeResponseData={articleOutcomeResponseData.article_outcome}
+        intentResponseData={intentResponseData.intent}
+        updatedArticleResponseData={updatedArticleResponseData.updated_article}
       />
     </>
   );

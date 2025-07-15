@@ -8,6 +8,9 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast, ToastContainer } from "react-toastify";
 import StatusHeading from "@/components/StatusHeading";
+import Outline from "@/components/Outline";
+import CitableSummary from "@/components/CitableSummary";
+import Article from "@/components/Article";
 
 export default function ContentPage({
   missionPlanResponseData,
@@ -16,27 +19,17 @@ export default function ContentPage({
   file_id,
   index,
   newOutlineResponseData,
+  articleOutcomeResponseData,
+  intentResponseData,
+  citableSummaryResponseData,
+  updatedArticleResponseData,
 }) {
   const { projectData, updateProjectData } = useAppContext();
 
   const [isLoading, setIsLoading] = useState(false);
   const [apiError, setApiError] = useState(null);
-  const [articledata, setArticleData] = useState([]);
-  const [articledataUpdated, setArticleDataUpdated] = useState([]);
-  const [intentdata, setIntentData] = useState([]);
-  const [citabledata, setCitableData] = useState([]);
-  const [outlineDataUpdated, setOutlineDataUpdated] = useState([]);
-  const [editIntent, setEditIntent] = useState(false);
-  const [editCitable, setEditCitable] = useState(false);
-  const [parsedContentState, setParsedContentState] = useState([]);
-  const [editedIntent, setEditedIntent] = useState("");
-  const [editedCitable, setEditedCitable] = useState("");
-  const [editedExplanation, setEditedExplanation] = useState("");
-  const [saveEditedIntent, setSaveEditedIntent] = useState(false);
-  const [saveEditedCitable, setSaveEditedCitable] = useState(false);
-  const [parsedMissionPlan, setParsedMissionPlan] = useState("");
-  const [logs, setLogs] = useState([]);
-  const [saveStatus, setSaveStatus] = useState(false);
+  const [citabledata, setCitableData] = useState(citableSummaryResponseData);
+
   const params = useParams();
   // const fileId = params.fileId;
   const searchParams = useSearchParams();
@@ -46,134 +39,13 @@ export default function ContentPage({
   const supabase = createClientComponentClient();
   const [outlineLoading, setOutlineLoading] = useState(false);
   const [citableLoading, setCitableLoading] = useState(false);
-  // const row_id = `${fileId}_${row}`;
-
-  // const [editOutline, setEditOutline] = useState(false);
-  const [parsedOutline, setParsedOutline] = useState("");
-  // const [editedOutline, setEditedOutline] = useState("");
-  // const [saveEditedOutline, setSaveEditedOutline] = useState(false);
-  const [outlineData, setOutlineData] = useState();
-
+  const [saveEditedOutline, setSaveEditedOutline] = useState(false);
+  const [outlineData, setOutlineData] = useState(newOutlineResponseData);
   const [articleSectionCount, setArticleSectionCount] = useState(0);
-  const [articleSectionGenerateCount, setArticleSectionGenerateCount] =
-    useState(1);
-  const [articleSections, setArticleSections] = useState();
-  const [sectionIsGenerating, setSectionIsGenerating] = useState(false);
-
-  const handleSaveGdrive = async (articleSections, row_id) => {
-    try {
-      const backendPayload = {
-        test_content_string: articleSections,
-        row_folder_name: row_id,
-      };
-      const apiResponse = await fetch(`/api/save-to-gdrive/`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(backendPayload),
-      });
-
-      const data = await apiResponse.json();
-      console.log("FastAPI response:", data);
-
-      if (apiResponse.ok) {
-        toast.success("File Saved Succesfully!");
-      } else {
-        const errorMessage =
-          data.error || data.detail || "Failed to save file.";
-        toast.error(`Error: ${errorMessage}`);
-        console.error("API Error Response:", data);
-      }
-    } catch (e) {
-      console.log(e);
-    }
-  };
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const { data: article } = await supabase
-          .from("article")
-          .select("content")
-          .eq("row_id", row_id);
-
-        const { data: logData, error } = await supabase
-          .from("event_log")
-          .select("content")
-          .eq("row_id", row_id);
-
-        const { data: intent } = await supabase
-          .from("row_details")
-          .select("intent")
-          .eq("row_id", row_id);
-
-        const { data: outline } = await supabase
-          .from("outline")
-          .select("new_outline")
-          .eq("row_id", row_id);
-
-        const { data: citable } = await supabase
-          .from("outline")
-          .select("citable_answer")
-          .eq("row_id", row_id);
-
-        // const { data: missionPlan } = await supabase
-        //   .from("row_details")
-        //   .select("mission_plan")
-        //   .eq("row_id", row_id);
-
-        setArticleData(article || []);
-        setIntentData(intent);
-
-        console.log("citable", citable);
-
-        // setCitableData(citable);
-        console.log("Raw outline data from DB:", outline);
-
-        const parsedValue = outline?.[0]?.new_outline || "";
-        const parsedCitable = citable?.[0]?.citable_answer || "";
-
-        setOutlineData(parsedValue);
-        setCitableData(parsedCitable);
-        console.log("Parsed outline string:", outlineData);
-
-        const parsed = intent?.[0]?.intent || "";
-
-        console.log("parsed:", parsed);
-
-        setParsedContentState(parsed);
-        console.log("parsedContentState", parsedContentState);
-
-        setEditedIntent(parsed);
-        console.log("edited intent", editIntent);
-
-        setEditedExplanation(parsed.explanation || "");
-        setParsedMissionPlan(missionPlanResponseData);
-      } catch (error) {
-        setApiError(error.message || "Something went wrong");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [row_id]);
-
-  // const handleCancelEditedOutline = () => {
-  //   setEditedOutline(outlineData); // Reset from the original state
-  //   setEditOutline(false); // Exit edit mode
-  // };
-
-  const handleCancelEditedCitable = () => {
-    setEditedCitable(citabledata); // Reset from the original state
-    setEditCitable(false); // Exit edit mode
-  };
 
   // const handleSaveEditedOutline = async () => {
-  //   setSaveEditedOutline(true); // Show loader, disable buttons
+  //   setSaveEditedOutline(true);
 
-  //   // The payload is similar, but the key is 'outline'
   //   const payload = {
   //     user_id: row_id,
   //     Mainkeyword: keyword,
@@ -218,38 +90,6 @@ export default function ContentPage({
   //     setSaveEditedOutline(false); // Hide loader
   //   }
   // };
-
-  useEffect(() => {
-    if (!saveStatus) return;
-    fetchDataUpdated();
-  }, [saveStatus, file_id, index]);
-
-  // Function to fetch updated data
-  const fetchDataUpdated = async () => {
-    const row_id = `${file_id}_${index}`;
-    try {
-      const { data: articleUpdated } = await supabase
-        .from("article")
-        .select("updated_content")
-        .eq("row_id", row_id);
-
-      const { data: intentUpdated } = await supabase
-        .from("intent")
-        .select("updated_content")
-        .eq("row_id", row_id);
-
-      const { data: outlineUpdated } = await supabase
-        .from("outline")
-        .select("updated_content")
-        .eq("row_id", row_id);
-
-      setArticleDataUpdated(articleUpdated || []);
-      setOutlineDataUpdated(outlineUpdated || []);
-      setSaveStatus(false);
-    } catch (error) {
-      setApiError(error.message || "Something went wrong");
-    }
-  };
 
   const handleTabChange = (tabName) => {
     updateProjectData({ activeModalTab: tabName });
@@ -385,74 +225,6 @@ export default function ContentPage({
   //   }
   // };
 
-  // const handleSaveEditedOutline = async () => {
-  //   setSaveEditedOutline(true);
-
-  //   try {
-  //     const { data: upsertedData, error: upsertError } = await supabase
-  //       .from("outline")
-  //       .upsert(
-  //         {
-  //           row_id: row_id,
-  //           new_outline: editedOutline,
-  //         },
-  //         { onConflict: "row_id" }
-  //       )
-  //       .select();
-
-  //     if (upsertError) {
-  //       throw upsertError;
-  //     }
-
-  //     setOutlineData(editedOutline);
-  //     setEditOutline(false);
-  //     toast.success("Outline saved successfully!", {
-  //       position: "bottom-right",
-  //     });
-  //   } catch (err) {
-  //     toast.error(err.message || "Something went wrong.", {
-  //       position: "top-right",
-  //     });
-  //   } finally {
-  //     setSaveEditedOutline(false);
-  //   }
-  // };
-
-  const handleSaveEditedCitable = async () => {
-    setSaveEditedCitable(true);
-    try {
-      const { data: upsertedData, error: upsertError } = await supabase
-        .from("outline")
-        .upsert(
-          {
-            row_id: row_id,
-            citable_answer: editedCitable,
-          },
-          { onConflict: "row_id" }
-        )
-        .select();
-
-      if (upsertError) {
-        throw upsertError;
-      }
-
-      console.log("Citable saved to database successfully:", upsertedData);
-      toast.success("Citable saved successfully", {
-        position: "bottom-right",
-      });
-    } catch (err) {
-      console.error(
-        "An error occurred during the save/regeneration process:",
-        err
-      );
-      toast.error(err.message || "Something went wrong.", {
-        position: "top-right",
-      });
-    } finally {
-      setSaveEditedCitable(false);
-    }
-  };
-
   // const getOutline = async () => {
   //   const { data: outline } = await supabase
   //     .from("outline")
@@ -513,64 +285,6 @@ export default function ContentPage({
   // console.log("section", section);
 
   // const articleArr = [];
-
-  const generateArticleSection = async (section) => {
-    setSectionIsGenerating(true);
-    console.log("section", section);
-    const { data: row_details } = await supabase
-      .from("row_details")
-      .select("mission_plan,lsi_keywords,persona")
-      .eq("row_id", row_id);
-
-    console.log("row id", row_id);
-
-    const { data: valueAdd } = await supabase
-      .from("analysis")
-      .select("value_add")
-      .eq("row_id", row_id);
-
-    const { data: outline } = await supabase
-      .from("outline")
-      .select("new_outline")
-      .eq("row_id", row_id);
-
-    const payload = {
-      missionPlan: row_details[0].mission_plan,
-      gapsAndOpportunities: valueAdd?.[0]?.value_add || "", // extract string
-      lsi_keywords: Array.isArray(row_details[0].lsi_keywords)
-        ? row_details[0].lsi_keywords
-        : [], // ensure array
-      persona: row_details[0].persona,
-      outline: outline?.[0]?.new_outline || "", // extract string
-      section: String(section), // ensure string
-    };
-
-    // const calculateSectionCount = async (outline) => {
-    //   const lines = outline.split("\n");
-    //   // Match lines that start with 4 spaces and an asterisk, but not more
-    //   // const count = lines.filter((line) => /^ {4}\*/.test(line)).length;
-    //   const count = lines.filter((line) => /^\s*-- H2:/.test(line)).length;
-    //   console.log("count", count);
-    //   setArticleSectionCount(count);
-    //   // return count;
-    // };
-    // calculateSectionCount(payload?.outline);
-
-    console.log("payload", payload);
-
-    const response = await fetch(`/api/generate-article`, {
-      method: "POST",
-      body: JSON.stringify(payload),
-    });
-    const data = await response.json();
-    console.log("dataaaaaaaaaaa", data);
-
-    setArticleSections((prev) =>
-      Array.isArray(prev) ? [...prev, data] : [data]
-    );
-    setArticleSectionGenerateCount(articleSectionGenerateCount + 1);
-    setSectionIsGenerating(false);
-  };
 
   useEffect(() => {
     if (projectData.activeModalTab === "Outline") {
@@ -786,37 +500,6 @@ export default function ContentPage({
     }
   }, [projectData.activeModalTab, row_id]);
 
-  const handleSaveArticle = async (savedArticle) => {
-    setSectionIsGenerating(true);
-    const { data: article, error } = await supabase.from("article").upsert(
-      {
-        row_id: row_id,
-        updated_article: savedArticle,
-      },
-      { onConflict: "row_id" }
-    );
-
-    if (error) {
-      console.log("added succesfully", error);
-    }
-    setSectionIsGenerating(false);
-  };
-
-  useEffect(() => {
-    const calculateSectionCount = async (outline) => {
-      const lines = outline.split("\n");
-      // Match lines that start with 4 spaces and an asterisk, but not more
-      // const count = lines.filter((line) => /^ {4}\*/.test(line)).length;
-      const count = lines.filter((line) => /^\s*-- H2:/.test(line)).length;
-      console.log("count", count);
-      setArticleSectionCount(count);
-      // return count;
-    };
-    calculateSectionCount(newOutlineResponseData);
-
-    console.log("outlineData", newOutlineResponseData);
-  }, [newOutlineResponseData]);
-
   return (
     <div className="container">
       <main className="main-content step-component">
@@ -859,256 +542,23 @@ export default function ContentPage({
 
             <div className="modal-tab-content">
               {projectData.activeModalTab === "Outline" && (
-                // <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200">
-                //   {outlineLoading ? (
-                //     <div className="flex flex-col items-center justify-center min-h-[250px]">
-                //       <Loader />
-                //       <p className="mt-4 text-gray-600 font-semibold">
-                //         Generating Outline...
-                //       </p>
-                //       <p className="text-sm text-gray-500">
-                //         This may take a moment.
-                //       </p>
-                //     </div>
-                //   ) : outlineData.length > 0 ? (
-                //     <>
-                //       <div className="mb-6">
-                //         <div className="flex justify-between items-center mb-2">
-                //           <h4 className="text-lg font-semibold text-black-700 mb-2">
-                //             Outline
-                //           </h4>
-
-                //           <div className="ml-auto flex items-center gap-2">
-                //             {!editOutline && (
-                //               <button
-                //                 onClick={() => {
-                //                   setEditOutline(true);
-                //                   setEditedOutline(outlineData);
-                //                 }}
-                //                 className="text-blue-500 hover:text-blue-700 font-semibold"
-                //               >
-                //                 Edit
-                //               </button>
-                //             )}
-                //             {editOutline && (
-                //               <>
-                //                 {saveEditedOutline && (
-                //                   <Loader className="loader-sm" />
-                //                 )}
-                //                 <button
-                //                   disabled={saveEditedOutline}
-                //                   onClick={handleSaveEditedOutline}
-                //                   className="text-green-500 hover:text-green-700 font-semibold disabled:opacity-50"
-                //                 >
-                //                   Save
-                //                 </button>
-                //                 <button
-                //                   disabled={saveEditedOutline}
-                //                   onClick={handleCancelEditedOutline}
-                //                   className="text-red-500 hover:text-red-700 font-semibold disabled:opacity-50"
-                //                 >
-                //                   Cancel
-                //                 </button>
-                //               </>
-                //             )}
-                //           </div>
-                //         </div>
-                //         {editOutline ? (
-                //           <textarea
-                //             rows="10"
-                //             className="w-full p-3 border border-blue-300 rounded-md shadow-inner ffocus:ring-2 ffocus:ring-blue-500 focus:outline-[#1abc9c] focus:outline-2"
-                //             disabled={saveEditedOutline}
-                //             value={editedOutline}
-                //             onChange={(e) => setEditedOutline(e.target.value)}
-                //           />
-                //         ) : (
-                //           <textarea
-                //             rows="10"
-                //             readOnly
-                //             disabled
-                //             className="w-full p-3 border border-gray-200 rounded-md bg-gray-50 focus:outline-[#1abc9c] focus:outline-2"
-                //             value={outlineData}
-                //           />
-                //         )}
-                //       </div>
-
-                //       <button
-                //         onClick={() => handleTabChange("Citable Summary")}
-                //         className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded flex ml-auto items-center gap-2"
-                //       >
-                //         Next
-                //       </button>
-                //     </>
-                //   ) : (
-                //     <p className="text-black-500 text-center py-10">
-                //       No outline data available. It might be generating for the
-                //       first time.
-                //     </p>
-                //   )}
-                // </div>
-                <div>1</div>
+                <Outline
+                  row_id={row_id}
+                  newOutlineResponseData={newOutlineResponseData}
+                />
               )}
 
               {projectData.activeModalTab === "Citable Summary" && (
-                <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200">
-                  {citableLoading ? (
-                    <div className="flex flex-col items-center justify-center min-h-[250px]">
-                      <Loader />
-                      <p className="mt-4 text-gray-600 font-semibold">
-                        Generating Citable Summary...
-                      </p>
-                      <p className="text-sm text-gray-500">
-                        This may take a moment.
-                      </p>
-                    </div>
-                  ) : citabledata.length > 0 ? (
-                    <div className="mb-6">
-                      <div className="flex justify-between items-center mb-2">
-                        <h4 className="text-lg font-semibold text-black-700 mb-2">
-                          Citable Summary
-                        </h4>
-
-                        <div className="ml-auto flex items-center gap-2">
-                          {!editCitable && (
-                            <button
-                              onClick={() => {
-                                setEditCitable(true);
-                                setEditedCitable(citabledata);
-                              }}
-                            >
-                              Edit
-                            </button>
-                          )}
-                          {editCitable && (
-                            <>
-                              {saveEditedCitable && (
-                                <Loader className="loader-sm" />
-                              )}
-                              <button
-                                disabled={saveEditedCitable}
-                                onClick={handleSaveEditedCitable}
-                              >
-                                Save
-                              </button>
-                              <button
-                                disabled={saveEditedCitable}
-                                onClick={handleCancelEditedCitable}
-                              >
-                                Cancel
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </div>
-
-                      {editCitable ? (
-                        <>
-                          <textarea
-                            rows="10"
-                            className="w-full p-3 border border-gray-200 rounded-md bg-gray-50 focus:outline-[#1abc9c] focus:outline-2"
-                            disabled={saveEditedCitable}
-                            value={editedCitable}
-                            onChange={(e) => setEditedCitable(e.target.value)}
-                          />
-                        </>
-                      ) : (
-                        <>
-                          <textarea
-                            rows="10"
-                            readOnly
-                            disabled
-                            className="w-full p-3 border border-gray-200 rounded-md bg-gray-50 focus:outline-[#1abc9c] focus:outline-2"
-                            value={citabledata}
-                          />
-                        </>
-                      )}
-                    </div>
-                  ) : (
-                    <p className="text-black-500">No Citable data available.</p>
-                  )}
-
-                  <button
-                    onClick={() => handleTabChange("Article")}
-                    className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded flex ml-auto items-center gap-2"
-                  >
-                    Next
-                  </button>
-                </div>
+                <CitableSummary
+                  citableSummaryResponseData={citableSummaryResponseData}
+                />
               )}
 
               {projectData.activeModalTab === "Article" && (
-                <div className="flex flex-col md:flex-row gap-6">
-                  <div
-                    className={`${
-                      articledataUpdated.length > 0 ? "md:w-1/2" : "w-full"
-                    } w-full bg-gray-50 p-6 rounded-xl shadow-md border border-gray-200`}
-                  >
-                    <h4 className="text-lg font-semibold text-black-700 mb-4">
-                      Generated Article
-                    </h4>
-
-                    <div className="grid ">
-                      <textarea
-                        rows="10"
-                        className="w-full p-3 border border-gray-200 rounded-md bg-gray-50 focus:outline-[#1abc9c] focus:outline-2"
-                        disabled={sectionIsGenerating}
-                        defaultValue={
-                          Array.isArray(articleSections)
-                            ? articleSections.join("\n")
-                            : articleSections || ""
-                        }
-                      />
-
-                      <div className="ml-auto flex gap-2">
-                        {articleSectionGenerateCount < articleSectionCount && (
-                          <button
-                            className=""
-                            disabled={sectionIsGenerating}
-                            onClick={() => {
-                              generateArticleSection(
-                                articleSectionGenerateCount
-                              );
-                              console.log(
-                                "articleSectionGenerateCount",
-                                articleSectionGenerateCount
-                              );
-                            }}
-                          >
-                            Generate section {articleSectionGenerateCount} /{" "}
-                            {articleSectionCount}
-                          </button>
-                        )}
-
-                        <button
-                          disabled={sectionIsGenerating}
-                          className=""
-                          style={{ backgroundColor: "#4CAF50" }}
-                          onClick={() => {
-                            handleSaveArticle(
-                              Array.isArray(articleSections)
-                                ? articleSections.join("\n")
-                                : articleSections || ""
-                            );
-                          }}
-                        >
-                          Save
-                        </button>
-
-                        <button
-                          disabled={sectionIsGenerating}
-                          className=""
-                          style={{ backgroundColor: "#3478F6" }}
-                          onClick={() =>
-                            handleSaveGdrive(articleSections, row_id)
-                          }
-                        >
-                          Save to Google Drive
-                        </button>
-                      </div>
-                      {sectionIsGenerating && <Loader />}
-                    </div>
-                  </div>
-                </div>
+                <Article
+                  newOutlineResponseData={newOutlineResponseData}
+                  updatedArticleResponseData={updatedArticleResponseData}
+                />
               )}
             </div>
           </div>
