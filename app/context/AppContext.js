@@ -35,7 +35,6 @@ export function AppProvider({ children }) {
 
   const STEPS = [
     { id: "step1", name: "Connect Google Drive", route: "/" },
-    ,
     {
       id: "step2",
       name: "Keywords",
