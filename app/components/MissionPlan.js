@@ -1,7 +1,8 @@
 "use client";
 
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { getData } from "../../utils/dbQueries";
 
 export default function MissionPlan({
   competitorAnalysisData,
@@ -23,6 +24,95 @@ export default function MissionPlan({
   const handleCancelMission = () => {
     setIsEditingMP(false);
   };
+
+  useEffect(() => {
+    const fetchContentBrief = async () => {
+      // Ensure supabase is defined and accessible here.
+      // If it's a prop or state, include it in the dependency array.
+      // For simplicity, assuming it's an imported client available in scope.
+
+      const { data, error } = await supabase
+        .from("row_details")
+        .select(
+          "intent, keyword, BUSINESS_GOAL, target_audience,article_outcome, pillar, cluster, questions, faq, lsi_keywords, ai_mode, persona, outline_format"
+        ) // This select string looks correct.
+        .eq("row_id", row_id);
+
+      if (error) {
+        console.error("❌ Supabase fetch error:", error);
+        return;
+      }
+
+      if (!data || data.length === 0) {
+        console.log("ℹ️ No row data found for row_id:", row_id);
+        return;
+      }
+
+      const row = data[0];
+
+      // 🔍 Log the full fetched data
+      console.log("📥 Supabase row data:", row);
+
+      try {
+        const contentBriefResponse = await fetch("/api/contentBrief", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            // This opens the object for JSON.stringify
+            primary_keyword: row.keyword || "",
+            business_goal: row.business_goal || "",
+            target_audience: row.target_audience || "",
+            user_intent: row.intent || "",
+            article_outcome: row.article_outcome || "",
+            pillar: row.pillar || "",
+            cluster: row.cluster || "",
+            Must_Answer_Questions: row.questions || "",
+            FAQs: row.faq || "",
+            lsi_terms: row.lsi_keywords || "",
+            ai_overview: row.ai_mode || "",
+            author_persona: row.persona || "",
+            outline: row.outline_format || "",
+          }), // Correctly closes the object for JSON.stringify AND the JSON.stringify call itself.
+        }); // This correctly closes the options object for the fetch call.
+
+        if (!contentBriefResponse.ok) {
+          const errorText = await contentBriefResponse.text();
+          console.error("❌ API error response:", errorText);
+          throw new Error("contentBriefResponse: Network response was not ok");
+        }
+
+        const contentBriefResponseData = await contentBriefResponse.json();
+
+        console.log("✅ contentBriefResponseData:", contentBriefResponseData);
+
+        setMissionPlan(contentBriefResponseData.contentBrief);
+
+        const { error: upsertError } = await supabase
+          .from("row_details")
+          .upsert(
+            {
+              row_id: row_id,
+              mission_plan: contentBriefResponseData.contentBrief, // Save the actual array here
+            },
+            { onConflict: "row_id" }
+          );
+
+        if (upsertError) {
+          throw new Error(
+            `Failed to save newly scraped data to database: ${upsertError.message}`
+          );
+        }
+      } catch (err) {
+        console.error("❌ Error in content brief API call:", err);
+      }
+    };
+
+    if (row_id) {
+      fetchContentBrief();
+    }
+  }, [row_id]);
 
   const handleSaveMission = async () => {
     try {
