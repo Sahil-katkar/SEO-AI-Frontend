@@ -259,7 +259,7 @@ export default function Step1_ConnectGDrive() {
             onClick={handleSearch}
             className={`px-6 py-3 w-full sm:w-auto flex items-center justify-center gap-2 text-white font-semibold rounded-xl transition ${
               input.trim() && !isSearching && !isProcessing
-                ? "bg-gradient-to-r from-green-500 to-emerald-500 hover:scale-[1.02]"
+                ? "bbg-gradient-to-r ffrom-green-500 tto-emerald-500 hhover:scale-[1.02]"
                 : "bg-gray-300 cursor-not-allowed"
             }`}
           >

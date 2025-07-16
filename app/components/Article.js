@@ -1,10 +1,17 @@
 import React, { useEffect, useState } from "react";
 import Loader from "./common/Loader";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { toast } from "react-toastify";
 
 export default function Article({
   newOutlineResponseData,
   updatedArticleResponseData,
+  row_id,
+  // articleH2Count,
+  activeModalTab,
 }) {
+  // console.log("articleH2Count", articleH2Count);
+  const supabase = createClientComponentClient();
   const [sectionIsGenerating, setSectionIsGenerating] = useState(false);
   const [articleSections, setArticleSections] = useState();
   const [articleSectionCount, setArticleSectionCount] = useState(0);
@@ -66,7 +73,7 @@ export default function Article({
     console.log("dataaaaaaaaaaa", data);
 
     setArticleSections((prev) =>
-      Array.isArray(prev) ? [...prev, data] : [data]
+      Array.isArray(prev) ? [...prev, data?.article_data] : [data?.article_data]
     );
     setArticleSectionGenerateCount(articleSectionGenerateCount + 1);
     setSectionIsGenerating(false);
@@ -89,10 +96,13 @@ export default function Article({
   };
 
   const handleSaveGdrive = async (articleSections, row_id) => {
+    setSectionIsGenerating(true);
     try {
       const backendPayload = {
-        test_content_string: articleSections,
-        row_folder_name: row_id,
+        // test_content_string: articleSections,
+        // row_folder_name: row_id,
+        article_content: articleSections,
+        folder_name: row_id,
       };
       const apiResponse = await fetch(`/api/save-to-gdrive/`, {
         method: "POST",
@@ -108,6 +118,7 @@ export default function Article({
       if (apiResponse.ok) {
         toast.success("File Saved Succesfully!");
       } else {
+        
         const errorMessage =
           data.error || data.detail || "Failed to save file.";
         toast.error(`Error: ${errorMessage}`);
@@ -115,23 +126,39 @@ export default function Article({
       }
     } catch (e) {
       console.log(e);
+    } finally {
+      setSectionIsGenerating(false);
     }
   };
 
-  useEffect(() => {
-    const calculateSectionCount = async (outline) => {
-      const lines = outline.split("\n");
-      // Match lines that start with 4 spaces and an asterisk, but not more
-      // const count = lines.filter((line) => /^ {4}\*/.test(line)).length;
-      const count = lines.filter((line) => /^\s*-- H2:/.test(line)).length;
-      console.log("count", count);
-      setArticleSectionCount(count);
-      // return count;
-    };
-    calculateSectionCount(newOutlineResponseData || "");
+  // useEffect(() => {
+  //   const calculateSectionCount = async (outline) => {
+  //     const lines = outline.split("\n");
+  //     // Match lines that start with 4 spaces and an asterisk, but not more
+  //     // const count = lines.filter((line) => /^ {4}\*/.test(line)).length;
+  //     const count = lines.filter((line) => /^\s*-- H2:/.test(line)).length;
+  //     console.log("count", count);
+  //     setArticleSectionCount(count);
+  //     // return count;
+  //   };
+  //   calculateSectionCount(newOutlineResponseData || "");
 
-    console.log("outlineData", newOutlineResponseData);
-  }, [newOutlineResponseData]);
+  //   console.log("outlineData", newOutlineResponseData);
+  // }, [newOutlineResponseData]);
+
+  useEffect(() => {
+    const fetchH2Count = async (row_id) => {
+      const { data, error } = await supabase
+        .from("outline")
+        .select("h2_count")
+        .eq("row_id", row_id)
+        .single();
+
+      // console.log("data?.h2_count", Number(data?.h2_count));
+      setArticleSectionCount(Number(data?.h2_count));
+    };
+    fetchH2Count(row_id);
+  }, [row_id]);
 
   return (
     <div className="flex flex-col md:flex-row gap-6">
@@ -157,7 +184,7 @@ export default function Article({
           />
 
           <div className="ml-auto flex gap-2">
-            {articleSectionGenerateCount < articleSectionCount && (
+            {articleSectionGenerateCount <= articleSectionCount && (
               <button
                 className=""
                 disabled={sectionIsGenerating}
@@ -174,29 +201,31 @@ export default function Article({
               </button>
             )}
 
-            <button
-              disabled={sectionIsGenerating}
-              className=""
-              style={{ backgroundColor: "#4CAF50" }}
-              onClick={() => {
-                handleSaveArticle(
-                  Array.isArray(articleSections)
-                    ? articleSections.join("\n")
-                    : articleSections || ""
-                );
-              }}
-            >
-              Save
-            </button>
+            {!articleSectionGenerateCount <= articleSectionCount && (
+              <button
+                disabled={sectionIsGenerating}
+                className=""
+                onClick={() => {
+                  handleSaveArticle(
+                    Array.isArray(articleSections)
+                      ? articleSections.join("\n")
+                      : articleSections || ""
+                  );
+                }}
+              >
+                Save
+              </button>
+            )}
 
-            <button
-              disabled={sectionIsGenerating}
-              className=""
-              style={{ backgroundColor: "#3478F6" }}
-              onClick={() => handleSaveGdrive(articleSections, row_id)}
-            >
-              Save to Google Drive
-            </button>
+            {!articleSectionGenerateCount <= articleSectionCount && (
+              <button
+                disabled={sectionIsGenerating}
+                className=""
+                onClick={() => handleSaveGdrive(articleSections, row_id)}
+              >
+                Save to Google Drive
+              </button>
+            )}
           </div>
           {sectionIsGenerating && <Loader />}
         </div>
