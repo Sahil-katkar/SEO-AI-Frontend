@@ -98,9 +98,18 @@ export default function CitableSummary({
             throw new Error("No details found for this project.");
           }
 
+          const { data: ai_mode, aiModeErr } = await supabase
+            .from("row_details")
+            .select("ai_mode")
+            .eq("row_id", row_id)
+            .single();
+
+          console.log("ai_mode", ai_mode.ai_mode);
+
           const payload = {
             mission_plan: rowDetails?.mission_plan,
             initial_draft_index: rowDetails?.outline_format,
+            ai_overview: ai_mode.ai_mode,
           };
 
           const res = await fetch("/api/citable-summary", {

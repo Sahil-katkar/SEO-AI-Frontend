@@ -109,14 +109,21 @@ export default function Outline({
             }
           }
 
+          const { data: valueAdd, error: valueAddErr } = await supabase
+            .from("analysis")
+            .select("value_add")
+            .eq("row_id", row_id)
+            .single();
+
           const payload = {
             primary_keyword: rowDetails.keyword,
             lsi_keywords: allExtractedKeywords,
-            intent: rowDetails.intent,
-            persona: rowDetails.persona,
+            // intent: rowDetails.intent,
+            // persona: rowDetails.persona,
             questions: rowDetails.questions,
-            faq: rowDetails.faq,
+            // faq: rowDetails.faq,
             standard_outline_format: rowDetails.outline_format,
+            value_add: valueAdd.value_add,
           };
 
           const res = await fetch("/api/generate-outline", {

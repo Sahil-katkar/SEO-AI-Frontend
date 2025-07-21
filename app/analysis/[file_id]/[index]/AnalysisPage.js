@@ -55,13 +55,14 @@ export default function AnalysisPage({
           {/* Step 1: Competitor Analysis */}
           <div className="mb-2">
             <button
-              className={`w-full text-left px-4 py-2 font-semibold flex justify-between items-center ${openSteps.competitor ? "bg-blue-100" : "bg-white"
-                }`}
+              className={`w-full text-left px-4 py-2 font-semibold flex justify-between items-center ${
+                openSteps.competitor ? "bg-blue-100" : "bg-white"
+              }`}
               onClick={() => toggleStep("competitor")}
               aria-expanded={openSteps.competitor}
               aria-controls="competitor-analysis-panel"
               id="competitor-analysis-header"
-              disabled={!competitorAnalysisData}
+              // disabled={!competitorAnalysisData}
               type="button"
             >
               <span>1. Competitor Analysis</span>
@@ -71,8 +72,9 @@ export default function AnalysisPage({
               id="competitor-analysis-panel"
               role="region"
               aria-labelledby="competitor-analysis-header"
-              className={`overflow-hidden transition-all duration-300 ${openSteps.competitor ? "max-h-[1000px] p-4" : "max-h-0 p-0"
-                }`}
+              className={`overflow-hidden transition-all duration-300 ${
+                openSteps.competitor ? "max-h-[1000px] p-4" : "max-h-0 p-0"
+              }`}
               style={{ display: openSteps.competitor ? "block" : "none" }}
             >
               {openSteps.competitor && (
@@ -87,13 +89,14 @@ export default function AnalysisPage({
           {/* Step 2: Value Add */}
           <div className="mb-2 ">
             <button
-              className={`w-full text-left px-4 py-2 font-semibold flex justify-between items-center ${openSteps.valueAdd ? "bg-blue-100" : "bg-white"
-                }`}
+              className={`w-full text-left px-4 py-2 font-semibold flex justify-between items-center ${
+                openSteps.valueAdd ? "bg-blue-100" : "bg-white"
+              }`}
               onClick={() => toggleStep("valueAdd")}
               aria-expanded={openSteps.valueAdd}
               aria-controls="value-add-panel"
               id="value-add-header"
-              disabled={!competitorAnalysisData && !valueAddResponseData}
+              // disabled={!competitorAnalysisData && !valueAddResponseData}
               type="button"
             >
               <span>2. Value Add</span>
@@ -103,8 +106,9 @@ export default function AnalysisPage({
               id="value-add-panel"
               role="region"
               aria-labelledby="value-add-header"
-              className={`overflow-hidden transition-all duration-300 ${openSteps.valueAdd ? "max-h-[1000px] p-4" : "max-h-0 p-0"
-                }`}
+              className={`overflow-hidden transition-all duration-300 ${
+                openSteps.valueAdd ? "max-h-[1000px] p-4" : "max-h-0 p-0"
+              }`}
               style={{ display: openSteps.valueAdd ? "block" : "none" }}
             >
               {openSteps.valueAdd && (
@@ -120,13 +124,14 @@ export default function AnalysisPage({
           {/* Step 3: Mission Plan */}
           <div className="mb-2 ">
             <button
-              className={`w-full text-left px-4 py-2 font-semibold flex justify-between items-center ${openSteps.missionPlan ? "bg-blue-100" : "bg-white"
-                }`}
+              className={`w-full text-left px-4 py-2 font-semibold flex justify-between items-center ${
+                openSteps.missionPlan ? "bg-blue-100" : "bg-white"
+              }`}
               onClick={() => toggleStep("missionPlan")}
               aria-expanded={openSteps.missionPlan}
               aria-controls="mission-plan-panel"
               id="mission-plan-header"
-              disabled={!missionPlanResponseData}
+              // disabled={!missionPlanResponseData}
               type="button"
             >
               <span>3. Mission Plan</span>
@@ -136,8 +141,9 @@ export default function AnalysisPage({
               id="mission-plan-panel"
               role="region"
               aria-labelledby="mission-plan-header"
-              className={`overflow-hidden transition-all duration-300 ${openSteps.missionPlan ? "max-h-[1000px] p-4" : "max-h-0 p-0"
-                }`}
+              className={`overflow-hidden transition-all duration-300 ${
+                openSteps.missionPlan ? "max-h-[1000px] p-4" : "max-h-0 p-0"
+              }`}
               style={{ display: openSteps.missionPlan ? "block" : "none" }}
             >
               {openSteps.missionPlan && (
@@ -154,13 +160,14 @@ export default function AnalysisPage({
           <div className="mt-6 flex justify-end">
             <Link
               href={`/content/${fileId}/${index}`}
-              className={`${false
-                ? "hover:!cursor-not-allowed !pointer-events-none !bg-[#bdc3c7]"
-                : ""
-                } nextButton text-white px-6 py-2 rounded-lg font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2`}
-            // className={isDisabled ? "pointer-events-none" : ""}
-            // aria-disabled={true}
-            // tabIndex={true ? -1 : undefined}
+              className={`${
+                false
+                  ? "hover:!cursor-not-allowed !pointer-events-none !bg-[#bdc3c7]"
+                  : ""
+              } nextButton text-white px-6 py-2 rounded-lg font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2`}
+              // className={isDisabled ? "pointer-events-none" : ""}
+              // aria-disabled={true}
+              // tabIndex={true ? -1 : undefined}
             >
               Next
             </Link>

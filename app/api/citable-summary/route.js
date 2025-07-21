@@ -8,7 +8,8 @@ const FASTAPI_BACKEND_URL =
 
 export async function POST(request) {
   try {
-    const { mission_plan, initial_draft_index } = await request.json();
+    const { mission_plan, initial_draft_index, ai_overview } =
+      await request.json();
 
     // Basic validation to ensure you received what you expected
     if (!mission_plan || initial_draft_index === undefined) {
@@ -23,6 +24,7 @@ export async function POST(request) {
     const backendPayload = {
       mission_plan,
       initial_draft_index,
+      ai_overview,
     };
 
     console.log("Sending CLEANED payload to FastAPI:", backendPayload);

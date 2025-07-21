@@ -81,13 +81,19 @@ export default function CompetitorAnalysis({
 
           const url = parsedData.map((item) => item.url);
 
-          const competitorData = parsedData.map((item) => ({
-            raw_text: item.raw_text,
-            url: item.url,
-          }));
+          const { data: valueAdd, error: valueAddErr } = await supabase
+            .from("analysis")
+            .select("value_add")
+            .eq("row_id", row_id)
+            .single();
+
+          // const competitorData = parsedData.map((item) => ({
+          //   raw_text: item.raw_text,
+          //   url: item.url,
+          // }));
 
           const payload = {
-            comp_contents: competitorData,
+            comp_contents: valueAdd,
           };
 
           try {

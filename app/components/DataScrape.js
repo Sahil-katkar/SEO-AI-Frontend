@@ -2,6 +2,8 @@
 
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { useState, useEffect } from "react";
+import { useParams, useRouter } from "next/navigation";
+
 // Assuming 'toast' is imported from a library like 'react-hot-toast'
 // import toast from "react-hot-toast";
 
@@ -18,6 +20,17 @@ export default function DataScrape({
   const [editedText, setEditedText] = useState(""); // Text in the textarea for the currently edited item
   const [isLoadingScrape, setIsLoadingScrape] = useState(false); // For "Generate Scraped Content" button
   const [isSavingScrapedItem, setIsSavingScrapedItem] = useState(false); // For "Save" button on individual item
+
+  const router = useRouter();
+  const params = useParams();
+  const fileId = params.file_id;
+  const index = params.index;
+  // const row_id = `${fileId}_${index}`;
+
+  const handleNext = () => {
+    console.log("Navigating to the next step...");
+    router.push(`/lsi-keywords/${fileId}/${index}`);
+  };
 
   // Fetch initial scraped data on component mount
   useEffect(() => {
@@ -339,6 +352,13 @@ export default function DataScrape({
             </div>
           </div>
         )}
+
+        <button
+          onClick={handleNext}
+          className="bg-blue-600 text-white px-7 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+        >
+          Next Step
+        </button>
       </div>
     </div>
   );

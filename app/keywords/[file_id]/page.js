@@ -58,11 +58,12 @@ export default function FileId() {
   };
 
   const lsiKeyowrds = async (file_id, keyword, index) => {
-    console.log(" ", file_id, index);
+    console.log("row_id", file_id, index);
 
     const row_id = `${file_id}_${index + 1}`;
 
-    router.push(`/lsi-keywords/${file_id}/${index + 1}`);
+    // router.push(`/lsi-keywords/${file_id}/${index + 1}`);
+    router.push(`/data-scrape/${file_id}/${index + 1}`);
 
     updateProjectData({
       selectedFileId: file_id,
