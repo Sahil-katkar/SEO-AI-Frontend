@@ -62,7 +62,7 @@ export default function FileId() {
 
     const row_id = `${file_id}_${index + 1}`;
 
-    router.push(`/lsi-keywords/${file_id}/${index + 1}`);
+    router.push(`/data-scrape/${file_id}/${index + 1}`);
 
     updateProjectData({
       selectedFileId: file_id,

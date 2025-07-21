@@ -1090,6 +1090,12 @@ export default function FileRow() {
               .eq("row_id", row_id)
               .single();
 
+            const { data: valueAdd, error: valueAddErr } = await supabase
+              .from("analysis")
+              .select("value_add")
+              .eq("row_id", row_id)
+              .single();
+
             if (rowDetailsError) throw rowDetailsError;
             if (analysisError) throw analysisError;
             if (!rowDetails)
@@ -1115,11 +1121,12 @@ export default function FileRow() {
             const payload = {
               primary_keyword: rowDetails.keyword,
               lsi_keywords: allExtractedKeywords,
-              intent: rowDetails.intent,
-              persona: rowDetails.persona,
+              // intent: rowDetails.intent,
+              // persona: rowDetails.persona,
               questions: rowDetails.questions,
-              faq: rowDetails.faq,
+              // faq: rowDetails.faq,
               standard_outline_format: rowDetails.outline_format,
+              value_add: valueAdd.value_add,
             };
 
             // 4. Call the API
@@ -1319,9 +1326,7 @@ export default function FileRow() {
           } else {
             // Article does not exist, call the API to generate it
             // (You may need to construct the payload as in your generateArticleSection function)
-            const payload = {
-              // ...construct your payload here...
-            };
+            const payload = {};
 
             const res = await fetch("/api/generate-article", {
               method: "POST",

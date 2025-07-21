@@ -38,7 +38,7 @@ export default function Analysis() {
 
   const handleNext = () => {
     console.log("Navigating to the next step...");
-    router.push(`/content/${fileId}/${index}`);
+    router.push(`/mission-plan/${fileId}/${index}`);
   };
 
   const handleApprove = async () => {

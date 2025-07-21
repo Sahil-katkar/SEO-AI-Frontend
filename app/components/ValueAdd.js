@@ -177,7 +177,7 @@ export default function ValueAdd({
           {!valueAdd && (
             <button
               onClick={generateValueAdd}
-              disabled={!compAnalysisData || isGeneratingValueAdd}
+              // disabled={!compAnalysisData || isGeneratingValueAdd}
             >
               {isGeneratingValueAdd ? (
                 <Loader size={20} />
@@ -193,7 +193,7 @@ export default function ValueAdd({
                 onClick={() => {
                   handleEditValueAdd(index + 1);
                 }}
-                disabled={!compAnalysis}
+                // disabled={!compAnalysis}
               >
                 Edit
               </button>

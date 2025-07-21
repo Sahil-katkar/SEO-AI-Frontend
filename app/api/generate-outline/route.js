@@ -10,11 +10,12 @@ export async function POST(request) {
     const {
       primary_keyword,
       lsi_keywords,
-      intent,
-      persona,
+      // intent,
+      // persona,
       questions,
-      faq,
+      // faq,
       standard_outline_format,
+      value_add,
     } = await request.json();
 
     // --- START: DATA TRANSFORMATION ---
@@ -31,7 +32,7 @@ export async function POST(request) {
       : [];
 
     // 3. Convert the newline-separated FAQ string into an array of strings.
-    const faqArray = faq ? faq.split("\n").filter((f) => f.trim() !== "") : [];
+    // const faqArray = faq ? faq.split("\n").filter((f) => f.trim() !== "") : [];
 
     // --- END: DATA TRANSFORMATION ---
 
@@ -39,11 +40,12 @@ export async function POST(request) {
     const backendPayload = {
       primary_keyword,
       lsi_keywords: cleanedLsiKeywords, // Use the cleaned array
-      intent,
-      persona,
+      // intent,
+      // persona,
       questions: questionsArray, // Use the new array
-      faq: faqArray, // Use the new array
+      // faq: faqArray, // Use the new array
       standard_outline_format: standard_outline_format,
+      value_add: value_add,
     };
 
     console.log("Sending CLEANED payload to FastAPI:", backendPayload);
