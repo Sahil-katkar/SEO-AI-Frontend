@@ -2,12 +2,15 @@ import React, { useEffect, useState } from "react";
 import Loader from "./common/Loader";
 import { toast } from "react-toastify";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { useAppContext } from "@/context/AppContext";
 
 export default function CitableSummary({
   row_id,
   citableSummaryResponseData,
   activeModalTab,
 }) {
+  const { projectData, updateProjectData } = useAppContext();
+
   const supabase = createClientComponentClient();
   const [citableLoading, setCitableLoading] = useState(false);
   const [citabledata, setCitableData] = useState(

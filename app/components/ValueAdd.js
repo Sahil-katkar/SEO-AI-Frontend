@@ -177,7 +177,7 @@ export default function ValueAdd({
           {!valueAdd && (
             <button
               onClick={generateValueAdd}
-              disabled={!compAnalysisData || isGeneratingValueAdd}
+              // disabled={!compAnalysisData || isGeneratingValueAdd}
             >
               {isGeneratingValueAdd ? (
                 <Loader size={20} />

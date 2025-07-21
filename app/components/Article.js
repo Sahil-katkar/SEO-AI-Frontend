@@ -43,6 +43,12 @@ export default function Article({
       .from("outline")
       .select("new_outline")
       .eq("row_id", row_id);
+    const { data: citable_summary } = await supabase
+      .from("outline")
+      .select("citable_answer")
+      .eq("row_id", row_id);
+
+    console.log("citable_summary", citable_summary[0].citable_answer);
 
     const payload = {
       missionPlan: row_details[0].mission_plan,
@@ -53,6 +59,7 @@ export default function Article({
       persona: row_details[0].persona,
       outline: outline?.[0]?.new_outline || "", // extract string
       section: String(section), // ensure string
+      citable_summary: citable_summary[0].citable_answer,
     };
 
     // const calculateSectionCount = async (outline) => {

@@ -13,19 +13,20 @@ export async function POST(request) {
       persona,
       outline,
       section,
+      citable_summary,
     } = await request.json();
 
-    const payload={
-        missionPlan,
-        gapsAndOpportunities,
-        lsi_keywords,
-        persona,
-        outline,
-        section,
-    }
+    const payload = {
+      missionPlan,
+      gapsAndOpportunities,
+      lsi_keywords,
+      persona,
+      outline,
+      section,
+      citable_summary,
+    };
 
-    console.log("payload",payload);
-    
+    console.log("payload", payload);
 
     if (
       !missionPlan ||
@@ -48,10 +49,8 @@ export async function POST(request) {
         headers: {
           "Content-Type": "application/json",
         },
-        body: 
-         JSON.stringify(payload)
-          // { file_id: fileId }
-        ,
+        body: JSON.stringify(payload),
+        // { file_id: fileId }
       }
     );
 

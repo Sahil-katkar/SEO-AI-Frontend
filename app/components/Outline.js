@@ -2,12 +2,18 @@ import React, { Suspense, useEffect, useState } from "react";
 import Loader from "@/components/common/Loader";
 import { toast } from "react-toastify";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { useAppContext } from "@/context/AppContext";
 
 export default function Outline({
   row_id,
   newOutlineResponseData,
   activeModalTab,
 }) {
+  console.log("row_id 123", row_id);
+
+  console.log("newOutlineResponseData 123", newOutlineResponseData);
+  const { projectData, updateProjectData } = useAppContext();
+
   const supabase = createClientComponentClient();
   const [outlineLoading, setOutlineLoading] = useState(false);
   const [outlineData, setOutlineData] = useState(newOutlineResponseData || "");
@@ -59,6 +65,8 @@ export default function Outline({
 
   useEffect(() => {
     const fetchOrGenerateOutline = async (row_id) => {
+      console.log("hi");
+
       setOutlineLoading(true);
       try {
         const { data: outlineDataFromDB, error: outlineError } = await supabase
@@ -166,7 +174,7 @@ export default function Outline({
         setOutlineLoading(false);
       }
     };
-    if (activeModalTab === "Outline" && newOutlineResponseData === null) {
+    if (activeModalTab === "Outline" && newOutlineResponseData === undefined) {
       fetchOrGenerateOutline(row_id);
     }
   }, [row_id]);
