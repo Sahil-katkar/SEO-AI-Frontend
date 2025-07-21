@@ -415,9 +415,9 @@ export default function Article({
           {/* Conditional rendering for the table section */}
           {showPreviousArticlesTable && (
             <div className="md:w-full w-full bg-gray-50 p-6 rounded-xl shadow-md border border-gray-200">
-              <h4 className="text-lg font-semibold text-black-700 mb-4">
+              {/* <h4 className="text-lg font-semibold text-black-700 mb-4">
                 Previous Articles
-              </h4>
+              </h4> */}
 
               {density && typeof density === "object" && (
                 <div className="mt-4">
