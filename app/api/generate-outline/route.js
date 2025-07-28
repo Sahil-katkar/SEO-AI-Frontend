@@ -16,6 +16,7 @@ export async function POST(request) {
       // faq,
       value_add,
       standard_outline_format,
+      ai_studio_check,
     } = await request.json();
 
     // --- START: DATA TRANSFORMATION ---
@@ -46,6 +47,7 @@ export async function POST(request) {
       // faq: faqArray, // Use the new array
       standard_outline_format: standard_outline_format,
       value_add: value_add,
+      ai_studio_check,
     };
 
     console.log("Sending CLEANED payload to FastAPI:", backendPayload);

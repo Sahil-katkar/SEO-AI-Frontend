@@ -20,6 +20,7 @@ export async function POST(request) {
       author_persona,
       article_outcome,
       outline,
+      ai_studio_check
     } = await request.json();
 
     // Log the entire received payload for easier debugging
@@ -37,6 +38,7 @@ export async function POST(request) {
       author_persona,
       article_outcome,
       outline,
+      ai_studio_check
     });
 
     // 2. Validate that essential fields are present
@@ -65,6 +67,7 @@ export async function POST(request) {
       author_persona,
       article_outcome,
       outline,
+      ai_studio_check
     };
 
     // 4. Forward the complete payload to your FastAPI backend

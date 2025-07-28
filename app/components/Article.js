@@ -162,9 +162,8 @@ export default function Article({
         .select("h2_count")
         .eq("row_id", row_id)
         .single();
-
-      // console.log("data?.h2_count", Number(data?.h2_count));
-      setArticleSectionCount(Number(data?.h2_count));
+      const h2_count = Number(data?.h2_count);
+      setArticleSectionCount(h2_count);
     };
     fetchH2Count(row_id);
   }, [row_id]);
@@ -329,6 +328,9 @@ export default function Article({
     }
   };
 
+  console.log("articleSectionGenerateCount", articleSectionGenerateCount);
+  console.log("articleSectionCount", articleSectionCount);
+
   return (
     <div className="flex flex-col md:flex-row gap-6">
       <div
@@ -370,7 +372,7 @@ export default function Article({
               </button>
             )}
 
-            {!articleSectionGenerateCount <= articleSectionCount && (
+            {articleSectionGenerateCount > articleSectionCount && (
               <button
                 disabled={sectionIsGenerating}
                 className=""
@@ -386,7 +388,7 @@ export default function Article({
               </button>
             )}
 
-            {!articleSectionGenerateCount <= articleSectionCount && (
+            {articleSectionGenerateCount > articleSectionCount && (
               <button
                 disabled={sectionIsGenerating}
                 className=""
@@ -403,14 +405,17 @@ export default function Article({
           {/* Other parts of your component */}
 
           {/* Button to show/hide the Density Table */}
-          <button
-            onClick={toggleTableVisibility}
-            className="mb-4 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-          >
-            {showPreviousArticlesTable
-              ? "Hide Density Table"
-              : "Show Density Table"}
-          </button>
+          {articleSectionGenerateCount > articleSectionCount && (
+            <button
+              disabled={sectionIsGenerating}
+              onClick={toggleTableVisibility}
+              className="mb-4 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+            >
+              {showPreviousArticlesTable
+                ? "Hide Density Table"
+                : "Show Density Table"}
+            </button>
+          )}
 
           {/* Conditional rendering for the table section */}
           {showPreviousArticlesTable && (

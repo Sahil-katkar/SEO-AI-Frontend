@@ -24,33 +24,45 @@ export default async function Content({ params }) {
     await lsiKeywordsApproveResponse.json();
 
   // !-------------------------------------------
+  let newOutlineResponseData;
   const newOutlineResponse = await fetch(
     `http://localhost:3000/api/supabase/new-outline/${row_id}`,
     { next: { revalidate: 0 } }
   );
   if (!newOutlineResponse.ok) {
-    throw new Error("newOutlineResponse: Network response was not ok");
+    newOutlineResponseData = "";
+    console.log("No newOutline in Supabase");
+    // throw new Error("newOutlineResponse: Network response was not ok");
+  } else {
+    newOutlineResponseData = await newOutlineResponse.json();
   }
-  const newOutlineResponseData = await newOutlineResponse.json();
 
   // !-------------------------------------------
+  let citableSummaryResponseData;
   const citableSummaryResponse = await fetch(
     `http://localhost:3000/api/supabase/citable-summary/${row_id}`,
     { next: { revalidate: 0 } }
   );
   if (!citableSummaryResponse.ok) {
-    throw new Error("citableSummaryResponse: Network response was not ok");
+    citableSummaryResponseData = "";
+    console.log("No citableSummary in Supabase");
+    // throw new Error("citableSummaryResponse: Network response was not ok");
+  } else {
+    citableSummaryResponseData = await citableSummaryResponse.json();
   }
-  const citableSummaryResponseData = await citableSummaryResponse.json();
 
   // !-------------------------------------------
+  let articleOutcomeResponseData;
   const articleOutcomeResponse = await fetch(
     `http://localhost:3000/api/supabase/article-outcome/${row_id}`
   );
   if (!citableSummaryResponse.ok) {
-    throw new Error("articleOutcomeResponse: Network response was not ok");
+    articleOutcomeResponseData = "";
+    console.log("No articleOutcome in Supabase");
+    // throw new Error("articleOutcomeResponse: Network response was not ok");
+  } else {
+    articleOutcomeResponseData = await articleOutcomeResponse.json();
   }
-  const articleOutcomeResponseData = await articleOutcomeResponse.json();
 
   // !-------------------------------------------
   const intentResponse = await fetch(

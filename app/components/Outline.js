@@ -9,14 +9,11 @@ export default function Outline({
   newOutlineResponseData,
   activeModalTab,
 }) {
-  console.log("row_id 123", row_id);
-
-  console.log("newOutlineResponseData 123", newOutlineResponseData);
   const { projectData, updateProjectData } = useAppContext();
 
   const supabase = createClientComponentClient();
   const [outlineLoading, setOutlineLoading] = useState(false);
-  const [outlineData, setOutlineData] = useState(newOutlineResponseData || "");
+  const [outlineData, setOutlineData] = useState(newOutlineResponseData?.new_outline || "");
   const [editOutline, setEditOutline] = useState(false);
   const [editedOutline, setEditedOutline] = useState("");
   const [saveEditedOutline, setSaveEditedOutline] = useState(false);
@@ -174,7 +171,7 @@ export default function Outline({
         setOutlineLoading(false);
       }
     };
-    if (activeModalTab === "Outline" && newOutlineResponseData === undefined) {
+    if (activeModalTab === "Outline" && newOutlineResponseData === undefined || newOutlineResponseData === null ) {
       fetchOrGenerateOutline(row_id);
     }
   }, [row_id]);

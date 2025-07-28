@@ -62,7 +62,7 @@ export default function MissionPlan({
           body: JSON.stringify({
             // This opens the object for JSON.stringify
             primary_keyword: row.keyword || "",
-            business_goal: row.business_goal || "",
+            business_goal: row.BUSINESS_GOAL || "",
             target_audience: row.target_audience || "",
             user_intent: row.intent || "",
             article_outcome: row.article_outcome || "",
@@ -74,6 +74,7 @@ export default function MissionPlan({
             ai_overview: row.ai_mode || "",
             author_persona: row.persona || "",
             outline: row.outline_format || "",
+            ai_studio_check: true,
           }), // Correctly closes the object for JSON.stringify AND the JSON.stringify call itself.
         }); // This correctly closes the options object for the fetch call.
 

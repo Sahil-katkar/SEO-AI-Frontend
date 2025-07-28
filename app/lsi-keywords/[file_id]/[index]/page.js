@@ -160,7 +160,7 @@ export default function Analysis() {
 
         const backendPayload = {
           extracted_data: raw_text,
-          embedding_model_name: "spacy", // Or your desired model
+          embedding_model_name: "", // Or your desired model
         };
 
         let response;
@@ -186,11 +186,11 @@ export default function Analysis() {
 
         if (!response.ok) {
           const errorDetail = await response.text();
-          console.error(
-            `API call failed for Competitor ${i + 1} (URL: ${url}): ${
-              response.status
-            } ${response.statusText} - ${errorDetail}`
-          );
+          // console.error(
+          //   `API call failed for Competitor ${i + 1} (URL: ${url}): ${
+          //     response.status
+          //   } ${response.statusText} - ${errorDetail}`
+          // );
           toast.error(
             `LSI generation failed for Competitor ${
               i + 1

@@ -7,7 +7,7 @@ export async function POST(request) {
   try {
     console.log("helo");
 
-    const { comp_contents } = await request.json();
+    const { comp_contents, ai_studio_check } = await request.json();
 
     console.log("comp_contents", comp_contents);
 
@@ -19,6 +19,7 @@ export async function POST(request) {
     // }
     const backendPayload = {
       comp_contents,
+      ai_studio_check,
     };
 
     console.log("backendPayload", backendPayload);

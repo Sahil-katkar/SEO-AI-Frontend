@@ -272,6 +272,7 @@ export default function CompetitorAnalysis({
 
       const payload = {
         comp_contents: actualCompContentsForAPI, // THIS IS THE KEY FIX
+        ai_studio_check: true
       };
 
       let competitorAnalysisResult;

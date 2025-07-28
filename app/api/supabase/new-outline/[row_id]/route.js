@@ -13,7 +13,7 @@ export async function GET(request, { params }) {
     .single();
 
   if (error) {
-    return new Response(JSON.stringify({ error: error }), {
+    return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
     });
   }

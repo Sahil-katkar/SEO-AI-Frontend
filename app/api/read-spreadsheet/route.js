@@ -76,7 +76,7 @@ export async function POST(request) {
       );
     }
 
-    const apiResponse = await fetch(`${FASTAPI_BACKEND_URL}/files/`, {
+    const apiResponse = await fetch(`${FASTAPI_BACKEND_URL}/files`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
