@@ -13,13 +13,16 @@ export default function Article({
   // console.log("articleH2Count", articleH2Count);
   const supabase = createClientComponentClient();
   const [sectionIsGenerating, setSectionIsGenerating] = useState(false);
-  const [articleSections, setArticleSections] = useState();
+  const [articleSections, setArticleSections] = useState(updatedArticleResponseData);
   const [articleSectionCount, setArticleSectionCount] = useState(0);
   const [articleSectionGenerateCount, setArticleSectionGenerateCount] =
     useState(1);
-  const [articledataUpdated, setArticleDataUpdated] = useState(
-    updatedArticleResponseData
-  );
+  // const [articledataUpdated, setArticleDataUpdated] = useState(
+  //   updatedArticleResponseData
+  // );
+
+  // console.log("updatedArticleResponseData",updatedArticleResponseData);
+  
   const [showPreviousArticlesTable, setShowPreviousArticlesTable] =
     useState(false);
   const [density, setDensity] = useState(null);
@@ -210,8 +213,7 @@ export default function Article({
       // Combine old string + new entries
       const originalKeywordsStr = entry.lsi_keywords || "";
       const finalLsiKeywordsStr = [
-        originalKeywordsStr,
-        ...parsedUpdatedKeywords,
+        parsedUpdatedKeywords
       ].join(",");
 
       return {
@@ -334,9 +336,7 @@ export default function Article({
   return (
     <div className="flex flex-col md:flex-row gap-6">
       <div
-        className={`${
-          articledataUpdated ? "md:w-1/2" : "w-full"
-        } w-full p-6 rounded-xl shadow-md border border-gray-200`}
+        className={`w-full p-6 rounded-xl shadow-md border border-gray-200`}
       >
         <h4 className="text-lg font-semibold text-black-700 mb-4">
           Generated Article
@@ -388,7 +388,7 @@ export default function Article({
               </button>
             )}
 
-            {articleSectionGenerateCount > articleSectionCount && (
+            {/* {articleSectionGenerateCount > articleSectionCount && ( */}
               <button
                 disabled={sectionIsGenerating}
                 className=""
@@ -396,7 +396,7 @@ export default function Article({
               >
                 Save to Google Drive
               </button>
-            )}
+            {/* )} */}
           </div>
           {sectionIsGenerating && <Loader />}
         </div>
@@ -405,7 +405,7 @@ export default function Article({
           {/* Other parts of your component */}
 
           {/* Button to show/hide the Density Table */}
-          {articleSectionGenerateCount > articleSectionCount && (
+          {/* {articleSectionGenerateCount > articleSectionCount && ( */}
             <button
               disabled={sectionIsGenerating}
               onClick={toggleTableVisibility}
@@ -415,7 +415,7 @@ export default function Article({
                 ? "Hide Density Table"
                 : "Show Density Table"}
             </button>
-          )}
+          {/* )} */}
 
           {/* Conditional rendering for the table section */}
           {showPreviousArticlesTable && (
@@ -436,13 +436,13 @@ export default function Article({
                           Keyword
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                          Count
+                          Article Count
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                          Density
+                          Needed Count
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                          Percentage
+
                         </th>
                       </tr>
                     </thead>

@@ -112,7 +112,11 @@ export default function ValueAdd({
         const payload = {
           mission_plan_context,
           competitive_analysis_report,
+          ai_studio_check: true
         };
+
+        console.log("payload",payload);
+        
 
         try {
           const response = await fetch("/api/value_add", {

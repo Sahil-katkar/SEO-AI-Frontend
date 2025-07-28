@@ -6,13 +6,14 @@ const FASTAPI_BACKEND_URL =
 
 export async function POST(request) {
   try {
-    const { mission_plan_context, competitive_analysis_report } =
+    const { mission_plan_context, competitive_analysis_report, ai_studio_check} =
       await request.json();
 
     // IMPROVEMENT: Directly use the destructured variables. No need for a new object.
     const payload = { 
       mission_plan_context,
       competitive_analysis_report,
+      ai_studio_check
     };
 
     console.log("Sending payload to FastAPI:", payload);

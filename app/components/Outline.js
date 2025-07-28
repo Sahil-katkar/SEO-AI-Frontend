@@ -95,6 +95,8 @@ export default function Outline({
             .eq("row_id", row_id)
             .single();
 
+         
+
           if (rowDetailsError) throw rowDetailsError;
           if (analysisError) throw analysisError;
           if (!rowDetails) throw new Error("Details not found for this entry.");
@@ -114,6 +116,38 @@ export default function Outline({
             }
           }
 
+
+          const { data: updated_lsi_keywords, error: updated_lsi_keywordsErr } = await supabase
+            .from("analysis")
+            .select("updated_lsi_keywords")
+            .eq("row_id", row_id)
+            .single();
+
+          console.log("lsi_keywords",updated_lsi_keywords);
+
+          // Suppose updated_lsi_keywords is your object from Supabase
+const lsi_keywords_obj = updated_lsi_keywords?.updated_lsi_keywords;
+
+// Parse the JSON string
+let allKeywords = [];
+if (lsi_keywords_obj) {
+  try {
+    const parsed = JSON.parse(lsi_keywords_obj);
+    // parsed is an object where each value is an array of keyword objects
+    Object.values(parsed).forEach(arr => {
+      arr.forEach(item => {
+        if (item.keyword) {
+          allKeywords.push(item.keyword);
+        }
+      });
+    });
+  } catch (e) {
+    console.error("Failed to parse updated_lsi_keywords:", e);
+  }
+}
+
+console.log("allKeywords",allKeywords); // This will be an array of all keywords
+
           const { data: valueAdd, error: valueAddErr } = await supabase
             .from("analysis")
             .select("value_add")
@@ -129,7 +163,10 @@ export default function Outline({
             // faq: rowDetails.faq,
             standard_outline_format: rowDetails.outline_format,
             value_add: valueAdd.value_add,
+            ai_studio_check: true
           };
+
+          
 
           const res = await fetch("/api/generate-outline", {
             method: "POST",

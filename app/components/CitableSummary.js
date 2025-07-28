@@ -113,6 +113,7 @@ export default function CitableSummary({
             mission_plan: rowDetails?.mission_plan,
             initial_draft_index: rowDetails?.outline_format,
             ai_overview: ai_mode.ai_mode,
+            ai_studio_check:true
           };
 
           const res = await fetch("/api/citable-summary", {
