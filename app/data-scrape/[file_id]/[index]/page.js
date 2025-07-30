@@ -154,34 +154,44 @@ export default async function MissionPlan({ params }) {
     await lsiKeywordsApproveResponse.json();
 
   // !-------------------------------------------
+  let competitorAnalysisData;
   const competitorAnalysisResponse = await fetch(
     `http://localhost:3000/api/supabase/competitor-analysis/${row_id}`
   );
   if (!competitorAnalysisResponse.ok) {
-    throw new Error("competitorAnalysisResponse: Network response was not ok");
+    competitorAnalysisData = "";
+    console.log("No competitorAnalysis in Supabase");
+    // throw new Error("competitorAnalysisResponse: Network response was not ok");
+  } else {
+    competitorAnalysisData = await competitorAnalysisResponse.json();
   }
-  const competitorAnalysisData = await competitorAnalysisResponse.json();
-
   // !-------------------------------------------
+  let valueAddResponseData;
   const valueAddResponse = await fetch(
     `http://localhost:3000/api/supabase/value-add/${row_id}`
   );
 
   if (!valueAddResponse.ok) {
-    throw new Error("valueAddResponse: Network response was not ok");
+    valueAddResponseData = "";
+    console.log("No valueAdd in Supabase");
+    // throw new Error("valueAddResponse: Network response was not ok");
+  } else {
+    valueAddResponseData = await valueAddResponse.json();
   }
-  const valueAddResponseData = await valueAddResponse.json();
 
   // !-------------------------------------------
-
+  let dataScrapeResponseData;
   const dataScrapeResponse = await fetch(
     `http://localhost:3000/api/supabase/value-add/${row_id}`
   );
 
   if (!dataScrapeResponse.ok) {
-    throw new Error("valueAddResponse: Network response was not ok");
+    dataScrapeResponseData = "";
+    console.log("No dataScrape in Supabase");
+    // throw new Error("valueAddResponse: Network response was not ok");
+  } else {
+    dataScrapeResponseData = await dataScrapeResponse.json();
   }
-  const dataScrapeResponseData = await dataScrapeResponse.json();
   // !-------------------------------------------
 
   let contentBriefResponseData;
@@ -236,12 +246,12 @@ export default async function MissionPlan({ params }) {
   return (
     <>
       <DataScrape
-        missionPlanResponseData={missionPlanResponseData.mission_plan}
+        missionPlanResponseData={missionPlanResponseData?.mission_plan}
         lsiKeywordsApproveResponseData={
-          lsiKeywordsApproveResponseData[0].status
+          lsiKeywordsApproveResponseData[0]?.status
         }
-        competitorAnalysisData={competitorAnalysisData.comp_analysis}
-        valueAddResponseData={valueAddResponseData.value_add}
+        competitorAnalysisData={competitorAnalysisData?.comp_analysis}
+        valueAddResponseData={valueAddResponseData?.value_add}
         contentBriefResponseData={contentBriefResponseData}
         row_id={row_id}
         nextHref={nextHref}

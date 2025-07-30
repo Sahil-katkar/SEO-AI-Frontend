@@ -14,6 +14,7 @@ export default function FileId() {
   const [rowStatuses, setRowStatuses] = useState([]);
   const { file_id } = useParams();
   console.log("fileId", file_id);
+  const [isRedirecting, setIsRedirecting] = useState(false);
 
   const router = useRouter();
   const supabase = createClientComponentClient();
@@ -48,38 +49,26 @@ export default function FileId() {
   };
 
   const contentbrief = (file_id, keyword, index) => {
-    console.log(" ", file_id, index);
+    setIsRedirecting(true);
     updateProjectData({
       selectedFileId: file_id,
       selectedRowIndex: index + 1,
+      usedKeyword: keyword,
     });
-    router.push(`/mission-plan/${file_id}/${index + 1}`);
     localStorage.setItem("row_id", `${file_id}_${index + 1}`);
+    setIsRedirecting(false);
+    router.push(`/mission-plan/${file_id}/${index + 1}`);
   };
 
-  const lsiKeyowrds = async (file_id, keyword, index) => {
-    console.log("row_id", file_id, index);
-
-    const row_id = `${file_id}_${index + 1}`;
-
-    // router.push(`/lsi-keywords/${file_id}/${index + 1}`);
-    router.push(`/data-scrape/${file_id}/${index + 1}`);
-
+  const lsiKeyowrds = (file_id, index, keyword) => {
+    setIsRedirecting(true);
     updateProjectData({
       selectedFileId: file_id,
       selectedRowIndex: index + 1,
+      usedKeyword: keyword,
     });
-
-    const { data: upsertedData, error: upsertError } = await supabase
-      .from("analysis")
-      .upsert(
-        {
-          row_id: row_id,
-          status: "Not Approved",
-        },
-        { onConflict: "row_id" }
-      )
-      .select();
+    setIsRedirecting(false);
+    router.push(`/data-scrape/${file_id}/${index + 1}`);
   };
 
   useEffect(() => {
@@ -140,22 +129,22 @@ export default function FileId() {
                   </div>
                   <div className="flex flex-wrap gap-3 md:justify-end">
                     <button
-                      disabled={rowStatuses[index] === "loading"}
-                      className="px-5 py-2 text-sm font-semibold rounded-xl text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 transition"
-                      onClick={() =>
-                        lsiKeyowrds(file_id, keyword, index, url[index] || "")
+                      disabled={
+                        rowStatuses[index] === "loading" || isRedirecting
                       }
+                      className="font-semibold"
+                      onClick={() => lsiKeyowrds(file_id, index, keyword)}
                     >
                       LSI Agent
                     </button>
 
                     <button
-                      disabled={rowStatuses[index] === "loading"}
+                      disabled={
+                        rowStatuses[index] === "loading" || isRedirecting
+                      }
                       className="px-5 py-2 text-sm font-semibold rounded-xl text-white  hover:bg-amber-600 disabled:opacity-50 transition"
                       style={{ backgroundColor: "#1397cb" }}
-                      onClick={() =>
-                        contentbrief(file_id, keyword, index, url[index] || "")
-                      }
+                      onClick={() => contentbrief(file_id, index, keyword)}
                     >
                       Article Agent
                     </button>

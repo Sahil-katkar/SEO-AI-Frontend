@@ -24,6 +24,7 @@ export default function Analysis() {
 
   const [isEditingLSI, setIsEditingLSI] = useState(false);
   const [isGeneratingLSI, setIsGeneratingLSI] = useState(false);
+  const [isLSIApproved, setIsLSIApproved] = useState(false);
 
   const router = useRouter();
   const params = useParams();
@@ -381,7 +382,7 @@ export default function Analysis() {
       setIsLoading(true);
       const { data, error } = await supabase
         .from("analysis")
-        .select("lsi_keywords, updated_lsi_keywords, comp_analysis")
+        .select("lsi_keywords, updated_lsi_keywords, comp_analysis, status")
         .eq("row_id", row_id)
         .single();
 
@@ -397,6 +398,10 @@ export default function Analysis() {
       }
 
       if (data) {
+        if (data.status === "Approved") {
+          setIsLSIApproved(true);
+        }
+
         // --- Populate lsiData (for "Original Generated LSI" - Read-Only) ---
         let parsedLsiFromDb = [];
         if (data.lsi_keywords) {
@@ -486,7 +491,8 @@ export default function Analysis() {
                     className="p-2 text-blue-600 hover:text-blue-800 transition-colors rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500"
                     title="Edit All Current LSI Keywords"
                   >
-                    <Pencil className="h-5 w-5" />
+                    Edit
+                    {/* <Pencil className="h-5 w-5" /> */}
                   </button>
                 ) : (
                   <>
@@ -496,15 +502,17 @@ export default function Analysis() {
                       title="Save All Changes"
                       disabled={isLoading}
                     >
-                      <Save className="h-5 w-5" />
+                      Save
+                      {/* <Save className="h-5 w-5" /> */}
                     </button>
                     <button
                       onClick={handleCancelLSI}
-                      className="p-2 text-red-600 hover:text-red-800 transition-colors rounded-full focus:outline-none focus:ring-2 focus:ring-red-500"
+                      className=""
                       title="Cancel All Editing"
                       disabled={isLoading}
                     >
-                      <X className="h-5 w-5" />
+                      Close
+                      {/* <X className="h-5 w-5" /> */}
                     </button>
                   </>
                 )}
@@ -514,8 +522,8 @@ export default function Analysis() {
             {/* Display message if no LSI data is present and not currently generating */}
             {lsiData.length === 0 && !isGeneratingLSI && !isLoading && (
               <div className="text-center py-10 text-gray-500 text-lg">
-                No LSI keywords available. Please click "Generate New LSI" to
-                get started.
+                No LSI keywords available. Please click &quot;Generate New
+                LSI&quot; to get started.
               </div>
             )}
 
@@ -744,7 +752,10 @@ export default function Analysis() {
               onClick={handleApprove}
               className="bg-green-600 text-white px-7 py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
               disabled={
-                !hasCurrentLsiDataToDisplay || isEditingLSI || isLoading
+                !hasCurrentLsiDataToDisplay ||
+                isEditingLSI ||
+                isLoading ||
+                isLSIApproved
               }
               title={
                 !hasCurrentLsiDataToDisplay
@@ -754,14 +765,14 @@ export default function Analysis() {
                   : "Approve LSI keywords"
               }
             >
-              Approve LSI Keywords
+              {isLSIApproved ? "LSI Keywords Approved" : "Approve LSI Keywords"}
             </button>
 
             <button
               onClick={handleNext}
               className="bg-blue-600 text-white px-7 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
             >
-              Next Step
+              Next
             </button>
           </div>
         </main>

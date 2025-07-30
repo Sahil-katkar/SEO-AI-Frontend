@@ -14,6 +14,8 @@ export async function POST(request) {
       outline,
       section,
       citable_summary,
+      outline_count,
+      ai_studio_check,
     } = await request.json();
 
     const payload = {
@@ -24,6 +26,8 @@ export async function POST(request) {
       outline,
       section,
       citable_summary,
+      outline_count,
+      ai_studio_check,
     };
 
     console.log("payload", payload);
@@ -34,7 +38,10 @@ export async function POST(request) {
       !lsi_keywords ||
       !persona ||
       !outline ||
-      !section
+      !section ||
+      !citable_summary ||
+      !outline_count ||
+      !ai_studio_check
     ) {
       return NextResponse.json(
         { error: "All inputs are required" },

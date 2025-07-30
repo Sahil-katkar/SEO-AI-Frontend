@@ -31,6 +31,7 @@ export function AppProvider({ children }) {
     isCompetitorAnalysisFetched: false,
     isValueAddFetched: false,
     isMissionPlanFetched: false,
+    usedKeyword: "",
   });
 
   const STEPS = [

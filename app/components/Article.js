@@ -13,7 +13,9 @@ export default function Article({
   // console.log("articleH2Count", articleH2Count);
   const supabase = createClientComponentClient();
   const [sectionIsGenerating, setSectionIsGenerating] = useState(false);
-  const [articleSections, setArticleSections] = useState(updatedArticleResponseData);
+  const [articleSections, setArticleSections] = useState(
+    updatedArticleResponseData
+  );
   const [articleSectionCount, setArticleSectionCount] = useState(0);
   const [articleSectionGenerateCount, setArticleSectionGenerateCount] =
     useState(1);
@@ -22,7 +24,7 @@ export default function Article({
   // );
 
   // console.log("updatedArticleResponseData",updatedArticleResponseData);
-  
+
   const [showPreviousArticlesTable, setShowPreviousArticlesTable] =
     useState(false);
   const [density, setDensity] = useState(null);
@@ -63,6 +65,8 @@ export default function Article({
       outline: outline?.[0]?.new_outline || "", // extract string
       section: String(section), // ensure string
       citable_summary: citable_summary[0].citable_answer,
+      outline_count: 14,
+      ai_studio_check: true,
     };
 
     // const calculateSectionCount = async (outline) => {
@@ -212,9 +216,7 @@ export default function Article({
 
       // Combine old string + new entries
       const originalKeywordsStr = entry.lsi_keywords || "";
-      const finalLsiKeywordsStr = [
-        parsedUpdatedKeywords
-      ].join(",");
+      const finalLsiKeywordsStr = [parsedUpdatedKeywords].join(",");
 
       return {
         url: entry.url,
@@ -335,9 +337,7 @@ export default function Article({
 
   return (
     <div className="flex flex-col md:flex-row gap-6">
-      <div
-        className={`w-full p-6 rounded-xl shadow-md border border-gray-200`}
-      >
+      <div className={`w-full p-6 rounded-xl shadow-md border border-gray-200`}>
         <h4 className="text-lg font-semibold text-black-700 mb-4">
           Generated Article
         </h4>
@@ -389,13 +389,13 @@ export default function Article({
             )}
 
             {/* {articleSectionGenerateCount > articleSectionCount && ( */}
-              <button
-                disabled={sectionIsGenerating}
-                className=""
-                onClick={() => handleSaveGdrive(articleSections, row_id)}
-              >
-                Save to Google Drive
-              </button>
+            <button
+              disabled={sectionIsGenerating}
+              className=""
+              onClick={() => handleSaveGdrive(articleSections, row_id)}
+            >
+              Save to Google Drive
+            </button>
             {/* )} */}
           </div>
           {sectionIsGenerating && <Loader />}
@@ -406,15 +406,15 @@ export default function Article({
 
           {/* Button to show/hide the Density Table */}
           {/* {articleSectionGenerateCount > articleSectionCount && ( */}
-            <button
-              disabled={sectionIsGenerating}
-              onClick={toggleTableVisibility}
-              className="mb-4 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-            >
-              {showPreviousArticlesTable
-                ? "Hide Density Table"
-                : "Show Density Table"}
-            </button>
+          <button
+            disabled={sectionIsGenerating}
+            onClick={toggleTableVisibility}
+            className="mb-4 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+          >
+            {showPreviousArticlesTable
+              ? "Hide Density Table"
+              : "Show Density Table"}
+          </button>
           {/* )} */}
 
           {/* Conditional rendering for the table section */}
@@ -441,9 +441,7 @@ export default function Article({
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                           Needed Count
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-
-                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase"></th>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
@@ -460,7 +458,7 @@ export default function Article({
                               {parseFloat(values[1]).toFixed(4)}
                             </td>
                             <td className="px-6 py-4 text-sm text-gray-500">
-                              {parseFloat(values[2]).toFixed(2)}%
+                              {parseFloat(values[2]).toFixed(2)}
                             </td>
                           </tr>
                         )

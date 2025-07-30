@@ -219,7 +219,7 @@ export default function Step1_ConnectGDrive() {
         .upsert(formattedRows, { onConflict: "row_id" });
       if (error) throw error;
       router.push(`/keywords/${fileId}`);
-      toast.success("File processed and data inserted!");
+      toast.success("File processed successfully!");
     } catch (e) {
       setError(e.message || "Something went wrong.");
       toast.error(`❌ ${e.message}`);
